@@ -586,7 +586,7 @@ function onYouTubeIframeAPIReady(){
     width:'100%', height:'100%',
     playerVars: { autoplay:1, controls:1, rel:0, modestbranding:1, iv_load_policy:3, fs:0, playsinline:1, disablekb:1, cc_load_policy:0 },
     events: {
-      onReady: () => { ready = true; if (idx>=0) playIndex(idx, true); else maybeAutoStart(); },
+      onReady: () => { ready = true; if (idx>=0) playIndex(idx, true); else maybeAutoStart(); if (BENCH) benchSecondPlayer(); },
       onStateChange: e => {
         if (e.data === YT.PlayerState.ENDED) { showCover('다음 영상…'); setTimeout(()=>step(1), 150); }
         if (e.data === YT.PlayerState.PLAYING) { hideCover(); captionsOff(); adUnmute(); }
@@ -620,6 +620,16 @@ function captionsOff(){
 let adMuted = false;
 function adMute(){ try { if (!player.isMuted()) { player.mute(); adMuted = true; } } catch {} }
 function adUnmute(){ if (adMuted) { try { player.unMute(); } catch {} adMuted = false; } }
+// 측정용(?bench=1): 숨긴 두 번째 플레이어에 다음 영상을 '불러오기만'(cue) 해서 플레이어 하나가 더 있을 때의
+// 메모리·네트워크 비용을 잰다. 재생하지 않으므로 광고도 나오지 않는다 (광고 미리 소진 용도로 쓰지 말 것)
+const BENCH = new URLSearchParams(location.search).get('bench') === '1';
+function benchSecondPlayer(){
+  const next = items.find((x, i) => i !== idx && !x.bad) || items[0];
+  if (!next) return;
+  const d = document.createElement('div'); d.style.cssText = 'position:fixed;left:-9999px;top:0;width:640px;height:360px';
+  d.innerHTML = '<div id="benchPlayer"></div>'; document.body.appendChild(d);
+  new YT.Player('benchPlayer', { width: 640, height: 360, videoId: next.id, playerVars: { autoplay: 0, mute: 1 } });
+}
 function showCover(t){ const c=$('#cover'); c.textContent=t; c.classList.remove('hidden'); }
 function hideCover(){ $('#cover').classList.add('hidden'); }
 function togglePlay(){
