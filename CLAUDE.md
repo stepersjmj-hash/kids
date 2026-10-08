@@ -61,6 +61,7 @@
   뒤로 키는 `window.kidsTvBack()` (목록 닫았으면 true). 페이지 키 처리는 `handleKey()` 하나로 통일
 - 앱(body.app)에서 ←/→ = 하단 바 버튼 포커스 이동(`barIdx`/`barMark`, 노란 .kfocus), 가운데 = 그 버튼 클릭. ↑↓ = 목록(맨 위에
   🔄 새로고침·🔑 재로그인 기능 줄, `tvActions`). PC 키보드는 ←/→ 이전/다음 그대로
+- 앱 전체화면 = `body.full`(하단 바 숨김, ⛶ 버튼). 뒤로 순서: 목록 닫기 → 전체화면 해제 → 앱의 "한 번 더 누르면 종료"
 - Chromecast 리모컨엔 **메뉴 키 없음** → 로그인 화면 새 코드는 가운데 버튼
 - 페이지 최신화: 앱이 `?_v=시각` 붙여 로드, 10분 넘게 백그라운드였다 돌아오면 재로드, `KidsTV.reload()`(🔄). `settings.last` 로 보던 영상부터 이어 재생
 - TV용 OAuth 클라이언트(유형 "TV 및 제한된 입력 기기")의 ID/secret 은 `android-tv/local.properties`
