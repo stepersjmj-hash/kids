@@ -74,7 +74,7 @@
   #tvItems { flex:1; overflow:hidden; display:flex; flex-direction:column; gap:1.2vh; }
   .tvi { display:flex; align-items:center; gap:2vw; padding:1vh 1vw; border-radius:1.4vh; border:.4vh solid transparent; flex:none; }
   .tvi img { width:19vh; height:10.7vh; object-fit:cover; border-radius:1vh; background:#000; flex:none; }
-  .tvi span { font-size:3vh; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .tvi span { flex:1; min-width:0; font-size:3vh; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
   .tvi.sel { border-color:var(--ok); background:#1a2a22; }
   .tvi.cur span::before { content:'▶ '; color:var(--ok); }
   body.app #btnImportYt, body.app #bookmarkHint { display:none; }
