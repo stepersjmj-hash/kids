@@ -102,7 +102,8 @@
 - 셔플은 UI 에서 뺌(#btnShuffle 숨김, S 키 없음, 시작 때 settings.shuffle=false 고정). 코드 경로(rebuildOrder 의 셔플)는 남아 있음
 - PC·폰 전체화면 = `#frame.requestFullscreen()`(영상 틀만). 거부되거나 800ms 안에 응답 없거나 API 없음(아이폰 사파리) → `setFull(true)`(body.full CSS 전체화면) + #fsExit ✕ / Esc.
   Claude 앱 내장 브라우저는 요소 전체화면을 안 받아 항상 fallback 으로 떨어짐 — 실제 크롬에서 확인할 것
-- 목록 순서 변경: PC 는 HTML5 DnD(`.item[draggable]`, `moveItem`), 폰(`pointer:coarse`)은 손잡이 Pointer Events 로 DOM 을 직접 옮긴 뒤 `moveItem`,
+- 목록 순서 변경: PC 는 HTML5 DnD(`.item[draggable]`, `moveItem`), 폰(`pointer:coarse`)은 손잡이 Pointer Events — **끄는 동안 DOM 을 옮기면(insertBefore) 포인터 캡처가 풀려
+  pointerup 이 안 옴** → 행은 transform 으로만 띄우고 표시선(.drop-before/after)으로 자리 표시, 손 뗄 때 `moveItem` 한 번. 리스너는 document 에 걸어 캡처와 무관하게 받음,
   행 왼쪽 스와이프 = 삭제(`attachTouch`, `.item { touch-action:pan-y }`): 행 오른쪽 바깥에 붙은 `.swipeBg`(left:100%, z-index:-1, #list overflow-x:hidden)가 드러나고
   80px 넘으면 `.willDelete`, 놓으면 `askDelete()` 확인 레이어(#confirm) → 삭제/취소. ▲▼ 버튼은 없앰
 - 진행 막대 `tickProgress` 500ms + 클릭·드래그 이동(`scrubbing` 중엔 tick 멈춤, 놓을 때 seekTo), 제목 옆 점 `renderDots`(order 기준, 25개 넘으면 숫자), TV 이전·다음 썸네일 `renderDeck`, ⏯ 아이콘은 PLAYING/BUFFERING 때 정지 모양
