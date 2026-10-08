@@ -101,6 +101,7 @@ class MainActivity : Activity() {
             showLogin()
         }
         @JavascriptInterface fun isApp() = true
+        @JavascriptInterface fun reload() = main.post { loadPage() }   // TV 목록의 "새로고침" 줄
     }
 
     private fun inject() {
@@ -142,7 +143,9 @@ class MainActivity : Activity() {
                 web.evaluateJavascript("window.kidsTvKey && window.kidsTvKey('$jsKey')", null)
             return true
         }
-        // 메뉴 키 → 로그인 화면 (계정 바꾸기)
+        // 로그인 화면에서 가운데 버튼 → 새 코드 (Chromecast 리모컨엔 메뉴 키가 없음). 메뉴 키가 있는 리모컨은 메뉴 키도 동작
+        if (loginView.visibility == View.VISIBLE && event.action == KeyEvent.ACTION_UP && (event.keyCode == KeyEvent.KEYCODE_DPAD_CENTER || event.keyCode == KeyEvent.KEYCODE_ENTER)) { if (!polling) { loginCode.text = ""; startDeviceLogin() }; return true }
+        if (loginView.visibility == View.VISIBLE && (event.keyCode == KeyEvent.KEYCODE_DPAD_CENTER || event.keyCode == KeyEvent.KEYCODE_ENTER)) return true
         if (event.keyCode == KeyEvent.KEYCODE_MENU && event.action == KeyEvent.ACTION_UP) { startDeviceLogin(); return true }
         return super.dispatchKeyEvent(event)
     }
@@ -209,12 +212,12 @@ class MainActivity : Activity() {
                     loginCode.text = user
                     loginQr.setImageBitmap(qr(url, 360))
                     loginMsg.text = (notice?.let { "$it\n" } ?: "") +
-                        "휴대폰으로 QR을 찍거나 $url 에 접속해 위 코드를 입력하세요.\n뒤로 버튼: 닫기 · 메뉴 버튼: 새 코드"
+                        "휴대폰으로 QR을 찍거나 $url 에 접속해 위 코드를 입력하세요.\n뒤로 버튼: 닫기 · 가운데 버튼: 새 코드"
                 }
                 pollToken(j.getString("device_code"), j.optLong("interval", 5), System.currentTimeMillis() + j.optLong("expires_in", 1800) * 1000)
             } catch (e: Exception) {
                 polling = false
-                main.post { loginMsg.text = "네트워크 오류: ${e.message}\n메뉴 버튼을 눌러 다시 시도하세요." }
+                main.post { loginMsg.text = "네트워크 오류: ${e.message}\n가운데 버튼을 눌러 다시 시도하세요." }
             }
         }
     }
@@ -242,13 +245,13 @@ class MainActivity : Activity() {
                 when (j.optString("error")) {
                     "authorization_pending" -> {}
                     "slow_down" -> interval += 5
-                    "access_denied" -> { main.post { loginMsg.text = "로그인이 거부되었습니다. 메뉴 버튼을 눌러 다시 시도하세요." }; return }
-                    else -> { main.post { loginMsg.text = "로그인 실패: ${j.optString("error")}. 메뉴 버튼을 눌러 다시 시도하세요." }; return }
+                    "access_denied" -> { main.post { loginMsg.text = "로그인이 거부되었습니다. 가운데 버튼을 눌러 다시 시도하세요." }; return }
+                    else -> { main.post { loginMsg.text = "로그인 실패: ${j.optString("error")}. 가운데 버튼을 눌러 다시 시도하세요." }; return }
                 }
             }
-            main.post { loginMsg.text = "코드가 만료되었습니다. 메뉴 버튼을 눌러 새 코드를 받으세요." }
+            main.post { loginMsg.text = "코드가 만료되었습니다. 가운데 버튼을 눌러 새 코드를 받으세요." }
         } catch (e: Exception) {
-            main.post { loginMsg.text = "네트워크 오류: ${e.message}\n메뉴 버튼을 눌러 다시 시도하세요." }
+            main.post { loginMsg.text = "네트워크 오류: ${e.message}\n가운데 버튼을 눌러 다시 시도하세요." }
         } finally {
             polling = false
         }

@@ -59,6 +59,10 @@
   `window.kidsTvToken(t, exp)` 로 페이지에 주입(만료 10분 전 갱신). 페이지의 login/logout 은 `window.KidsTV` 로 앱 호출
 - 리모컨: WebView 기본 포커스 이동이 방향키를 먹으므로 앱 `dispatchKeyEvent` 에서 가로채 `window.kidsTvKey(key)` 로 전달.
   뒤로 키는 `window.kidsTvBack()` (목록 닫았으면 true). 페이지 키 처리는 `handleKey()` 하나로 통일
+- 앱(body.app)에서 ←/→ = 하단 바 버튼 포커스 이동(`barIdx`/`barMark`, 노란 .kfocus), 가운데 = 그 버튼 클릭. ↑↓ = 목록(맨 위에
+  🔄 새로고침·🔑 재로그인 기능 줄, `tvActions`). PC 키보드는 ←/→ 이전/다음 그대로
+- Chromecast 리모컨엔 **메뉴 키 없음** → 로그인 화면 새 코드는 가운데 버튼
+- 페이지 최신화: 앱이 `?_v=시각` 붙여 로드, 10분 넘게 백그라운드였다 돌아오면 재로드, `KidsTV.reload()`(🔄). `settings.last` 로 보던 영상부터 이어 재생
 - TV용 OAuth 클라이언트(유형 "TV 및 제한된 입력 기기")의 ID/secret 은 `android-tv/local.properties`
   (`tv.clientId`, `tv.clientSecret`) — git 제외. 공개 저장소에 절대 커밋하지 말 것
 - 테스트 모드는 refresh token 7일 만료 → 콘솔에서 앱 게시(프로덕션) 권장
