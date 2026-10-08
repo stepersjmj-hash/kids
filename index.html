@@ -254,7 +254,10 @@ async function openGoogleModal(){
   const list = $('#gList'); $('#gModal').hidden = false;
   list.innerHTML = '<div class="src"><div class="n">목록 불러오는 중…</div></div>';
   try {
-    const pls = await yt('playlists', { part: 'snippet,contentDetails,status', mine: 'true' });
+    // 유튜브 채널이 없는 계정은 playlists 가 "Channel not found" 로 실패 → 좋아요만이라도 보여준다
+    let pls = [], plErr = '';
+    try { pls = await yt('playlists', { part: 'snippet,contentDetails,status', mine: 'true' }); }
+    catch (e) { plErr = /channel not found/i.test(e.message) ? '이 계정에는 유튜브 채널이 없어 재생목록을 읽을 수 없습니다. 로그인 시 채널이 있는 계정(브랜드 계정 포함)을 고르세요.' : e.message; }
     const srcs = [{ kind: 'like', title: '👍 좋아요 표시한 동영상', sub: '' },
       ...pls.map(p => ({ kind: 'pl', id: p.id, title: '📁 ' + p.snippet.title, priv: p.status.privacyStatus,
         sub: `${p.contentDetails.itemCount}개 · ${({public:'공개',unlisted:'일부 공개',private:'비공개'})[p.status.privacyStatus] || ''}` }))];
@@ -267,6 +270,7 @@ async function openGoogleModal(){
       d.onclick = e => { const m = e.target.dataset.m; if (m) importSource(src, m); };
       list.appendChild(d);
     }
+    if (plErr) list.insertAdjacentHTML('beforeend', `<div class="src"><div class="n">📁 내 재생목록<small>⚠ ${esc(plErr)}</small></div></div>`);
   } catch (e) {
     console.error(e);
     if (/401|invalid|credential/i.test(e.message)) gToken = null;
@@ -293,7 +297,10 @@ async function importSource(src, mode){
     save(); rebuildOrder(); render();
     $('#gModal').hidden = true;
     toast(`${added}개 가져옴`);
-  } catch (e) { console.error(e); toast('가져오기 실패: ' + e.message); }
+  } catch (e) {
+    console.error(e);
+    toast(/channel not found/i.test(e.message) ? '이 계정에는 유튜브 채널이 없습니다 — 채널이 있는 계정으로 로그인하세요' : '가져오기 실패: ' + e.message);
+  }
 }
 
 /* ---------- 제목 가져오기 (oEmbed) ---------- */
