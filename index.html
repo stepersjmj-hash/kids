@@ -244,6 +244,8 @@ function linkPlaylist(pl){
 // 권한은 youtube.readonly + drive.file(이 앱이 만든 파일만) + drive.appdata(예전 저장 위치 이전용)
 const TOKEN_KEY = 'home-playlist-gtoken';
 let gToken = null, gTokenExp = 0, gClient = null;
+// 유튜브 가져오기용 토큰은 따로 (youtube.readonly 와 drive.file 은 한 요청에 같이 못 넣음: invalid_request)
+let ytToken = null, ytTokenExp = 0, ytClient = null;
 function restoreToken(){
   try {
     const o = JSON.parse(localStorage.getItem(TOKEN_KEY));
@@ -260,16 +262,23 @@ function initGoogle(){
   t.onload = () => {
     gClient = google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
-      scope: 'openid email profile https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata',
-      error_callback: () => { pendingImport = false; },   // 팝업 닫음 등
+      scope: 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata',
       callback: r => {
-        if (r.error) { pendingImport = false; toast('로그인 실패: ' + r.error); return; }
+        if (r.error) { toast('로그인 실패: ' + r.error); return; }
         gToken = r.access_token; gTokenExp = Date.now() + (r.expires_in - 60) * 1000;
         try { localStorage.setItem(TOKEN_KEY, JSON.stringify({ t: gToken, exp: gTokenExp })); } catch {}
         updateAuthUI(); loadProfile();
         if (google.accounts.oauth2.hasGrantedAllScopes(r, 'https://www.googleapis.com/auth/drive.file')) driveSync();
         else setSyncStatus('warn', '⚠ 드라이브 권한이 허용되지 않아 동기화가 꺼져 있습니다 (다시 로그인해서 체크)');
-        if (pendingImport) { pendingImport = false; openGoogleModal(); }
+      }
+    });
+    ytClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/youtube.readonly',
+      callback: r => {
+        if (r.error) { toast('유튜브 권한 실패: ' + r.error); return; }
+        ytToken = r.access_token; ytTokenExp = Date.now() + (r.expires_in - 60) * 1000;
+        openGoogleModal();
       }
     });
   };
@@ -375,23 +384,18 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) driv
 setInterval(() => { if (!document.hidden) driveSync(); }, 60000);
 setInterval(() => { if (gToken && !loggedIn()) { gToken = null; updateAuthUI(); setSyncStatus('warn', '⚠ 로그인이 만료되어 동기화가 멈췄습니다 — Google 로그인을 다시 눌러주세요'); } }, 30000);
 
-/* 로그인한 계정 표시: 구글 계정 정보(userinfo) → 안 되면 유튜브 채널 정보 */
+/* 로그인한 계정 표시: 구글 계정 정보(userinfo) */
 const PROFILE_KEY = 'home-playlist-gprofile';
 let gProfile = null;
 async function loadProfile(){
   const get = async url => { const r = await fetch(url, { headers: { Authorization: 'Bearer ' + gToken } }); if (!r.ok) throw r.status; return r.json(); };
   let p = null;
-  try { const u = await get('https://www.googleapis.com/oauth2/v3/userinfo'); p = { name: u.name, email: u.email, picture: u.picture }; }
-  catch {
-    try { const c = (await get('https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true')).items?.[0]?.snippet;
-          if (c) p = { name: c.title, email: '', picture: c.thumbnails?.default?.url }; } catch {}
-  }
+  try { const u = await get('https://www.googleapis.com/oauth2/v3/userinfo'); p = { name: u.name, email: u.email, picture: u.picture }; } catch {}
   gProfile = p;
   try { p ? localStorage.setItem(PROFILE_KEY, JSON.stringify(p)) : localStorage.removeItem(PROFILE_KEY); } catch {}
   updateAuthUI();
 }
 const accountText = () => gProfile ? (gProfile.email || gProfile.name || '') : '';
-let pendingImport = false;   // 로그아웃 상태에서 '가져오기'를 누른 경우 로그인 후 바로 열기
 function updateAuthUI(){
   const on = loggedIn(), av = $('#gAvatar');
   if (!on) gProfile = null;
@@ -411,7 +415,7 @@ function login(){
 // 목록과 동기화 기준(base)은 남겨 두어 다시 로그인하면 이어서 병합
 function logout(){
   if (TVAPP) KidsTV.logout();
-  gToken = null; gTokenExp = 0; clearTimeout(driveTimer);
+  gToken = null; gTokenExp = 0; ytToken = null; ytTokenExp = 0; clearTimeout(driveTimer);
   try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(PROFILE_KEY); } catch {}
   updateAuthUI(); $('#gModal').hidden = true;
   setSyncStatus('', '☁ 로그아웃됨 — 목록은 이 기기에 남아 있고, 다시 로그인하면 이어서 동기화됩니다');
@@ -419,14 +423,15 @@ function logout(){
 }
 function googleClick(){ loggedIn() ? logout() : login(); }
 function importClick(){
-  if (loggedIn()) { openGoogleModal(); return; }
-  pendingImport = true; login();
+  if (ytToken && Date.now() < ytTokenExp) { openGoogleModal(); return; }
+  if (!ytClient) { toast('Google 로그인 준비 중… 잠시 후 다시 눌러주세요'); return; }
+  ytClient.requestAccessToken();   // 유튜브 읽기 권한만 따로 요청 (클릭 직후 동기 호출 → 팝업 허용)
 }
 async function yt(path, params){
   const out = []; let pageToken = '';
   do {
     const q = new URLSearchParams({ ...params, maxResults: 50, ...(pageToken ? { pageToken } : {}) });
-    const r = await fetch(`https://www.googleapis.com/youtube/v3/${path}?${q}`, { headers: { Authorization: 'Bearer ' + gToken } });
+    const r = await fetch(`https://www.googleapis.com/youtube/v3/${path}?${q}`, { headers: { Authorization: 'Bearer ' + ytToken } });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error?.message || r.status);
     out.push(...(j.items || [])); pageToken = j.nextPageToken || '';
@@ -456,7 +461,7 @@ async function openGoogleModal(){
     if (plErr) list.insertAdjacentHTML('beforeend', `<div class="src"><div class="n">📁 내 재생목록<small>⚠ ${esc(plErr)}</small></div></div>`);
   } catch (e) {
     console.error(e);
-    if (/401|invalid|credential/i.test(e.message)) gToken = null;
+    if (/401|invalid|credential/i.test(e.message)) ytToken = null;
     list.innerHTML = `<div class="src"><div class="n">불러오지 못했습니다<small>${esc(e.message)}</small></div></div>`;
   }
 }

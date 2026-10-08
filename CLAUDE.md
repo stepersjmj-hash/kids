@@ -28,7 +28,9 @@
 - 로컬 실행: `serve.bat` (python http.server 8765, 127.0.0.1 바인딩)
 
 ## 로그인 UI
-- 범위: `openid email profile` + youtube.readonly + drive.appdata. 계정 표시는 userinfo(v3) → 실패 시 유튜브 채널 snippet
+- 로그인 범위: `openid email profile drive.file drive.appdata`. **youtube.readonly 는 drive.file 과 한 요청에 못 넣음**
+  (invalid_request "cannot be requested together") → 유튜브 가져오기는 별도 토큰 클라이언트(`ytClient`/`ytToken`, 메모리만)
+- 계정 표시는 userinfo(v3)
 - 프로필은 토큰과 함께 localStorage `home-playlist-gprofile` (로그아웃·401 시 삭제)
 - 로그아웃 = 로컬 토큰 삭제만 (revoke 안 함 → 재로그인 때 동의 화면 생략). drive base 는 유지
 
