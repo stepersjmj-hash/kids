@@ -31,6 +31,10 @@
   #logo img { width:24px; height:24px; border-radius:7px; display:block; flex:none; }
   #logo span { font:400 15px/24px var(--jua); padding-top:2px; }
   #logo br { display:none; }
+  #logo .sp { flex:1; }
+  #logo .chip { height:32px; padding:0 12px; }
+  #logo .chip span { font-size:14px; }
+  body.app #logo .chip, body.app #logo .sp { display:none; }
   #pickHint { display:none; }
   #frame { position:relative; width:min(980px, 100%, calc((100dvh - 330px) * 16 / 9)); aspect-ratio:16/9; border:10px solid #fff; border-radius:34px; background:var(--video); box-shadow:0 14px 30px rgba(120,80,30,.16); margin-top:16px; flex:none; overflow:hidden; }
   #player-wrap { position:relative; width:100%; height:100%; overflow:hidden; border-radius:24px; background:var(--video); }
@@ -332,7 +336,10 @@
 <body>
 
 <div id="stage">
-  <div id="logo"><img src="ic_launcher.png" alt=""><span>우리집 <br>재생목록</span></div>
+  <div id="logo"><img src="ic_launcher.png" alt=""><span>우리집 <br>재생목록</span><i class="sp"></i>
+    <button id="btnTv" class="chip" title="TV 모드: 목록 숨김 (T)"><span>TV 모드</span></button>
+    <button id="btnApp" class="chip" title="TV 앱 화면 미리보기 (?app=1)"><span>앱 모드</span></button>
+  </div>
   <div id="pickHint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg><span>골라 보기</span></div>
   <div id="frame"><button id="fsExit" title="전체화면 해제 (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div id="player-wrap">
     <div class="yt" id="wrapA"><div id="playerA"></div></div>
@@ -354,7 +361,6 @@
     </div>
     <div class="r">
       <div id="nextThumb" class="thumbNav empty"><span>다음</span><img alt=""></div>
-      <button id="btnTv" class="chip" title="TV 모드: 목록 숨김 (T)"><span>TV</span></button>
       <button id="btnFull" class="chip ico" title="전체화면 (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></svg><span>전체화면</span></button>
       <button id="btnReload" class="chip ico" title="새로고침: 최신 목록·버전 받기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5.5h-5.5"/></svg><span>새로고침</span></button>
     </div>
@@ -1130,6 +1136,7 @@ $('#btnLoop').onclick = () => { settings.loop=!settings.loop; save(); render(); 
 $('#btnShuffle').onclick = () => { settings.shuffle=!settings.shuffle; save(); rebuildOrder(); render(); preloadNext(); };
 $('#btnReload').onclick = () => TVAPP && KidsTV.reload ? KidsTV.reload() : location.reload();
 $('#btnTv').onclick = () => { settings.tv=!settings.tv; save(); render(); };
+$('#btnApp').onclick = () => { const u = new URL(location.href); u.searchParams.set('app', '1'); location.href = u; };
 $('#btnFull').onclick = () => {
   if (TVAPP) { setFull(true); return; }   // 앱: 영상 틀만 화면 가득 (뒤로 버튼으로 해제)
   if (document.fullscreenElement) { document.exitFullscreen(); return; }
