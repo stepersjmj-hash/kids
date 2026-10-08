@@ -47,6 +47,7 @@
   .item .t small { display:block; color:var(--sub); font-size:11px; margin-top:2px; }
   .item .ops { display:flex; flex-direction:column; gap:3px; }
   .item .ops button { padding:2px 6px; font-size:11px; line-height:1.4; }
+  #hint a { color:var(--ok); }
   #hint { padding:8px 14px 12px; color:var(--sub); font-size:12px; line-height:1.5; border-top:1px solid var(--line); }
   #link { margin-top:8px; font-size:12px; color:var(--sub); display:flex; gap:6px; align-items:center; }
   #link.on { color:var(--ok); }
@@ -114,6 +115,7 @@
   <div id="list"></div>
   <div id="hint">
     키보드: Space 재생/정지 · ←/→ 이전/다음 · L 반복 · S 셔플 · T TV모드 · F 전체화면<br>
+    PC 유튜브에서 바로 추가: 이 버튼을 북마크바로 드래그 → <a id="bookmarklet" href="javascript:(()=>{window.open('https://stepersjmj-hash.github.io/kids/?add='+encodeURIComponent(location.href),'_blank')})()" onclick="event.preventDefault(); toast('클릭하지 말고 북마크바로 끌어다 놓으세요', 3000)">📌 재생목록에 추가</a><br>
     유튜브 재생목록 연결: 입력칸에 재생목록 URL 붙여넣기 또는 <code>?pl=재생목록ID</code><br>원격 JSON 목록: <code>?list=JSON주소</code>
   </div>
 </aside>
@@ -221,8 +223,18 @@ function linkPlaylist(pl){
 }
 
 /* ---------- Google 로그인으로 가져오기 (좋아요·내 재생목록) ---------- */
-// 토큰은 메모리에만 둔다(1시간 유효). 저장하지 않음.
+// 토큰은 만료 시각(약 1시간)까지만 localStorage 에 둔다 — 새 탭(?add=)에서도 바로 동기화되도록.
+// 권한은 youtube.readonly + drive.appdata(이 앱 전용 숨김 폴더)뿐
+const TOKEN_KEY = 'home-playlist-gtoken';
 let gToken = null, gTokenExp = 0, gClient = null;
+function restoreToken(){
+  try {
+    const o = JSON.parse(localStorage.getItem(TOKEN_KEY));
+    if (o && o.exp > Date.now()) { gToken = o.t; gTokenExp = o.exp; $('#gLabel').textContent = '가져오기'; return true; }
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {}
+  return false;
+}
 function initGoogle(){
   if (!GOOGLE_CLIENT_ID) return;
   const t = document.createElement('script');
@@ -235,6 +247,7 @@ function initGoogle(){
       callback: r => {
         if (r.error) { toast('로그인 실패: ' + r.error); return; }
         gToken = r.access_token; gTokenExp = Date.now() + (r.expires_in - 60) * 1000;
+        try { localStorage.setItem(TOKEN_KEY, JSON.stringify({ t: gToken, exp: gTokenExp })); } catch {}
         $('#gLabel').textContent = '가져오기';
         if (google.accounts.oauth2.hasGrantedAllScopes(r, 'https://www.googleapis.com/auth/drive.appdata')) driveSync();
         else setSyncStatus('warn', '⚠ 드라이브 권한이 허용되지 않아 동기화가 꺼져 있습니다 (다시 로그인해서 체크)');
@@ -254,7 +267,7 @@ const loggedIn = () => gToken && Date.now() < gTokenExp;
 function scheduleDriveSync(){ if (!loggedIn()) return; clearTimeout(driveTimer); driveTimer = setTimeout(driveSync, 1500); }
 async function drive(url, opt = {}){
   const r = await fetch(url, { ...opt, headers: { Authorization: 'Bearer ' + gToken, ...(opt.headers || {}) } });
-  if (r.status === 401) { gToken = null; $('#gLabel').textContent = 'Google 로그인'; throw new Error('로그인 만료'); }
+  if (r.status === 401) { gToken = null; localStorage.removeItem(TOKEN_KEY); $('#gLabel').textContent = 'Google 로그인'; throw new Error('로그인 만료'); }
   if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error?.message || r.status); }
   return r;
 }
@@ -566,9 +579,47 @@ document.addEventListener('keydown', e => {
   else if (k==='f'||k==='F') $('#btnFull').click();
 });
 
+/* ---------- ?add= : 유튜브 앱 공유(아이폰 단축어)·PC 북마클릿에서 넘어온 영상 추가 ---------- */
+// 이미 열려 있는 탭이 있으면 그 탭에 넘기고(BroadcastChannel) 이 탭은 닫는다 — 오래된 목록으로 덮어쓰는 것 방지
+const bc = 'BroadcastChannel' in window ? new BroadcastChannel('kids-playlist') : null;
+function addIds(ids){
+  let added = 0;
+  for (const id of ids) if (!items.some(x => x.id === id)) { items.push({ id, title: '' }); added++; }
+  if (added) { save(); rebuildOrder(); render(); fillTitles(); }
+  return added;
+}
+const addMsg = (n, total) => n ? `${n}개 추가됨` : (total ? '이미 목록에 있는 영상입니다' : '유효한 유튜브 주소가 없습니다');
+if (bc) bc.onmessage = e => {
+  if (e.data?.type !== 'add') return;
+  const n = addIds(e.data.ids);
+  bc.postMessage({ type: 'ack', nonce: e.data.nonce, n });
+  toast('다른 탭에서 ' + addMsg(n, e.data.ids.length), 3000);
+};
+function handleAddParam(raw){
+  history.replaceState(null, '', location.pathname + location.search.replace(/[?&]add=[^&]*/, '').replace(/^&/, '?'));
+  const ids = [...new Set(raw.split(/[\s,]+/).map(extractId).filter(Boolean))];
+  const local = () => {
+    const n = addIds(ids);
+    toast(addMsg(n, ids.length) + (n && !loggedIn() ? ' — Google 로그인을 누르면 다른 기기와 동기화됩니다' : ''), 4000);
+  };
+  if (!bc || !ids.length) { local(); return; }
+  const nonce = Math.random().toString(36).slice(2);
+  let acked = false;
+  bc.addEventListener('message', e => {
+    if (e.data?.type !== 'ack' || e.data.nonce !== nonce || acked) return;
+    acked = true;
+    showCover('열려 있는 재생목록 탭에 ' + addMsg(e.data.n, ids.length) + ' — 이 탭은 닫아도 됩니다');
+    window.close();                                   // 스크립트로 연 탭이면 닫힘
+    setTimeout(() => location.replace(location.pathname), 1500);  // 안 닫히면 최신 목록으로 새로고침
+  });
+  bc.postMessage({ type: 'add', ids, nonce });
+  setTimeout(() => { if (!acked) local(); }, 700);
+}
+
 /* ---------- 시작 ---------- */
 load();
 save._sig = items.map(x => x.id).join(',');
+const hadToken = restoreToken();
 const remote = new URLSearchParams(location.search).get('list');
 const plParam = new URLSearchParams(location.search).get('pl');
 if (plParam) settings.pl = extractPlaylistId(plParam) || plParam;
@@ -576,6 +627,9 @@ if (remote) loadRemote(remote); else if (settings.pl) syncPlaylist(); else fillT
 if (new URLSearchParams(location.search).get('tv')==='1') settings.tv = true;
 rebuildOrder(); render();
 initGoogle();
+if (hadToken) driveSync();
+const addParam = new URLSearchParams(location.search).get('add');
+if (addParam) handleAddParam(addParam);
 const tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(tag);
 </script>
 </body>

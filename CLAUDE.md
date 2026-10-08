@@ -36,6 +36,12 @@
 - 아동용(MFK) 영상은 유튜브 재생목록 저장·좋아요 기록이 막혀 있어 이 동기화가 주 경로
 - 테스트: 로그인 없이 브라우저 콘솔에서 `fetch` 를 가짜 드라이브로 바꾸고 `gToken`/`gTokenExp` 설정 후 `driveSync()` 호출
 
+## ?add= (아이폰 단축어 · PC 북마클릿)
+- `?add=URL[ 공백 URL…]` → 추가 후 URL에서 add 제거. BroadcastChannel('kids-playlist') 로 열린 탭에 먼저 넘기고
+  700ms 안에 ack 오면 이 탭은 window.close() (안 닫히면 새로고침) — 오래된 목록으로 localStorage 덮어쓰기 방지
+- 액세스 토큰은 만료 시각까지 localStorage `home-playlist-gtoken` 에 저장 (새 탭에서도 바로 동기화). 401이면 삭제
+- 북마클릿 href 는 index.html #bookmarklet (배포 주소 하드코딩)
+
 ## 관례·함정
 - 유튜브 재생목록 연결(`settings.pl`, `?pl=`): API 키 없이 숨긴 보조 YT.Player(#plLoader)를
   `playerVars.list`로 만들고 `getPlaylist()`로 ID 목록을 얻음. **기존 플레이어에 cuePlaylist 재호출은
