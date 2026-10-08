@@ -33,7 +33,8 @@
 - 로그아웃 = 로컬 토큰 삭제만 (revoke 안 함 → 재로그인 때 동의 화면 생략). drive base 는 유지
 
 ## 구글 드라이브 동기화
-- 범위 `drive.appdata` (Google Cloud 에서 Drive API 사용 설정 필요). appDataFolder 의 `playlist.json` = `{updatedAt, items:[{id,title}]}`
+- 범위 `drive.file` (Drive API 사용 설정 필요). 내 드라이브 루트의 `우리집 재생목록 (동기화).json` = `{updatedAt, items:[{id,title}]}`
+  — 같은 Cloud 프로젝트의 웹·TV 클라이언트가 같이 접근. 예전 appDataFolder/playlist.json 은 첫 동기화 때 자동 이전(웹만 drive.appdata 유지)
 - 기기별 마지막 동기화 상태를 localStorage `home-playlist-drive-base` 에 두고 3-way 병합(`mergeLists`):
   한쪽만 바뀌면 그쪽을 채택, 둘 다 바뀌면 로컬 + 원격 추가분 − 원격 삭제분
 - 동기화 트리거: 로그인 직후, 영상 구성/순서 변경 시 1.5초 디바운스(`save()` 의 id 서명 비교 — 제목·설정 변경은 제외),
@@ -51,7 +52,7 @@
 - Kotlin 단일 Activity(`MainActivity.kt`): WebView 로 `https://stepersjmj-hash.github.io/kids/?tv=1` 로드.
   재생·목록·동기화는 전부 페이지 담당 → **페이지만 고치면 앱 재설치 없이 반영** (WebView 캐시 최대 10분)
 - 로그인: WebView 안 구글 로그인은 차단됨 → OAuth **기기 코드 흐름**(QR + google.com/device), 범위
-  `openid email profile drive.appdata`. refresh token 은 SharedPreferences, 액세스 토큰은
+  `openid email profile drive.file` (기기 코드 흐름은 drive.appdata 불가 → "Invalid device flow scope"). refresh token 은 SharedPreferences, 액세스 토큰은
   `window.kidsTvToken(t, exp)` 로 페이지에 주입(만료 10분 전 갱신). 페이지의 login/logout 은 `window.KidsTV` 로 앱 호출
 - 리모컨: WebView 기본 포커스 이동이 방향키를 먹으므로 앱 `dispatchKeyEvent` 에서 가로채 `window.kidsTvKey(key)` 로 전달.
   뒤로 키는 `window.kidsTvBack()` (목록 닫았으면 true). 페이지 키 처리는 `handleKey()` 하나로 통일

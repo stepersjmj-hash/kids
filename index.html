@@ -241,7 +241,7 @@ function linkPlaylist(pl){
 
 /* ---------- Google 로그인으로 가져오기 (좋아요·내 재생목록) ---------- */
 // 토큰은 만료 시각(약 1시간)까지만 localStorage 에 둔다 — 새 탭(?add=)에서도 바로 동기화되도록.
-// 권한은 youtube.readonly + drive.appdata(이 앱 전용 숨김 폴더)뿐
+// 권한은 youtube.readonly + drive.file(이 앱이 만든 파일만) + drive.appdata(예전 저장 위치 이전용)
 const TOKEN_KEY = 'home-playlist-gtoken';
 let gToken = null, gTokenExp = 0, gClient = null;
 function restoreToken(){
@@ -260,14 +260,14 @@ function initGoogle(){
   t.onload = () => {
     gClient = google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
-      scope: 'openid email profile https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/drive.appdata',
+      scope: 'openid email profile https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata',
       error_callback: () => { pendingImport = false; },   // 팝업 닫음 등
       callback: r => {
         if (r.error) { pendingImport = false; toast('로그인 실패: ' + r.error); return; }
         gToken = r.access_token; gTokenExp = Date.now() + (r.expires_in - 60) * 1000;
         try { localStorage.setItem(TOKEN_KEY, JSON.stringify({ t: gToken, exp: gTokenExp })); } catch {}
         updateAuthUI(); loadProfile();
-        if (google.accounts.oauth2.hasGrantedAllScopes(r, 'https://www.googleapis.com/auth/drive.appdata')) driveSync();
+        if (google.accounts.oauth2.hasGrantedAllScopes(r, 'https://www.googleapis.com/auth/drive.file')) driveSync();
         else setSyncStatus('warn', '⚠ 드라이브 권한이 허용되지 않아 동기화가 꺼져 있습니다 (다시 로그인해서 체크)');
         if (pendingImport) { pendingImport = false; openGoogleModal(); }
       }
@@ -275,11 +275,14 @@ function initGoogle(){
   };
   document.head.appendChild(t);
 }
-/* ---------- 구글 드라이브 동기화 (appDataFolder/playlist.json) ----------
+/* ---------- 구글 드라이브 동기화 (내 드라이브의 '우리집 재생목록 (동기화).json') ----------
+   drive.file 범위: 이 앱(같은 Cloud 프로젝트)이 만든 파일만 보인다. TV 앱의 기기 코드 로그인은
+   drive.appdata 를 허용하지 않아서, 예전 appDataFolder/playlist.json 에서 이 파일로 옮겼다(첫 동기화 때 자동 이전).
    기기마다 '마지막으로 맞춘 상태(base)'를 기억해 두고 3-way 병합:
    양쪽이 다 바뀌었으면 로컬 기준 + 원격에서 새로 생긴 영상 추가 + 원격에서 지운 영상 삭제 */
 const BASE_KEY = 'home-playlist-drive-base';
-const DRIVE_FILE = 'playlist.json';
+const DRIVE_FILE = '우리집 재생목록 (동기화).json';
+const LEGACY_FILE = 'playlist.json';   // appDataFolder (이전용으로 읽기만)
 let driveFileId = null, driveBusy = null, driveTimer = null;
 function setSyncStatus(cls, text){ const el = $('#syncStatus'); el.className = cls; el.textContent = text; }
 const loggedIn = () => gToken && Date.now() < gTokenExp;
@@ -292,12 +295,18 @@ async function drive(url, opt = {}){
 }
 async function driveRead(){
   if (!driveFileId) {
-    const q = new URLSearchParams({ spaces: 'appDataFolder', q: `name='${DRIVE_FILE}'`, fields: 'files(id)' });
+    const q = new URLSearchParams({ q: `name='${DRIVE_FILE}' and trashed=false`, orderBy: 'modifiedTime desc', fields: 'files(id)' });
     const j = await (await drive('https://www.googleapis.com/drive/v3/files?' + q)).json();
     driveFileId = j.files?.[0]?.id || null;
   }
-  if (!driveFileId) return null;
-  return (await drive(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`)).json();
+  if (driveFileId) return (await drive(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`)).json();
+  // 새 파일이 아직 없으면 예전 위치(appDataFolder)에서 가져와 이전한다. TV 토큰엔 appdata 권한이 없어 실패 → 무시
+  try {
+    const q = new URLSearchParams({ spaces: 'appDataFolder', q: `name='${LEGACY_FILE}'`, fields: 'files(id)' });
+    const id = (await (await drive('https://www.googleapis.com/drive/v3/files?' + q)).json()).files?.[0]?.id;
+    if (id) return { ...(await (await drive(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`)).json()), _legacy: true };
+  } catch (e) { if (/만료/.test(e.message)) throw e; }
+  return null;
 }
 async function driveWrite(data){
   const body = JSON.stringify(data);
@@ -305,7 +314,7 @@ async function driveWrite(data){
     await drive(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body });
   } else {
     const fd = new FormData();
-    fd.append('metadata', new Blob([JSON.stringify({ name: DRIVE_FILE, parents: ['appDataFolder'] })], { type: 'application/json' }));
+    fd.append('metadata', new Blob([JSON.stringify({ name: DRIVE_FILE, mimeType: 'application/json' })], { type: 'application/json' }));
     fd.append('file', new Blob([body], { type: 'application/json' }));
     const j = await (await drive('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', { method: 'POST', body: fd })).json();
     driveFileId = j.id;
@@ -335,6 +344,7 @@ async function driveSync(){
       else if (remoteChanged && !localChanged) next = remote.items;
       else if (localChanged && !remoteChanged) { next = local; push = true; }
       else if (localChanged && remoteChanged) { next = mergeLists(local, remote.items, base && base.items); push = true; }
+      if (remote && remote._legacy) { push = true; next = next || remote.items; }   // 예전 위치 → 새 파일로 이전
       let updatedAt = remote ? remote.updatedAt : 0;
       if (push) { updatedAt = Date.now(); await driveWrite({ updatedAt, items: next }); }
       if (next && sig(next) !== sig(local)) {

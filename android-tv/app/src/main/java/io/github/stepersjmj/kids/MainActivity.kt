@@ -148,7 +148,8 @@ class MainActivity : Activity() {
     }
 
     /* ---------- OAuth 기기 코드 흐름 ---------- */
-    private val scope = "openid email profile https://www.googleapis.com/auth/drive.appdata"
+    // 기기 코드 흐름은 drive.appdata 를 허용하지 않음(Invalid device flow scope) → drive.file 사용
+    private val scope = "openid email profile https://www.googleapis.com/auth/drive.file"
 
     private fun hasRefreshToken() = prefs.getString("refresh", null) != null
 
@@ -191,15 +192,17 @@ class MainActivity : Activity() {
     }
 
     private fun startDeviceLogin(notice: String? = null) {
-        if (BuildConfig.TV_CLIENT_ID.isBlank()) { showLogin(); loginMsg.text = "TV용 클라이언트 ID가 빌드에 없습니다 (local.properties 확인)"; return }
-        if (polling) { showLogin(); return }
-        showLogin()
+        // 주의: 여기서 showLogin() 을 부르면 안 됨 (showLogin → startDeviceLogin 무한 재귀로 크래시했던 부분)
+        loginView.visibility = View.VISIBLE
+        if (BuildConfig.TV_CLIENT_ID.isBlank()) { loginMsg.text = "TV용 클라이언트 ID가 빌드에 없습니다 (local.properties 확인)"; return }
+        if (polling) return                      // 이미 코드 발급·대기 중
+        polling = true                           // 메인 스레드에서 바로 세워 중복 요청 방지
         loginMsg.text = notice ?: "로그인 코드를 받는 중…"
         thread {
             try {
                 val (code, j) = post("https://oauth2.googleapis.com/device/code",
                     mapOf("client_id" to BuildConfig.TV_CLIENT_ID, "scope" to scope))
-                if (code != 200) { main.post { loginMsg.text = "코드 발급 실패: ${j.optString("error_description", j.optString("error"))}" }; return@thread }
+                if (code != 200) { polling = false; main.post { loginMsg.text = "코드 발급 실패: ${j.optString("error_description", j.optString("error"))}" }; return@thread }
                 val url = j.getString("verification_url")
                 val user = j.getString("user_code")
                 main.post {
@@ -210,16 +213,16 @@ class MainActivity : Activity() {
                 }
                 pollToken(j.getString("device_code"), j.optLong("interval", 5), System.currentTimeMillis() + j.optLong("expires_in", 1800) * 1000)
             } catch (e: Exception) {
+                polling = false
                 main.post { loginMsg.text = "네트워크 오류: ${e.message}\n메뉴 버튼을 눌러 다시 시도하세요." }
             }
         }
     }
 
     private fun pollToken(deviceCode: String, intervalSec: Long, deadline: Long) {
-        polling = true
         var interval = intervalSec
         try {
-            while (System.currentTimeMillis() < deadline && polling) {
+            while (System.currentTimeMillis() < deadline) {
                 Thread.sleep(interval * 1000)
                 val (code, j) = post("https://oauth2.googleapis.com/token", mapOf(
                     "client_id" to BuildConfig.TV_CLIENT_ID,
