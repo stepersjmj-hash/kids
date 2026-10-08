@@ -215,6 +215,16 @@
   /* Google 가져오기 모달 */
   #gModal { position:fixed; inset:0; background:rgba(43,33,24,.45); display:flex; align-items:center; justify-content:center; z-index:10; }
   #gModal[hidden] { display:none; }
+  #confirm { position:fixed; inset:0; background:rgba(43,33,24,.45); display:flex; align-items:center; justify-content:center; z-index:12; padding:20px; }
+  #confirm[hidden] { display:none; }
+  #confirm .box { background:var(--panel); border-radius:20px; width:min(360px, 100%); padding:22px 20px 18px; display:flex; flex-direction:column; gap:10px; box-shadow:0 20px 50px rgba(60,40,10,.2); }
+  #confirm b { font:400 20px/26px var(--jua); padding-top:2px; }
+  #confirm p { margin:0; font:400 14px/1.4 var(--gowun); color:var(--sub); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  #confirm .btns { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
+  #confirm .btns button { height:40px; padding:2px 18px 0; border-radius:999px; font:400 15px/24px var(--jua); }
+  #confirmNo { background:#fff; border:1px solid var(--line2); color:var(--text); }
+  #confirmYes { background:var(--accent); color:#fff; box-shadow:inset 0 -3px 0 var(--accent-dark); }
+  .item .swipeBg { display:none; }
   #gModal .box { background:var(--panel); border-radius:20px; width:min(560px, 92vw); max-height:80vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(60,40,10,.2); }
   #gModal .head { display:flex; align-items:center; padding:16px 18px; border-bottom:1px solid var(--line); }
   #gModal .head b { flex:1; font:400 18px/24px var(--jua); padding-top:2px; }
@@ -288,7 +298,13 @@
     #btnTools { display:inline-flex; align-self:flex-start; height:30px; align-items:center; padding:0 12px; border-radius:999px; background:#fff; border:1px solid var(--line); font:400 12px/1 var(--gowun); margin-top:-4px; }
     #tools, #link { display:none; }
     body.tools-open #tools, body.tools-open #link { display:flex; }
-    #list { padding:2px 20px 20px; gap:10px; }
+    #list { padding:2px 20px 20px; gap:10px; overflow-x:hidden; }
+    /* 왼쪽으로 밀면 행 오른쪽 바깥에 붙은 빨간 배경이 드러난다. 80px 넘으면 '놓으면 삭제' */
+    .item.swiping .swipeBg { display:flex; position:absolute; left:100%; top:0; bottom:0; width:240px; margin-left:-18px; padding-left:34px; border-radius:0 18px 18px 0; background:var(--accent); color:#fff; align-items:center; gap:6px; font:400 15px/24px var(--jua); z-index:-1; }
+    .item.swiping { z-index:0; }
+    .item .swipeBg svg { width:18px; height:18px; display:block; transition:transform .15s; }
+    .item.willDelete .swipeBg { background:var(--danger); }
+    .item.willDelete .swipeBg svg { transform:scale(1.3); }
     .item { gap:12px; padding:8px; border-radius:18px; cursor:default; touch-action:pan-y; }
     .item .grip { order:9; width:24px; height:24px; display:flex; flex-direction:column; justify-content:center; gap:4px; padding:0 4px; }
     .item .grip i { height:2.5px; }
@@ -370,6 +386,11 @@
   <div id="tvItems"></div>
   <div id="tvPages"></div>
 </div>
+<div id="confirm" hidden><div class="box">
+  <b>이 영상을 삭제할까요?</b>
+  <p id="confirmTitle"></p>
+  <div class="btns"><button id="confirmNo">취소</button><button id="confirmYes">삭제</button></div>
+</div></div>
 <div id="gModal" hidden><div class="box">
   <div class="head"><b>Google에서 가져오기</b><button id="gClose">닫기</button></div>
   <div id="gList"></div>
@@ -775,7 +796,8 @@ function render(){
       <span class="n">${i+1}</span>
       <img src="${thumb(it.id)}" alt="" draggable="false">
       <div class="t"><em>${esc(it.title||it.id)}</em><small>${it.bad ? '재생 불가 · 건너뜀' : i===idx ? '지금 보는 중' : esc(it.id)}</small></div>
-      <button class="del" title="삭제">${ICON.x}</button>`;
+      <button class="del" title="삭제">${ICON.x}</button>
+      <div class="swipeBg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg><span>삭제</span></div>`;
     d.addEventListener('click', e => {
       if (d._swiped) return;
       if (e.target.closest('.del')) { removeItem(i); return; }
@@ -843,14 +865,15 @@ function attachTouch(d, i){
         else return;
       }
       d.style.transform = `translateX(${Math.min(0, dx)}px)`;
+      d.classList.toggle('willDelete', dx < -80);
     };
+    const snapBack = () => { d.style.transform = ''; d.classList.remove('willDelete'); setTimeout(() => d.classList.remove('swiping'), 180); };
     const up = () => {
       d.removeEventListener('pointermove', move); d.removeEventListener('pointerup', up); d.removeEventListener('pointercancel', up);
       if (!swiping) return;
       d._swiped = true; setTimeout(() => { d._swiped = false; }, 300);
-      d.classList.remove('swiping');
-      if (dx < -80) { d.style.transform = 'translateX(-110%)'; setTimeout(() => removeItem(i), 150); }
-      else d.style.transform = '';
+      if (dx < -80) { d.style.transform = 'translateX(-96px)'; askDelete(i, d, snapBack); }   // 빨간 배경을 보인 채로 확인
+      else snapBack();
     };
     d.addEventListener('pointermove', move); d.addEventListener('pointerup', up); d.addEventListener('pointercancel', up);
   });
@@ -1060,6 +1083,15 @@ $('#btnUnlink').onclick = () => { settings.pl = ''; save(); render(); toast('연
 $('#btnGoogle').onclick = googleClick;
 $('#btnImportYt').onclick = importClick;
 $('#gClose').onclick = () => $('#gModal').hidden = true;
+// 삭제 확인 레이어 (폰 스와이프). ok 면 행을 밀어내며 삭제, 아니면 제자리로
+function askDelete(i, d, cancel){
+  const m = $('#confirm'); m.hidden = false;
+  $('#confirmTitle').textContent = items[i] ? (items[i].title || items[i].id) : '';
+  const close = () => { m.hidden = true; m.onclick = null; };
+  $('#confirmYes').onclick = () => { close(); d.classList.remove('swiping'); d.style.transform = 'translateX(-110%)'; setTimeout(() => removeItem(i), 150); };
+  $('#confirmNo').onclick = () => { close(); cancel(); };
+  m.onclick = e => { if (e.target === m) { close(); cancel(); } };
+}
 $('#btnTools').onclick = () => { const on = document.body.classList.toggle('tools-open'); $('#btnTools').textContent = on ? '도구 닫기' : '도구 보기'; };
 $('#btnClearBad').onclick = () => { items = items.filter(x=>!x.bad); idx = -1; save(); rebuildOrder(); render(); };
 $('#btnClear').onclick = () => { if (confirm('재생목록을 모두 지울까요?')) { items=[]; idx=-1; save(); rebuildOrder(); render(); } };
