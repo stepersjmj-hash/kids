@@ -95,7 +95,7 @@
 - localStorage 키: `home-playlist-v1`, `home-playlist-settings-v1` — 형식 바꾸면 키 버전 올릴 것
 - 높이는 `100dvh` (iOS 사파리 100vh 는 툴바 뒤까지 포함돼 목록 마지막 줄이 가려짐). 스크롤 영역(#list, #tvItems)은 flex 자식이라 `min-height:0` 필수
 - 디자인: `:root` 토큰(크림 배경 `--bg`, 빨강 `--accent`, 포커스 `--focus`…)과 글꼴 Jua(제목·칩·번호, `padding-top:2px` 로 세로 보정)·Gowun Dodum(본문).
-  이전·재생·다음 버튼은 시안보다 한 단계 작게(사용자 요청): PC 52/68, TV 40/50(u), 폰 42/54
+  이전·재생·다음 버튼은 시안보다 작게(사용자 요청): PC 52/68, TV 40/50(u), 폰 36/46(전체화면·새로고침 34)
   TV 화면(body.app, #tvList)은 시안 960×540 기준이라 `--u: calc(100vh/540)` 단위로 치수를 적어 WebView 해상도가 달라도 비율 유지. TV 영상 틀은 692×398(테두리 포함)로
   높이를 직접 지정 — `aspect-ratio` 는 border-box 에 걸려 16:9 내용 영역이 안 나옴
   둥근 버튼 두께 그림자는 꼭 `inset`(바깥이면 포커스 링 안에서 처져 보임). 영상 틀 #frame(흰 테두리) 안에 #player-wrap(A/B 플레이어)
@@ -110,7 +110,7 @@
   + PAUSED 때 `showCover('일시정지', id)` 로 영상 썸네일(maxresdefault → 없으면 mqdefault) 덮개(유튜브 일시정지 추천 화면 가림). 덮개는 pointer-events:none 이라 눌러서 재개 가능.
   영상에 박힌 자막·워터마크는 못 지움
 - 폰(≤820px)은 세로 한 줄: 영상 틀 → 진행 막대 → 작은 이전·재생·다음(칩 없음) → 제목·동기화 알약 → 붙여넣기 카드 → 목록. 도구는 "도구 보기" 로 접힘.
-  폰은 settings.tv 가 true 여도 목록을 보여 줌
+  폰은 settings.tv 가 true 여도 목록을 보여 줌. 폰 스크롤은 #side 전체(제목·카드·목록 함께, #list 는 flex:none) — 영상+버튼(#stage)만 고정
 - 자막: `cc_load_policy:0` 만으로는 자동 생성 자막이 켜짐 → PLAYING 때마다 `unloadModule('captions')`(`captionsOff`). 영상에 박힌 자막은 못 지움
 - 광고 음소거: 앞 광고는 덮개 아래에서 소리만 남 → loadVideoById 직전 mute(`adMute`), 본영상 PLAYING 때 unMute(`adUnmute`).
   IFrame API 엔 광고 상태가 없어 중간 광고는 못 막음. **광고는 onStateChange 를 내지 않음** → PLAYING = 본영상 시작 (아래 미리 받기도 이 가정)
