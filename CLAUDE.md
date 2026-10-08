@@ -61,7 +61,7 @@
 - 리모컨: WebView 기본 포커스 이동이 방향키를 먹으므로 앱 `dispatchKeyEvent` 에서 가로채 `window.kidsTvKey(key)` 로 전달.
   뒤로 키는 `window.kidsTvBack()` (목록 닫았으면 true). 페이지 키 처리는 `handleKey()` 하나로 통일
 - 앱(body.app)에서 ←/→ = 바의 네 버튼(이전·재생·다음·전체화면) 포커스 이동(`barIdx`/`barMark`, 노란 링 .kfocus — `barButtons()` 는 #bar 안 **보이는** button 만 세므로
-  칩 버튼은 body.app 에서 display:none, #btnFull 만 `body.app #bar #btnFull` 로 다시 살려 오른쪽 아래 원 버튼으로 absolute 배치). 가운데 = 그 버튼 클릭. ↑↓ = 골라 보기(#tvList).
+  칩 버튼은 body.app 에서 display:none, #btnFull 만 `body.app #bar #btnFull` 로 다시 살려 오른쪽 아래 원 버튼으로 absolute 배치. #btnReload 는 PC 칩·폰 원 버튼, TV 는 골라 보기 칩). 가운데 = 그 버튼 클릭. ↑↓ = 골라 보기(#tvList).
   PC 키보드는 ←/→ 이전/다음 그대로
 - 골라 보기: 맨 위 칩 줄(`tvChips()`: 처음부터 다시(반복)·새로고침·(앱)로그인 — 셔플·전체화면 칩은 시안 2판에서 뺌, 새로고침은 사용자 요청으로 복귀) + 3×2 격자(`TV_PAGE`=6, 페이지 점). 상태 `tvSel`(-1 = 칩 줄, `tvChip` 번째) /
   `tvPage`. `tvKey()` 가 2D 이동: ↓ 다음 줄(마지막 줄이면 다음 페이지, 끝이면 칩 줄로 순환), ↑ 첫 줄에서 칩 줄, 칩 줄에서 ↑는 마지막 영상, ←/→ 는 전체 순환.
