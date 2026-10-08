@@ -30,6 +30,7 @@
   #logo { width:100%; height:32px; display:flex; align-items:center; gap:8px; color:var(--sub); flex:none; }
   #logo img { width:24px; height:24px; border-radius:7px; display:block; flex:none; }
   #logo span { font:400 15px/24px var(--jua); padding-top:2px; }
+  #logo br { display:none; }
   #pickHint { display:none; }
   #frame { width:min(980px, 100%, calc((100dvh - 330px) * 16 / 9)); aspect-ratio:16/9; border:10px solid #fff; border-radius:34px; background:var(--video); box-shadow:0 14px 30px rgba(120,80,30,.16); margin-top:16px; flex:none; overflow:hidden; }
   #player-wrap { position:relative; width:100%; height:100%; overflow:hidden; border-radius:24px; background:var(--video); }
@@ -87,49 +88,57 @@
   #btnReload { display:none; }
   .thumbNav { display:none; }
 
-  /* ---------- TV 앱 재생 화면 (body.app, 960×540 기준 → u 단위) ---------- */
+  /* ---------- TV 앱 재생 화면 (body.app, 960×540 기준 → u 단위). 영상 틀을 최대한 크게, 나머지는 작게 ---------- */
   body.app #stage { padding:calc(14 * var(--u)) 0 0; overflow:hidden; }
-  body.app #logo { position:absolute; left:calc(24 * var(--u)); top:calc(18 * var(--u)); width:auto; height:calc(32 * var(--u)); gap:calc(8 * var(--u)); }
-  body.app #logo img { width:calc(24 * var(--u)); height:calc(24 * var(--u)); border-radius:calc(7 * var(--u)); }
-  body.app #logo span { font-size:calc(15 * var(--u)); line-height:calc(24 * var(--u)); padding-top:calc(2 * var(--u)); }
-  body.app #pickHint { display:flex; position:absolute; right:calc(24 * var(--u)); top:calc(18 * var(--u)); height:calc(32 * var(--u)); align-items:center; gap:calc(6 * var(--u)); padding:0 calc(14 * var(--u)) 0 calc(10 * var(--u)); border-radius:999px; background:#fff; color:var(--sub); }
+  body.app #logo { position:absolute; left:calc(24 * var(--u)); top:calc(16 * var(--u)); width:auto; height:auto; gap:calc(8 * var(--u)); }
+  body.app #logo img { width:calc(28 * var(--u)); height:calc(28 * var(--u)); border-radius:calc(8 * var(--u)); }
+  body.app #logo span { font-size:calc(14 * var(--u)); line-height:calc(17 * var(--u)); padding-top:calc(2 * var(--u)); }
+  body.app #logo br { display:inline; }
+  body.app #pickHint { display:flex; position:absolute; right:calc(24 * var(--u)); top:calc(16 * var(--u)); height:calc(32 * var(--u)); align-items:center; gap:calc(4 * var(--u)); padding:0 calc(12 * var(--u)) 0 calc(8 * var(--u)); border-radius:999px; background:#fff; color:var(--sub); }
   body.app #pickHint svg { width:calc(16 * var(--u)); height:calc(16 * var(--u)); display:block; }
   body.app #pickHint span { font:400 calc(14 * var(--u)) / calc(24 * var(--u)) var(--jua); padding-top:calc(2 * var(--u)); }
-  body.app #frame { width:calc(548 * var(--u)); margin-top:0; border-width:calc(10 * var(--u)); border-radius:calc(30 * var(--u)); box-shadow:0 calc(14 * var(--u)) calc(30 * var(--u)) rgba(120,80,30,.16); }
+  body.app #frame { width:calc(692 * var(--u)); height:calc(398 * var(--u)); aspect-ratio:auto; margin-top:0; border-width:calc(10 * var(--u)); border-radius:calc(30 * var(--u)); box-shadow:0 calc(14 * var(--u)) calc(30 * var(--u)) rgba(120,80,30,.16); }
   body.app #player-wrap { border-radius:calc(20 * var(--u)); }
   body.app #cover { font-size:calc(20 * var(--u)); }
-  body.app #titleRow2 { width:calc(596 * var(--u)); margin-top:calc(14 * var(--u)); gap:calc(16 * var(--u)); }
-  body.app #nowTitle { font-size:calc(23 * var(--u)); line-height:calc(28 * var(--u)); padding-top:calc(3 * var(--u)); }
+  body.app #titleRow2 { width:calc(692 * var(--u)); margin-top:calc(10 * var(--u)); gap:calc(16 * var(--u)); }
+  body.app #nowTitle { font-size:calc(17 * var(--u)); line-height:calc(22 * var(--u)); padding-top:calc(2 * var(--u)); }
   body.app #dots { gap:calc(6 * var(--u)); }
-  body.app #dots i { width:calc(10 * var(--u)); height:calc(10 * var(--u)); border-radius:calc(5 * var(--u)); }
-  body.app #dots i.now { width:calc(28 * var(--u)); }
-  body.app #dots b { font-size:calc(13 * var(--u)); }
-  body.app #prog { width:calc(596 * var(--u)); margin-top:calc(12 * var(--u)); gap:0; }
+  body.app #dots i { width:calc(8 * var(--u)); height:calc(8 * var(--u)); border-radius:calc(4 * var(--u)); }
+  body.app #dots i.now { width:calc(22 * var(--u)); }
+  body.app #dots b { font-size:calc(12 * var(--u)); }
+  body.app #prog { width:calc(692 * var(--u)); margin-top:calc(8 * var(--u)); gap:0; }
   body.app #prog time { display:none; }
-  body.app #prog .track { height:calc(10 * var(--u)); border-radius:calc(5 * var(--u)); }
-  body.app #prog .fill { border-radius:calc(5 * var(--u)); }
-  body.app #prog .knob { width:calc(20 * var(--u)); height:calc(20 * var(--u)); margin:calc(-10 * var(--u)) 0 0 calc(-10 * var(--u)); box-shadow:0 0 0 calc(4 * var(--u)) var(--accent); }
-  body.app #bar { width:calc(596 * var(--u)); margin-top:calc(28 * var(--u)); }
+  body.app #prog .track { height:calc(6 * var(--u)); border-radius:calc(3 * var(--u)); }
+  body.app #prog .fill { border-radius:calc(3 * var(--u)); }
+  body.app #prog .knob { width:calc(14 * var(--u)); height:calc(14 * var(--u)); margin:calc(-7 * var(--u)) 0 0 calc(-7 * var(--u)); box-shadow:0 0 0 calc(3 * var(--u)) var(--accent); }
+  body.app #bar { width:calc(692 * var(--u)); margin-top:calc(14 * var(--u)); }
   body.app #bar .chip { display:none; }
-  body.app #bar .m { gap:calc(28 * var(--u)); }
-  body.app .thumbNav { display:flex; align-items:center; gap:calc(10 * var(--u)); min-width:0; }
+  body.app #bar .m { gap:calc(22 * var(--u)); }
+  body.app .thumbNav { display:flex; align-items:center; gap:calc(8 * var(--u)); min-width:0; }
   body.app #prevThumb { opacity:.75; }
   body.app #nextThumb { justify-content:flex-end; }
-  body.app .thumbNav img { width:calc(96 * var(--u)); height:calc(54 * var(--u)); border-radius:calc(14 * var(--u)); border:calc(4 * var(--u)) solid #fff; object-fit:cover; background:var(--video); display:block; flex:none; }
-  body.app #nextThumb img { box-shadow:0 calc(3 * var(--u)) 0 var(--btn-depth); }
-  body.app .thumbNav span { font:400 calc(15 * var(--u)) / calc(20 * var(--u)) var(--jua); padding-top:calc(2 * var(--u)); color:var(--sub); white-space:nowrap; }
+  body.app .thumbNav img { width:calc(72 * var(--u)); height:calc(40 * var(--u)); border-radius:calc(10 * var(--u)); border:calc(3 * var(--u)) solid #fff; object-fit:cover; background:var(--video); display:block; flex:none; }
+  body.app #nextThumb img { box-shadow:0 calc(2 * var(--u)) 0 var(--btn-depth); }
+  body.app .thumbNav span { font:400 calc(14 * var(--u)) / calc(20 * var(--u)) var(--jua); padding-top:calc(2 * var(--u)); color:var(--sub); white-space:nowrap; }
   body.app #nextThumb span { color:var(--text); }
   body.app .thumbNav.empty { visibility:hidden; }
-  body.app .rb { width:calc(72 * var(--u)); height:calc(72 * var(--u)); padding-bottom:calc(4 * var(--u)); box-shadow:inset 0 calc(-5 * var(--u)) 0 var(--btn-depth), 0 calc(6 * var(--u)) calc(14 * var(--u)) rgba(120,80,30,.12); }
-  body.app .rb svg { width:calc(32 * var(--u)); height:calc(32 * var(--u)); }
-  body.app #btnPlay { width:calc(96 * var(--u)); height:calc(96 * var(--u)); padding-bottom:0; box-shadow:inset 0 calc(2 * var(--u)) 0 rgba(255,255,255,.35), inset 0 calc(-5 * var(--u)) 0 var(--accent-dark); }
-  body.app #btnPlay svg { width:calc(44 * var(--u)); height:calc(44 * var(--u)); }
+  body.app .rb { width:calc(44 * var(--u)); height:calc(44 * var(--u)); padding-bottom:calc(3 * var(--u)); box-shadow:inset 0 calc(-4 * var(--u)) 0 var(--btn-depth), 0 calc(4 * var(--u)) calc(10 * var(--u)) rgba(120,80,30,.12); }
+  body.app .rb svg { width:calc(20 * var(--u)); height:calc(20 * var(--u)); }
+  body.app #btnPrev svg { margin-left:calc(-1 * var(--u)); }
+  body.app #btnNext svg { margin-right:calc(-1 * var(--u)); }
+  body.app #btnPlay { width:calc(56 * var(--u)); height:calc(56 * var(--u)); padding-bottom:0; box-shadow:inset 0 calc(2 * var(--u)) 0 rgba(255,255,255,.35), inset 0 calc(-4 * var(--u)) 0 var(--accent-dark); }
+  body.app #btnPlay svg { width:calc(26 * var(--u)); height:calc(26 * var(--u)); }
+  body.app #btnPlay .pause { margin-top:calc(-2 * var(--u)); }
+  /* 전체화면: 오른쪽 아래 흰 원 버튼 (#bar 안의 네 번째 버튼 → ←/→ 링 순서는 이전·재생·다음·전체화면) */
+  body.app #bar #btnFull { display:flex; position:absolute; right:calc(24 * var(--u)); bottom:calc(20 * var(--u)); width:calc(44 * var(--u)); height:calc(44 * var(--u)); padding:0 0 calc(3 * var(--u)); border-radius:50%; background:linear-gradient(#fff,#fff8ec); box-shadow:inset 0 calc(-4 * var(--u)) 0 var(--btn-depth), 0 calc(4 * var(--u)) calc(10 * var(--u)) rgba(120,80,30,.12); align-items:center; justify-content:center; color:var(--text); }
+  body.app #btnFull svg { width:calc(20 * var(--u)); height:calc(20 * var(--u)); }
+  body.app #btnFull span { display:none; }
   /* 리모컨 포커스 링 — transition 없음 (TV WebView 성능) */
-  body.app .rb.kfocus { box-shadow:inset 0 calc(-5 * var(--u)) 0 var(--btn-depth), 0 calc(6 * var(--u)) calc(14 * var(--u)) rgba(120,80,30,.12), 0 0 0 calc(8 * var(--u)) var(--bg), 0 0 0 calc(15 * var(--u)) var(--focus); }
-  body.app #btnPlay.kfocus { box-shadow:inset 0 calc(2 * var(--u)) 0 rgba(255,255,255,.35), inset 0 calc(-5 * var(--u)) 0 var(--accent-dark), 0 0 0 calc(8 * var(--u)) var(--bg), 0 0 0 calc(15 * var(--u)) var(--focus); }
+  body.app .rb.kfocus, body.app #btnFull.kfocus { box-shadow:inset 0 calc(-4 * var(--u)) 0 var(--btn-depth), 0 calc(4 * var(--u)) calc(10 * var(--u)) rgba(120,80,30,.12), 0 0 0 calc(4 * var(--u)) var(--bg), 0 0 0 calc(8 * var(--u)) var(--focus); }
+  body.app #btnPlay.kfocus { box-shadow:inset 0 calc(2 * var(--u)) 0 rgba(255,255,255,.35), inset 0 calc(-4 * var(--u)) 0 var(--accent-dark), 0 0 0 calc(4 * var(--u)) var(--bg), 0 0 0 calc(8 * var(--u)) var(--focus); }
   body.app #btnImportYt, body.app #bookmarkHint, body.app #btnTv { display:none; }
   /* TV 앱 전체화면: 영상 틀만 화면 가득 */
-  body.full #frame { position:fixed; inset:0; width:auto; height:auto; aspect-ratio:auto; border:0; border-radius:0; box-shadow:none; margin:0; z-index:5; }
+  body.full #frame { position:fixed; inset:0; width:auto !important; height:auto !important; aspect-ratio:auto; border:0; border-radius:0; box-shadow:none; margin:0; z-index:5; }
   body.full #player-wrap { border-radius:0; }
   body.full #stage > :not(#frame) { display:none; }
 
@@ -282,7 +291,7 @@
 <body>
 
 <div id="stage">
-  <div id="logo"><img src="ic_launcher.png" alt=""><span>우리집 재생목록</span></div>
+  <div id="logo"><img src="ic_launcher.png" alt=""><span>우리집 <br>재생목록</span></div>
   <div id="pickHint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg><span>골라 보기</span></div>
   <div id="frame"><div id="player-wrap">
     <div class="yt" id="wrapA"><div id="playerA"></div></div>
@@ -1134,17 +1143,13 @@ window.kidsTvToken = (t, exp) => {
   updateAuthUI();
   if (first) { loadProfile(); driveSync(); }
 };
-// 리모컨 ↓ 로 여는 "골라 보기": 맨 위 칩 줄(반복·셔플·새로고침·전체화면·로그인) + 3×2 격자, 페이지 넘김
+// 리모컨 ↓ 로 여는 "골라 보기": 맨 위 칩 줄(처음부터 다시·로그인) + 3×2 격자, 페이지 넘김
 let tvSel = -1, tvChip = 0, tvPage = 0;   // tvSel: -1 = 칩 줄(tvChip 번째), 0~ = 영상 인덱스
 const TV_PAGE = 6, TV_COLS = 3;
 const tvOpen = () => !$('#tvList').hidden;
 function tvChips(){
-  const c = [
-    { label: '처음부터 다시', on: settings.loop, keep: true, run: () => $('#btnLoop').click() },
-    { label: '섞어서', on: settings.shuffle, keep: true, run: () => $('#btnShuffle').click() },
-    { label: '새로고침', run: () => TVAPP && KidsTV.reload ? KidsTV.reload() : location.reload() },
-    { label: '전체화면', run: () => $('#btnFull').click() },
-  ];
+  // 셔플·새로고침은 TV 에 없음(셔플은 폰·PC 설정을 따르고, 새로고침은 10분 백그라운드 후 자동 재로드에 맡김). 전체화면은 재생 화면 버튼
+  const c = [{ label: '처음부터 다시', on: settings.loop, keep: true, run: () => $('#btnLoop').click() }];
   if (TVAPP) c.push({ label: loggedIn() ? '다시 로그인' : '로그인', title: accountText(), run: () => KidsTV.login() });
   return c;
 }

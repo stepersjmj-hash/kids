@@ -60,12 +60,13 @@
   `window.kidsTvToken(t, exp)` 로 페이지에 주입(만료 10분 전 갱신). 페이지의 login/logout 은 `window.KidsTV` 로 앱 호출
 - 리모컨: WebView 기본 포커스 이동이 방향키를 먹으므로 앱 `dispatchKeyEvent` 에서 가로채 `window.kidsTvKey(key)` 로 전달.
   뒤로 키는 `window.kidsTvBack()` (목록 닫았으면 true). 페이지 키 처리는 `handleKey()` 하나로 통일
-- 앱(body.app)에서 ←/→ = 바의 세 버튼(이전·재생·다음) 포커스 이동(`barIdx`/`barMark`, 노란 링 .kfocus — `barButtons()` 는 #bar 안 **보이는** button 만 세므로
-  칩 버튼은 body.app 에서 display:none). 가운데 = 그 버튼 클릭. ↑↓ = 골라 보기(#tvList). PC 키보드는 ←/→ 이전/다음 그대로
-- 골라 보기: 맨 위 칩 줄(`tvChips()`: 반복·셔플·새로고침·전체화면·(앱)로그인) + 3×2 격자(`TV_PAGE`=6, 페이지 점). 상태 `tvSel`(-1 = 칩 줄, `tvChip` 번째) /
+- 앱(body.app)에서 ←/→ = 바의 네 버튼(이전·재생·다음·전체화면) 포커스 이동(`barIdx`/`barMark`, 노란 링 .kfocus — `barButtons()` 는 #bar 안 **보이는** button 만 세므로
+  칩 버튼은 body.app 에서 display:none, #btnFull 만 `body.app #bar #btnFull` 로 다시 살려 오른쪽 아래 원 버튼으로 absolute 배치). 가운데 = 그 버튼 클릭. ↑↓ = 골라 보기(#tvList).
+  PC 키보드는 ←/→ 이전/다음 그대로
+- 골라 보기: 맨 위 칩 줄(`tvChips()`: 처음부터 다시(반복)·(앱)로그인 — 셔플·새로고침·전체화면 칩은 시안 2판에서 뺌) + 3×2 격자(`TV_PAGE`=6, 페이지 점). 상태 `tvSel`(-1 = 칩 줄, `tvChip` 번째) /
   `tvPage`. `tvKey()` 가 2D 이동: ↓ 다음 줄(마지막 줄이면 다음 페이지, 끝이면 칩 줄로 순환), ↑ 첫 줄에서 칩 줄, 칩 줄에서 ↑는 마지막 영상, ←/→ 는 전체 순환.
   반복·셔플 칩은 눌러도 안 닫힘(`keep`)
-- 앱 전체화면 = `body.full`(#frame 을 fixed 로 화면 가득, 나머지 숨김). 골라 보기의 전체화면 칩으로 켬. 뒤로 순서: 골라 보기 닫기 → 전체화면 해제 → 앱의 "한 번 더 누르면 종료"
+- 앱 전체화면 = `body.full`(#frame 을 fixed 로 화면 가득, 나머지 숨김). 바의 전체화면 버튼으로 켬. 뒤로 순서: 골라 보기 닫기 → 전체화면 해제 → 앱의 "한 번 더 누르면 종료"
 - PC 에서 앱 화면 흉내: `?app=1` (가짜 `KidsTV` 주입 → TVAPP=true, 로그인은 토스트만). 쓰고 나면 settings.tv 가 true 로 남으니 T 로 끄기
 - ←/→ 연속 누름(`ARROW_WAIT` 200ms 안): 2번 10초 · 3번 30초 · 이후 +10초 (`seekTotal`/`seekByTotal`), 한 번 누름은 200ms 지연 후 실행. 연속 seek 는
   `seekBase + seekSum` 으로 계산 (seekTo 직후 getCurrentTime 이 안 바뀌어 누적이 안 됐던 문제)
@@ -94,7 +95,8 @@
 - localStorage 키: `home-playlist-v1`, `home-playlist-settings-v1` — 형식 바꾸면 키 버전 올릴 것
 - 높이는 `100dvh` (iOS 사파리 100vh 는 툴바 뒤까지 포함돼 목록 마지막 줄이 가려짐). 스크롤 영역(#list, #tvItems)은 flex 자식이라 `min-height:0` 필수
 - 디자인: `:root` 토큰(크림 배경 `--bg`, 빨강 `--accent`, 포커스 `--focus`…)과 글꼴 Jua(제목·칩·번호, `padding-top:2px` 로 세로 보정)·Gowun Dodum(본문).
-  TV 화면(body.app, #tvList)은 시안 960×540 기준이라 `--u: calc(100vh/540)` 단위로 치수를 적어 WebView 해상도가 달라도 비율 유지.
+  TV 화면(body.app, #tvList)은 시안 960×540 기준이라 `--u: calc(100vh/540)` 단위로 치수를 적어 WebView 해상도가 달라도 비율 유지. TV 영상 틀은 692×398(테두리 포함)로
+  높이를 직접 지정 — `aspect-ratio` 는 border-box 에 걸려 16:9 내용 영역이 안 나옴
   둥근 버튼 두께 그림자는 꼭 `inset`(바깥이면 포커스 링 안에서 처져 보임). 영상 틀 #frame(흰 테두리) 안에 #player-wrap(A/B 플레이어)
 - 목록 순서 변경: PC 는 HTML5 DnD(`.item[draggable]`, `moveItem`), 폰(`pointer:coarse`)은 손잡이 Pointer Events 로 DOM 을 직접 옮긴 뒤 `moveItem`,
   행 왼쪽 스와이프 = 삭제(`attachTouch`, `.item { touch-action:pan-y }`). ▲▼ 버튼은 없앰
