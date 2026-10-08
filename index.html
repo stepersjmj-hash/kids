@@ -1198,13 +1198,16 @@ window.kidsTvToken = (t, exp) => {
   updateAuthUI();
   if (first) { loadProfile(); driveSync(); }
 };
-// 리모컨 ↓ 로 여는 "골라 보기": 맨 위 칩 줄(처음부터 다시·로그인) + 3×2 격자, 페이지 넘김
+// 리모컨 ↓ 로 여는 "골라 보기": 맨 위 칩 줄(처음부터 다시·새로고침·로그인) + 3×2 격자, 페이지 넘김
 let tvSel = -1, tvChip = 0, tvPage = 0;   // tvSel: -1 = 칩 줄(tvChip 번째), 0~ = 영상 인덱스
 const TV_PAGE = 6, TV_COLS = 3;
 const tvOpen = () => !$('#tvList').hidden;
 function tvChips(){
-  // 셔플·새로고침은 TV 에 없음(셔플은 폰·PC 설정을 따르고, 새로고침은 10분 백그라운드 후 자동 재로드에 맡김). 전체화면은 재생 화면 버튼
-  const c = [{ label: '처음부터 다시', on: settings.loop, keep: true, run: () => $('#btnLoop').click() }];
+  // 셔플은 TV 에 없음(폰·PC 설정을 따름). 전체화면은 재생 화면 버튼. 새로고침은 시안에서 뺐다가 사용자 요청으로 다시 넣음
+  const c = [
+    { label: '처음부터 다시', on: settings.loop, keep: true, run: () => $('#btnLoop').click() },
+    { label: '새로고침', title: '최신 목록·최신 버전 받기', run: () => TVAPP && KidsTV.reload ? KidsTV.reload() : location.reload() },
+  ];
   if (TVAPP) c.push({ label: loggedIn() ? '다시 로그인' : '로그인', title: accountText(), run: () => KidsTV.login() });
   return c;
 }
