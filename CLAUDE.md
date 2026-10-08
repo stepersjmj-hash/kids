@@ -62,7 +62,7 @@
 - 앱(body.app)에서 ←/→ = 하단 바 버튼 포커스 이동(`barIdx`/`barMark`, 노란 .kfocus), 가운데 = 그 버튼 클릭. ↑↓ = 목록(맨 위에
   🔄 새로고침·🔑 재로그인 기능 줄, `tvActions`). PC 키보드는 ←/→ 이전/다음 그대로
 - 앱 전체화면 = `body.full`(하단 바 숨김, ⛶ 버튼). 뒤로 순서: 목록 닫기 → 전체화면 해제 → 앱의 "한 번 더 누르면 종료"
-- ←/→ 연속 누름(300ms 안) = 10초 이동 누적(`arrowPress`/`seekBy`), 한 번 누름은 300ms 지연 후 실행. 연속 seek 는
+- ←/→ 연속 누름(`ARROW_WAIT` 200ms 안): 2번 10초 · 3번 30초 · 이후 +10초 (`seekTotal`/`seekByTotal`), 한 번 누름은 200ms 지연 후 실행. 연속 seek 는
   `seekBase + seekSum` 으로 계산 (seekTo 직후 getCurrentTime 이 안 바뀌어 누적이 안 됐던 문제)
 - Chromecast 리모컨엔 **메뉴 키 없음** → 로그인 화면 새 코드는 가운데 버튼
 - 페이지 최신화: 앱이 `?_v=시각` 붙여 로드, 10분 넘게 백그라운드였다 돌아오면 재로드, `KidsTV.reload()`(🔄). `settings.last` 로 보던 영상부터 이어 재생

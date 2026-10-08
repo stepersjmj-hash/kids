@@ -681,21 +681,22 @@ function barMark(){
   const bs = barButtons(); barIdx = Math.max(0, Math.min(bs.length - 1, barIdx));
   bs.forEach((b, i) => b.classList.toggle('kfocus', i === barIdx));
 }
-// TV 앱 ←/→: 한 번 = 기존 동작(버튼 이동 / 전체화면에선 이전·다음), 빠르게 두 번 이상 = 10초씩 뒤로·앞으로.
+// TV 앱 ←/→: 한 번 = 기존 동작(버튼 이동 / 전체화면에선 이전·다음), 빠르게 두 번 = 10초, 세 번 = 30초, 그 뒤 한 번마다 +10초.
 // 두 번째 누름을 기다려야 하므로 한 번 누르기는 ARROW_WAIT 만큼 늦게 실행된다
-const ARROW_WAIT = 300;
+const ARROW_WAIT = 200;
+const seekTotal = n => n < 2 ? 0 : n === 2 ? 10 : 30 + 10 * (n - 3);   // n번 연속 누름 → 총 이동 초
 let arrowTimer = null, arrowKey = null, arrowCount = 0, seekSum = 0, seekBase = 0;
 function arrowSingle(k){
   if (isFull()) step(k === 'ArrowRight' ? 1 : -1);
   else { barIdx += k === 'ArrowRight' ? 1 : -1; barMark(); }
 }
-function seekBy(sec){
+function seekByTotal(total){
   if (!ready || idx < 0) return;
   const st = player.getPlayerState();
   if (st !== YT.PlayerState.PLAYING && st !== YT.PlayerState.PAUSED && st !== YT.PlayerState.BUFFERING) return;
   // seekTo 직후엔 getCurrentTime 이 아직 안 바뀌므로 연속 누름은 처음 위치 + 누적값으로 계산
   if (seekSum === 0) seekBase = player.getCurrentTime();
-  seekSum += sec;
+  seekSum = total;
   const dur = player.getDuration() || 0, t = Math.max(0, Math.min(dur - 1, seekBase + seekSum));
   player.seekTo(t, true);
   const mmss = x => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
@@ -704,8 +705,8 @@ function seekBy(sec){
 function arrowPress(k){
   if (arrowTimer && arrowKey === k) {            // 두 번째 이후 누름 → 10초 이동
     clearTimeout(arrowTimer);
-    seekBy(k === 'ArrowRight' ? 10 : -10);
     arrowCount++;
+    seekByTotal((k === 'ArrowRight' ? 1 : -1) * seekTotal(arrowCount));
   } else {                                       // 첫 누름 (다른 방향이면 이전 것은 버림)
     clearTimeout(arrowTimer);
     arrowKey = k; arrowCount = 1; seekSum = 0;
