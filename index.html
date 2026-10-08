@@ -417,6 +417,7 @@ if (typeof window.KidsTV === 'undefined' && new URLSearchParams(location.search)
   document.documentElement.classList.add('sim');   // PC 창 안에 TV 와 같은 16:9 상자를 만들어 그 안에 그림 (body.sim 은 아래에서)
 }
 const TVAPP = typeof window.KidsTV !== 'undefined';
+const SIM = document.documentElement.classList.contains('sim');   // ?app=1 흉내 모드 (설정의 tv 값을 저장하지 않아 PC 화면을 오염시키지 않음)
 // Google Cloud 콘솔 > kids-player > 클라이언트 의 웹 클라이언트 ID (공개돼도 되는 값)
 const GOOGLE_CLIENT_ID = '1096780537185-l0sv1gm1j2b0hvnu401ttnm274lun102.apps.googleusercontent.com';
 
@@ -436,11 +437,13 @@ const toast = (m, ms=1800) => { const t=$('#toast'); t.textContent=m; t.classLis
 
 /* ---------- 저장/불러오기 ---------- */
 function save(){
-  localStorage.setItem(KEY, JSON.stringify(items)); localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  localStorage.setItem(KEY, JSON.stringify(items)); saveSettings();
   // 영상 구성/순서가 바뀐 경우에만 드라이브 동기화 (제목 채우기·설정 변경은 제외)
   const sig = items.map(x => x.id).join(',');
   if (sig !== save._sig) { save._sig = sig; scheduleDriveSync(); }
 }
+let simTvWas = false;   // 흉내 모드 들어오기 전의 tv 설정 (그대로 돌려 둔다)
+function saveSettings(){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(SIM ? { ...settings, tv: simTvWas } : settings)); }
 function load(){
   try { items = JSON.parse(localStorage.getItem(KEY)) || []; } catch { items = []; }
   try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch {}
@@ -998,7 +1001,7 @@ function onPlayerError(e){
 function playIndex(i, viaOrder){
   if (i<0 || i>=items.length) return;
   idx = i;
-  if (settings.last !== items[i].id) { settings.last = items[i].id; localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }  // 새로 고쳐도 이어 보기
+  if (settings.last !== items[i].id) { settings.last = items[i].id; saveSettings(); }  // 새로 고쳐도 이어 보기
   mainStarted = false;
   if (!viaOrder) { if (items[i].bad) { items[i].bad = false; } rebuildOrder(); }
   render();
@@ -1337,6 +1340,7 @@ function handleAddParam(raw){
 
 /* ---------- 시작 ---------- */
 load();
+simTvWas = !!settings.tv;
 settings.shuffle = false;   // 셔플 버튼을 없앴으므로 예전에 켜 둔 설정도 끈다
 save._sig = items.map(x => x.id).join(',');
 const hadToken = restoreToken();
