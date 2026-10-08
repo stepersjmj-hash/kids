@@ -41,6 +41,11 @@
   .item .ops { display:flex; flex-direction:column; gap:3px; }
   .item .ops button { padding:2px 6px; font-size:11px; line-height:1.4; }
   #hint { padding:8px 14px 12px; color:var(--sub); font-size:12px; line-height:1.5; border-top:1px solid var(--line); }
+  #link { margin-top:8px; font-size:12px; color:var(--sub); display:flex; gap:6px; align-items:center; }
+  #link.on { color:var(--ok); }
+  #link span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #link button { padding:4px 8px; font-size:12px; }
+  #plLoader { position:fixed; left:-9999px; top:0; width:320px; height:180px; }
   #toast { position:fixed; left:50%; bottom:70px; transform:translateX(-50%); background:#242938; border:1px solid var(--line); padding:8px 14px; border-radius:10px; font-size:13px; opacity:0; transition:opacity .2s; pointer-events:none; }
   #toast.show { opacity:1; }
   @media (max-width: 820px) {
@@ -82,15 +87,17 @@
       <button id="btnClear" class="danger">전체 삭제</button>
       <input type="file" id="fileInput" accept="application/json" hidden>
     </div>
+    <div id="link"><span id="linkText">유튜브 재생목록 URL을 붙여넣으면 연결됩니다</span><button id="btnSync" hidden>🔄 동기화</button><button id="btnUnlink" hidden>연결 해제</button></div>
   </header>
   <div id="list"></div>
   <div id="hint">
     키보드: Space 재생/정지 · ←/→ 이전/다음 · L 반복 · S 셔플 · T TV모드 · F 전체화면<br>
-    원격 목록: <code>?list=JSON주소</code> 를 붙이면 그 파일을 읽어 옵니다 (GitHub raw 등).
+    유튜브 재생목록 연결: 입력칸에 재생목록 URL 붙여넣기 또는 <code>?pl=재생목록ID</code><br>원격 JSON 목록: <code>?list=JSON주소</code>
   </div>
 </aside>
 
 <div id="toast"></div>
+<div id="plLoader"><div id="plLoaderPlayer"></div></div>
 
 <script>
 /* ---------- 상태 ---------- */
@@ -98,8 +105,9 @@ const KEY = 'home-playlist-v1';
 const SETTINGS_KEY = 'home-playlist-settings-v1';
 let items = [];               // [{id, title, bad}]
 let idx = -1;                 // 현재 인덱스
-let settings = { loop:true, shuffle:false, tv:false };
+let settings = { loop:true, shuffle:false, tv:false, pl:'' };  // pl: 연결된 유튜브 재생목록 ID
 let player = null, ready = false;
+let ytReady = false, pendingSync = false, syncing = false;   // IFrame API 로드 여부, 로드 전 요청된 동기화
 let order = [];               // 셔플 순서(인덱스 배열)
 let orderPos = -1;
 
@@ -129,6 +137,52 @@ function extractId(s){
   if (/^[\w-]{11}$/.test(s)) return s;
   const m = s.match(/(?:v=|\/shorts\/|youtu\.be\/|\/embed\/|\/live\/)([\w-]{11})/);
   return m ? m[1] : null;
+}
+
+/* ---------- 유튜브 재생목록 연결 ---------- */
+// 재생목록 URL(list=...)이고 특정 영상(v=)이 아니면 재생목록 ID 반환
+function extractPlaylistId(s){
+  s = (s||'').trim();
+  const m = s.match(/[?&]list=([\w-]+)/);
+  if (m && !/[?&]v=/.test(s)) return m[1];
+  if (/^(PL|UU|FL|OL)[\w-]{10,}$/.test(s)) return s;
+  return null;
+}
+// 숨긴 보조 플레이어로 재생목록을 불러와 영상 ID 목록을 얻는다 (API 키 불필요)
+// 기존 플레이어에 cuePlaylist 를 다시 부르면 목록이 안 바뀌므로 매번 새로 만든다
+function fetchPlaylistIds(pl){
+  return new Promise((resolve, reject) => {
+    $('#plLoader').innerHTML = '<div id="plLoaderPlayer"></div>';
+    let loader = null, done = false;
+    const finish = (fn, v) => { if (done) return; done = true; clearInterval(poll); clearTimeout(to); try { loader.destroy(); } catch {} fn(v); };
+    const poll = setInterval(() => { const ids = loader && loader.getPlaylist && loader.getPlaylist(); if (ids && ids.length) finish(resolve, ids); }, 500);
+    const to = setTimeout(() => finish(reject, new Error('timeout')), 15000);
+    loader = new YT.Player('plLoaderPlayer', {
+      width: 320, height: 180,
+      // 첫 영상이 임베드 금지여도 목록은 받을 수 있으니 onError 로 실패 처리하지 않고 타임아웃에 맡긴다
+      playerVars: { listType: 'playlist', list: pl, autoplay: 0, mute: 1 }
+    });
+  });
+}
+async function syncPlaylist(){
+  if (!settings.pl) return;
+  if (!ytReady) { pendingSync = true; return; }
+  syncing = true; render();
+  try {
+    const ids = await fetchPlaylistIds(settings.pl);
+    const old = new Map(items.map(x => [x.id, x]));
+    const curId = idx >= 0 && items[idx] ? items[idx].id : null;
+    items = [...new Set(ids)].map(id => old.get(id) || { id, title: '' });
+    idx = curId ? items.findIndex(x => x.id === curId) : -1;
+    save(); rebuildOrder(); render(); fillTitles();
+    toast(`재생목록 동기화: ${items.length}개`);
+  } catch (e) {
+    toast('재생목록을 불러오지 못했습니다 (비공개이거나 잘못된 ID)'); console.error(e);
+  }
+  syncing = false; render();
+}
+function linkPlaylist(pl){
+  settings.pl = pl; save(); render(); syncPlaylist();
 }
 
 /* ---------- 제목 가져오기 (oEmbed) ---------- */
@@ -173,6 +227,9 @@ function render(){
   $('#btnShuffle').classList.toggle('on', settings.shuffle);
   $('#btnTv').classList.toggle('on', settings.tv);
   document.body.classList.toggle('tv', settings.tv);
+  $('#link').classList.toggle('on', !!settings.pl);
+  $('#linkText').textContent = syncing ? '재생목록 불러오는 중…' : settings.pl ? `🔗 연결된 재생목록: ${settings.pl}` : '유튜브 재생목록 URL을 붙여넣으면 연결됩니다';
+  $('#btnSync').hidden = $('#btnUnlink').hidden = !settings.pl;
 }
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -192,6 +249,8 @@ function step(dir){
 
 /* ---------- 플레이어 ---------- */
 function onYouTubeIframeAPIReady(){
+  ytReady = true;
+  if (pendingSync) { pendingSync = false; syncPlaylist(); }
   player = new YT.Player('player', {
     width:'100%', height:'100%',
     playerVars: { autoplay:1, controls:1, rel:0, modestbranding:1, iv_load_policy:3, fs:0, playsinline:1, disablekb:1 },
@@ -230,6 +289,11 @@ function togglePlay(){
 /* ---------- 추가/도구 ---------- */
 function addFromInput(){
   const raw = $('#urlInput').value;
+  const pl = extractPlaylistId(raw);
+  if (pl) {
+    if (settings.pl !== pl && items.length && !confirm('이 재생목록을 연결할까요? 현재 목록은 재생목록 내용으로 바뀝니다.')) return;
+    $('#urlInput').value = ''; linkPlaylist(pl); return;
+  }
   const ids = raw.split(/[\s,]+/).map(extractId).filter(Boolean);
   if (!ids.length) { toast('유효한 유튜브 URL이 없습니다'); return; }
   let added = 0;
@@ -252,6 +316,8 @@ $('#fileInput').onchange = async e => {
   catch { toast('JSON 형식이 올바르지 않습니다'); }
   e.target.value = '';
 };
+$('#btnSync').onclick = syncPlaylist;
+$('#btnUnlink').onclick = () => { settings.pl = ''; save(); render(); toast('연결 해제 (목록은 그대로 남습니다)'); };
 $('#btnClearBad').onclick = () => { items = items.filter(x=>!x.bad); idx = -1; save(); rebuildOrder(); render(); };
 $('#btnClear').onclick = () => { if (confirm('재생목록을 모두 지울까요?')) { items=[]; idx=-1; save(); rebuildOrder(); render(); } };
 
@@ -279,7 +345,9 @@ document.addEventListener('keydown', e => {
 /* ---------- 시작 ---------- */
 load();
 const remote = new URLSearchParams(location.search).get('list');
-if (remote) loadRemote(remote); else fillTitles();
+const plParam = new URLSearchParams(location.search).get('pl');
+if (plParam) settings.pl = extractPlaylistId(plParam) || plParam;
+if (remote) loadRemote(remote); else if (settings.pl) syncPlaylist(); else fillTitles();
 if (new URLSearchParams(location.search).get('tv')==='1') settings.tv = true;
 rebuildOrder(); render();
 const tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(tag);
