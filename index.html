@@ -629,21 +629,27 @@ $('#btnLoop').onclick = () => { settings.loop=!settings.loop; save(); render(); 
 $('#btnShuffle').onclick = () => { settings.shuffle=!settings.shuffle; save(); rebuildOrder(); render(); };
 $('#btnTv').onclick = () => { settings.tv=!settings.tv; save(); render(); };
 $('#btnFull').onclick = () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); };
-document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT') return;
-  const k = e.key;
-  if (tvOpen()) { e.preventDefault(); tvKey(k); return; }
-  if (k === 'ArrowDown' || k === 'ArrowUp') { e.preventDefault(); if (settings.tv) tvShow(); return; }
-  if (k === 'ArrowLeft' || k === 'ArrowRight') e.preventDefault();
-  if (e.target.tagName === 'BUTTON' && (k===' '||k==='Enter')) return; // 포커스된 버튼은 기본 클릭으로 처리
-  if (k===' '||k==='Enter'||k==='MediaPlayPause') { e.preventDefault(); togglePlay(); }
+// 키 처리 (키보드 + TV 앱 리모컨 공용). 처리했으면 true
+function handleKey(k){
+  if (tvOpen()) { tvKey(k); return true; }
+  if (k === 'ArrowDown' || k === 'ArrowUp') { if (settings.tv) tvShow(); return true; }
+  if (k===' '||k==='Enter'||k==='MediaPlayPause') togglePlay();
   else if (k==='ArrowRight'||k==='MediaTrackNext') step(1);
   else if (k==='ArrowLeft'||k==='MediaTrackPrevious') step(-1);
   else if (k==='l'||k==='L') $('#btnLoop').click();
   else if (k==='s'||k==='S') $('#btnShuffle').click();
   else if (k==='t'||k==='T') $('#btnTv').click();
   else if (k==='f'||k==='F') $('#btnFull').click();
+  else return false;
+  return true;
+}
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.target.tagName === 'BUTTON' && (e.key===' '||e.key==='Enter') && !tvOpen()) return; // 포커스된 버튼은 기본 클릭으로 처리
+  if (handleKey(e.key)) e.preventDefault();
 });
+// TV 앱은 리모컨 키를 WebView 포커스 이동 대신 이 함수로 직접 넘긴다
+window.kidsTvKey = k => handleKey(k);
 
 /* ---------- TV 앱 연동 ---------- */
 // 앱이 기기 코드 흐름으로 받은 액세스 토큰을 넘겨준다 (만료 전 자동 갱신)

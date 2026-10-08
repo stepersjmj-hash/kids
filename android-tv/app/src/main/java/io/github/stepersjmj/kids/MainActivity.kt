@@ -79,7 +79,8 @@ class MainActivity : Activity() {
         root.addView(loginView, FrameLayout.LayoutParams(-1, -1))
         setContentView(root)
 
-        web.loadUrl(BuildConfig.START_URL)
+        // 테스트용: adb shell am start ... --es url "https://..." 로 시작 주소를 바꿀 수 있다
+        web.loadUrl(intent.getStringExtra("url") ?: BuildConfig.START_URL)
         web.requestFocus()
 
         // 액세스 토큰(1시간)을 만료 전에 갱신
@@ -111,7 +112,8 @@ class MainActivity : Activity() {
     /* ---------- 리모컨 ---------- */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
-            if (loginView.visibility == View.VISIBLE && hasRefreshToken()) { hideLogin(); return true }
+            // 로그인 화면은 뒤로 버튼으로 닫을 수 있다 (로그인 없이 이 TV의 목록만 쓰기)
+            if (loginView.visibility == View.VISIBLE) { hideLogin(); return true }
             // 페이지가 목록 오버레이를 닫았으면 true, 아니면 두 번 눌러 종료
             web.evaluateJavascript("(window.kidsTvBack && window.kidsTvBack()) ? 1 : 0") { r ->
                 if (r == "1") return@evaluateJavascript
@@ -122,6 +124,24 @@ class MainActivity : Activity() {
             return true
         }
         if (event.keyCode == KeyEvent.KEYCODE_BACK) return true
+        // 방향키·확인·미디어 키는 WebView 의 포커스 이동에 맡기지 않고 페이지로 직접 넘긴다
+        // (그렇지 않으면 화살표가 하단 버튼 사이를 옮겨 다니고 확인 키가 그 버튼을 누름)
+        val jsKey = when (event.keyCode) {
+            KeyEvent.KEYCODE_DPAD_LEFT -> "ArrowLeft"
+            KeyEvent.KEYCODE_DPAD_RIGHT -> "ArrowRight"
+            KeyEvent.KEYCODE_DPAD_UP -> "ArrowUp"
+            KeyEvent.KEYCODE_DPAD_DOWN -> "ArrowDown"
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> "Enter"
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE -> "MediaPlayPause"
+            KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> "MediaTrackNext"
+            KeyEvent.KEYCODE_MEDIA_PREVIOUS, KeyEvent.KEYCODE_MEDIA_REWIND -> "MediaTrackPrevious"
+            else -> null
+        }
+        if (jsKey != null && loginView.visibility != View.VISIBLE) {
+            if (event.action == KeyEvent.ACTION_DOWN && (event.repeatCount == 0 || jsKey == "ArrowUp" || jsKey == "ArrowDown"))
+                web.evaluateJavascript("window.kidsTvKey && window.kidsTvKey('$jsKey')", null)
+            return true
+        }
         // 메뉴 키 → 로그인 화면 (계정 바꾸기)
         if (event.keyCode == KeyEvent.KEYCODE_MENU && event.action == KeyEvent.ACTION_UP) { startDeviceLogin(); return true }
         return super.dispatchKeyEvent(event)
@@ -186,7 +206,7 @@ class MainActivity : Activity() {
                     loginCode.text = user
                     loginQr.setImageBitmap(qr(url, 360))
                     loginMsg.text = (notice?.let { "$it\n" } ?: "") +
-                        "휴대폰으로 QR을 찍거나 $url 에 접속해 위 코드를 입력하세요.\n이미 로그인돼 있으면 뒤로 버튼으로 닫을 수 있습니다."
+                        "휴대폰으로 QR을 찍거나 $url 에 접속해 위 코드를 입력하세요.\n뒤로 버튼: 닫기 · 메뉴 버튼: 새 코드"
                 }
                 pollToken(j.getString("device_code"), j.optLong("interval", 5), System.currentTimeMillis() + j.optLong("expires_in", 1800) * 1000)
             } catch (e: Exception) {
@@ -234,7 +254,8 @@ class MainActivity : Activity() {
     /* ---------- 로그인 화면 ---------- */
     private fun showLogin() {
         loginView.visibility = View.VISIBLE
-        if (loginCode.text.isNullOrBlank() && !polling && BuildConfig.TV_CLIENT_ID.isNotBlank()) startDeviceLogin()
+        if (BuildConfig.TV_CLIENT_ID.isBlank()) loginMsg.text = "TV용 클라이언트 ID가 빌드에 없습니다 (local.properties 확인)\n뒤로 버튼으로 닫을 수 있습니다."
+        else if (loginCode.text.isNullOrBlank() && !polling) startDeviceLogin()
     }
     private fun hideLogin() { loginView.visibility = View.GONE; web.requestFocus() }
 
