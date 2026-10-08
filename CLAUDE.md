@@ -5,6 +5,7 @@
 ## 구성
 - `index.html` — 전부 이 파일 하나 (YouTube IFrame Player API + oEmbed로 제목 조회, 외부 의존성은 Google Fonts(Jua·Gowun Dodum)뿐)
 - `ic_launcher.png` — 로고 줄 아이콘 (android-tv 의 mipmap 과 같은 그림)
+- `privacy.html` — 개인정보처리방침 (OAuth 동의 화면 프로덕션 게시에 필요. 브랜딩 페이지의 개인정보처리방침 URL = https://stepersjmj-hash.github.io/kids/privacy.html)
 - `design_handoff_kids_1b/` — "아이 손" 리디자인 시안·핸드오프(README 에 토큰·치수 확정값). git 에는 안 올림. 화면을 고칠 땐 이 문서 기준
 - `playlist.json` — `?list=` 로 불러오는 공유 목록 (`[{id,title}]`)
 - `README.md` — 사용자용 사용법
