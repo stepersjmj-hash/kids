@@ -8,10 +8,10 @@
   :root { --bg:#0f1115; --panel:#181b22; --line:#2a2f3a; --text:#e8eaf0; --sub:#9aa3b5; --accent:#ff5c5c; --ok:#3ddc84; }
   * { box-sizing:border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
-  body { display:grid; grid-template-columns: 1fr 360px; grid-template-rows:100vh; }
-  body.tv { grid-template-columns: 1fr; }
+  body { display:grid; grid-template-columns: minmax(0,1fr) 360px; grid-template-rows:100vh; }
+  body.tv { grid-template-columns: minmax(0,1fr); }
   body.tv #side { display:none; }
-  #stage { position:relative; background:#000; display:flex; flex-direction:column; }
+  #stage { min-width:0; position:relative; background:#000; display:flex; flex-direction:column; }
   #player-wrap { position:relative; flex:1; }
   #player { position:absolute; inset:0; width:100%; height:100%; }
   /* 끝화면/추천 가리기용 덮개: 재생 중엔 투명, 전환 중엔 불투명 */
