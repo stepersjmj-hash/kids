@@ -67,6 +67,17 @@
   .src .n { flex:1; font-size:14px; }
   .src .n small { display:block; color:var(--sub); font-size:11px; margin-top:2px; }
   .src button { padding:5px 9px; font-size:12px; }
+  /* TV 리모컨용 목록 (↓ 로 열기) */
+  #tvList { position:fixed; inset:0; background:rgba(8,10,14,.92); z-index:20; display:flex; flex-direction:column; padding:4vh 6vw; }
+  #tvList[hidden] { display:none; }
+  #tvList h2 { margin:0 0 2vh; font-size:3.2vh; color:var(--sub); font-weight:500; }
+  #tvItems { flex:1; overflow:hidden; display:flex; flex-direction:column; gap:1.2vh; }
+  .tvi { display:flex; align-items:center; gap:2vw; padding:1vh 1vw; border-radius:1.4vh; border:.4vh solid transparent; flex:none; }
+  .tvi img { width:19vh; height:10.7vh; object-fit:cover; border-radius:1vh; background:#000; flex:none; }
+  .tvi span { font-size:3vh; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .tvi.sel { border-color:var(--ok); background:#1a2a22; }
+  .tvi.cur span::before { content:'▶ '; color:var(--ok); }
+  body.app #btnImportYt, body.app #bookmarkHint { display:none; }
   #toast { position:fixed; left:50%; bottom:70px; transform:translateX(-50%); background:#242938; border:1px solid var(--line); padding:8px 14px; border-radius:10px; font-size:13px; opacity:0; transition:opacity .2s; pointer-events:none; }
   #toast.show { opacity:1; }
   @media (max-width: 820px) {
@@ -118,12 +129,13 @@
   <div id="list"></div>
   <div id="hint">
     키보드: Space 재생/정지 · ←/→ 이전/다음 · L 반복 · S 셔플 · T TV모드 · F 전체화면<br>
-    PC 유튜브에서 바로 추가: 이 버튼을 북마크바로 드래그 → <a id="bookmarklet" href="javascript:(()=>{window.open('https://stepersjmj-hash.github.io/kids/?add='+encodeURIComponent(location.href),'_blank')})()" onclick="event.preventDefault(); toast('클릭하지 말고 북마크바로 끌어다 놓으세요', 3000)">📌 재생목록에 추가</a><br>
+    <span id="bookmarkHint">PC 유튜브에서 바로 추가: 이 버튼을 북마크바로 드래그 → <a id="bookmarklet" href="javascript:(()=>{window.open('https://stepersjmj-hash.github.io/kids/?add='+encodeURIComponent(location.href),'_blank')})()" onclick="event.preventDefault(); toast('클릭하지 말고 북마크바로 끌어다 놓으세요', 3000)">📌 재생목록에 추가</a><br></span>
     유튜브 재생목록 연결: 입력칸에 재생목록 URL 붙여넣기 또는 <code>?pl=재생목록ID</code><br>원격 JSON 목록: <code>?list=JSON주소</code>
   </div>
 </aside>
 
 <div id="toast"></div>
+<div id="tvList" hidden><h2>↑↓ 고르기 · 가운데 버튼 재생 · 뒤로 닫기</h2><div id="tvItems"></div></div>
 <div id="gModal" hidden><div class="box">
   <div class="head"><b>Google에서 가져오기</b><button id="gClose">닫기</button></div>
   <div id="gList"></div>
@@ -132,6 +144,8 @@
 
 <script>
 /* ---------- 설정 ---------- */
+// TV 앱(android-tv/) 안에서 열렸는지 — 앱이 addJavascriptInterface 로 KidsTV 를 넣어 준다
+const TVAPP = typeof window.KidsTV !== 'undefined';
 // Google Cloud 콘솔 > kids-player > 클라이언트 의 웹 클라이언트 ID (공개돼도 되는 값)
 const GOOGLE_CLIENT_ID = '1096780537185-l0sv1gm1j2b0hvnu401ttnm274lun102.apps.googleusercontent.com';
 
@@ -331,6 +345,8 @@ async function driveSync(){
         save._sig = sig(items); localStorage.setItem(KEY, JSON.stringify(items));
         rebuildOrder(); render(); fillTitles();
         toast(`드라이브와 동기화: ${items.length}개`);
+        maybeAutoStart();
+        if (tvOpen()) tvRender();
       }
       localStorage.setItem(BASE_KEY, JSON.stringify({ updatedAt, items: next || local }));
       setSyncStatus('on', `☁ ${accountText() ? accountText() + ' · ' : ''}동기화 켜짐 · ${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 확인`);
@@ -373,6 +389,7 @@ function updateAuthUI(){
   $('#btnGoogle').classList.toggle('in', !!pic);
 }
 function login(){
+  if (TVAPP) { KidsTV.login(); return; }      // TV 앱: 앱이 기기 코드(QR) 로그인 화면을 띄운다
   if (!GOOGLE_CLIENT_ID) { toast('클라이언트 ID가 설정되지 않았습니다'); return; }
   if (!gClient) { toast('Google 로그인 준비 중… 잠시 후 다시 눌러주세요'); return; }
   gClient.requestAccessToken();
@@ -380,6 +397,7 @@ function login(){
 // 로그아웃 = 이 브라우저에서 토큰만 잊는다 (권한 철회는 하지 않아 다음 로그인 때 동의 화면이 다시 안 뜸).
 // 목록과 동기화 기준(base)은 남겨 두어 다시 로그인하면 이어서 병합
 function logout(){
+  if (TVAPP) KidsTV.logout();
   gToken = null; gTokenExp = 0; clearTimeout(driveTimer);
   try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(PROFILE_KEY); } catch {}
   updateAuthUI(); $('#gModal').hidden = true;
@@ -534,7 +552,7 @@ function onYouTubeIframeAPIReady(){
     width:'100%', height:'100%',
     playerVars: { autoplay:1, controls:1, rel:0, modestbranding:1, iv_load_policy:3, fs:0, playsinline:1, disablekb:1 },
     events: {
-      onReady: () => { ready = true; if (idx>=0) playIndex(idx, true); },
+      onReady: () => { ready = true; if (idx>=0) playIndex(idx, true); else maybeAutoStart(); },
       onStateChange: e => {
         if (e.data === YT.PlayerState.ENDED) { showCover('다음 영상…'); setTimeout(()=>step(1), 150); }
         if (e.data === YT.PlayerState.PLAYING) hideCover();
@@ -614,6 +632,9 @@ $('#btnFull').onclick = () => { document.fullscreenElement ? document.exitFullsc
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   const k = e.key;
+  if (tvOpen()) { e.preventDefault(); tvKey(k); return; }
+  if (k === 'ArrowDown' || k === 'ArrowUp') { e.preventDefault(); if (settings.tv) tvShow(); return; }
+  if (k === 'ArrowLeft' || k === 'ArrowRight') e.preventDefault();
   if (e.target.tagName === 'BUTTON' && (k===' '||k==='Enter')) return; // 포커스된 버튼은 기본 클릭으로 처리
   if (k===' '||k==='Enter'||k==='MediaPlayPause') { e.preventDefault(); togglePlay(); }
   else if (k==='ArrowRight'||k==='MediaTrackNext') step(1);
@@ -623,6 +644,44 @@ document.addEventListener('keydown', e => {
   else if (k==='t'||k==='T') $('#btnTv').click();
   else if (k==='f'||k==='F') $('#btnFull').click();
 });
+
+/* ---------- TV 앱 연동 ---------- */
+// 앱이 기기 코드 흐름으로 받은 액세스 토큰을 넘겨준다 (만료 전 자동 갱신)
+window.kidsTvToken = (t, exp) => {
+  const first = !loggedIn();
+  gToken = t; gTokenExp = exp;
+  try { localStorage.setItem(TOKEN_KEY, JSON.stringify({ t, exp })); } catch {}
+  updateAuthUI();
+  if (first) { loadProfile(); driveSync(); }
+};
+// 리모컨 ↓ 로 여는 목록
+let tvSel = -1;
+const tvOpen = () => !$('#tvList').hidden;
+function tvRender(){
+  const box = $('#tvItems'); box.innerHTML = '';
+  if (!items.length) { box.innerHTML = '<div class="tvi"><span>목록이 비어 있습니다 — 휴대폰에서 영상을 추가하세요</span></div>'; return; }
+  // 선택 항목 주변만 그려서 스크롤 없이 보이게
+  const per = 7, start = Math.max(0, Math.min(tvSel - 3, items.length - per));
+  items.slice(start, start + per).forEach((it, k) => {
+    const i = start + k, d = document.createElement('div');
+    d.className = 'tvi' + (i === tvSel ? ' sel' : '') + (i === idx ? ' cur' : '');
+    d.innerHTML = `<img src="https://img.youtube.com/vi/${it.id}/mqdefault.jpg" alt=""><span>${esc(it.title || it.id)}${it.bad ? ' ⚠' : ''}</span>`;
+    box.appendChild(d);
+  });
+}
+function tvShow(){ tvSel = idx >= 0 ? idx : 0; $('#tvList').hidden = false; tvRender(); }
+function tvHide(){ $('#tvList').hidden = true; }
+function tvKey(k){
+  if (k === 'ArrowDown') tvSel = Math.min(items.length - 1, tvSel + 1);
+  else if (k === 'ArrowUp') tvSel = Math.max(0, tvSel - 1);
+  else if (k === 'Enter' || k === ' ') { tvHide(); if (items[tvSel]) playIndex(tvSel); return; }
+  else if (k === 'Escape' || k === 'Backspace' || k === 'GoBack') { tvHide(); return; }
+  else return;
+  tvRender();
+}
+window.kidsTvBack = () => { if (tvOpen()) { tvHide(); return true; } return false; };
+// 앱에서는 켜자마자 재생
+function maybeAutoStart(){ if (TVAPP && ready && idx < 0 && items.some(x => !x.bad)) step(1); }
 
 /* ---------- ?add= : 유튜브 앱 공유(아이폰 단축어)·PC 북마클릿에서 넘어온 영상 추가 ---------- */
 // 이미 열려 있는 탭이 있으면 그 탭에 넘기고(BroadcastChannel) 이 탭은 닫는다 — 오래된 목록으로 덮어쓰는 것 방지
@@ -669,7 +728,8 @@ const remote = new URLSearchParams(location.search).get('list');
 const plParam = new URLSearchParams(location.search).get('pl');
 if (plParam) settings.pl = extractPlaylistId(plParam) || plParam;
 if (remote) loadRemote(remote); else if (settings.pl) syncPlaylist(); else fillTitles();
-if (new URLSearchParams(location.search).get('tv')==='1') settings.tv = true;
+if (new URLSearchParams(location.search).get('tv')==='1' || TVAPP) settings.tv = true;
+if (TVAPP) document.body.classList.add('app');
 rebuildOrder(); render();
 initGoogle();
 if (hadToken) driveSync();

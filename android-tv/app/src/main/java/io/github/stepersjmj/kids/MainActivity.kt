@@ -1,0 +1,272 @@
+package io.github.stepersjmj.kids
+
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.Typeface
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.Gravity
+import android.view.KeyEvent
+import android.view.View
+import android.view.WindowManager
+import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import kotlin.concurrent.thread
+
+/**
+ * 우리집 재생목록 TV 앱.
+ * - 웹페이지(?tv=1)를 WebView 로 띄우고 재생·목록·동기화는 페이지가 담당한다.
+ * - 구글은 WebView 안 로그인을 막으므로, 로그인은 OAuth 기기 코드 흐름(폰으로 QR/코드 입력)으로
+ *   앱이 직접 하고, 받은 액세스 토큰을 페이지의 window.kidsTvToken() 으로 넘긴다.
+ */
+class MainActivity : Activity() {
+
+    private lateinit var web: WebView
+    private lateinit var loginView: LinearLayout
+    private lateinit var loginQr: ImageView
+    private lateinit var loginCode: TextView
+    private lateinit var loginMsg: TextView
+
+    private val main = Handler(Looper.getMainLooper())
+    private val prefs by lazy { getSharedPreferences("auth", Context.MODE_PRIVATE) }
+    private var pageReady = false
+    private var accessToken: String? = null
+    private var accessExp = 0L
+    private var polling = false
+    private var lastBack = 0L
+
+    @SuppressLint("SetJavaScriptEnabled")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        web = WebView(this).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.mediaPlaybackRequiresUserGesture = false
+            settings.userAgentString = settings.userAgentString + " KidsTV/1"
+            setBackgroundColor(Color.BLACK)
+            addJavascriptInterface(Bridge(), "KidsTV")
+            webChromeClient = WebChromeClient()
+            webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    pageReady = true
+                    if (hasRefreshToken()) refreshAndInject() else showLogin()
+                }
+            }
+        }
+
+        loginView = buildLoginView()
+        val root = FrameLayout(this)
+        root.addView(web, FrameLayout.LayoutParams(-1, -1))
+        root.addView(loginView, FrameLayout.LayoutParams(-1, -1))
+        setContentView(root)
+
+        web.loadUrl(BuildConfig.START_URL)
+        web.requestFocus()
+
+        // 액세스 토큰(1시간)을 만료 전에 갱신
+        main.postDelayed(object : Runnable {
+            override fun run() {
+                if (hasRefreshToken() && System.currentTimeMillis() > accessExp - 10 * 60_000) refreshAndInject()
+                main.postDelayed(this, 5 * 60_000)
+            }
+        }, 5 * 60_000)
+    }
+
+    /* ---------- 페이지 ↔ 앱 ---------- */
+    inner class Bridge {
+        @JavascriptInterface fun login() = main.post { startDeviceLogin() }
+        @JavascriptInterface fun logout() = main.post {
+            prefs.edit().remove("refresh").apply()
+            accessToken = null; accessExp = 0
+            showLogin()
+        }
+        @JavascriptInterface fun isApp() = true
+    }
+
+    private fun inject() {
+        val t = accessToken ?: return
+        if (!pageReady) return
+        web.evaluateJavascript("window.kidsTvToken && window.kidsTvToken(${JSONObject.quote(t)}, $accessExp)", null)
+    }
+
+    /* ---------- 리모컨 ---------- */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
+            if (loginView.visibility == View.VISIBLE && hasRefreshToken()) { hideLogin(); return true }
+            // 페이지가 목록 오버레이를 닫았으면 true, 아니면 두 번 눌러 종료
+            web.evaluateJavascript("(window.kidsTvBack && window.kidsTvBack()) ? 1 : 0") { r ->
+                if (r == "1") return@evaluateJavascript
+                val now = System.currentTimeMillis()
+                if (now - lastBack < 2000) finish()
+                else { lastBack = now; Toast.makeText(this, "한 번 더 누르면 종료합니다", Toast.LENGTH_SHORT).show() }
+            }
+            return true
+        }
+        if (event.keyCode == KeyEvent.KEYCODE_BACK) return true
+        // 메뉴 키 → 로그인 화면 (계정 바꾸기)
+        if (event.keyCode == KeyEvent.KEYCODE_MENU && event.action == KeyEvent.ACTION_UP) { startDeviceLogin(); return true }
+        return super.dispatchKeyEvent(event)
+    }
+
+    /* ---------- OAuth 기기 코드 흐름 ---------- */
+    private val scope = "openid email profile https://www.googleapis.com/auth/drive.appdata"
+
+    private fun hasRefreshToken() = prefs.getString("refresh", null) != null
+
+    private fun post(url: String, params: Map<String, String>): Pair<Int, JSONObject> {
+        val body = params.entries.joinToString("&") { "${it.key}=${URLEncoder.encode(it.value, "UTF-8")}" }
+        val c = URL(url).openConnection() as HttpURLConnection
+        c.requestMethod = "POST"; c.doOutput = true
+        c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+        c.connectTimeout = 15000; c.readTimeout = 15000
+        c.outputStream.use { it.write(body.toByteArray()) }
+        val code = c.responseCode
+        val text = (if (code < 400) c.inputStream else c.errorStream).bufferedReader().use { it.readText() }
+        return code to JSONObject(text.ifBlank { "{}" })
+    }
+
+    private fun refreshAndInject() {
+        val refresh = prefs.getString("refresh", null) ?: return
+        thread {
+            try {
+                val (code, j) = post("https://oauth2.googleapis.com/token", mapOf(
+                    "client_id" to BuildConfig.TV_CLIENT_ID,
+                    "client_secret" to BuildConfig.TV_CLIENT_SECRET,
+                    "refresh_token" to refresh,
+                    "grant_type" to "refresh_token"))
+                main.post {
+                    if (code == 200) {
+                        accessToken = j.getString("access_token")
+                        accessExp = System.currentTimeMillis() + (j.optLong("expires_in", 3600) - 60) * 1000
+                        hideLogin(); inject()
+                    } else if (j.optString("error") == "invalid_grant") {
+                        // 권한 철회·만료(테스트 모드는 7일) → 다시 로그인
+                        prefs.edit().remove("refresh").apply()
+                        startDeviceLogin("로그인이 만료되었습니다. 다시 로그인해 주세요.")
+                    }
+                }
+            } catch (e: Exception) {
+                main.postDelayed({ refreshAndInject() }, 30_000)   // 네트워크 오류 → 잠시 후 재시도
+            }
+        }
+    }
+
+    private fun startDeviceLogin(notice: String? = null) {
+        if (BuildConfig.TV_CLIENT_ID.isBlank()) { showLogin(); loginMsg.text = "TV용 클라이언트 ID가 빌드에 없습니다 (local.properties 확인)"; return }
+        if (polling) { showLogin(); return }
+        showLogin()
+        loginMsg.text = notice ?: "로그인 코드를 받는 중…"
+        thread {
+            try {
+                val (code, j) = post("https://oauth2.googleapis.com/device/code",
+                    mapOf("client_id" to BuildConfig.TV_CLIENT_ID, "scope" to scope))
+                if (code != 200) { main.post { loginMsg.text = "코드 발급 실패: ${j.optString("error_description", j.optString("error"))}" }; return@thread }
+                val url = j.getString("verification_url")
+                val user = j.getString("user_code")
+                main.post {
+                    loginCode.text = user
+                    loginQr.setImageBitmap(qr(url, 360))
+                    loginMsg.text = (notice?.let { "$it\n" } ?: "") +
+                        "휴대폰으로 QR을 찍거나 $url 에 접속해 위 코드를 입력하세요.\n이미 로그인돼 있으면 뒤로 버튼으로 닫을 수 있습니다."
+                }
+                pollToken(j.getString("device_code"), j.optLong("interval", 5), System.currentTimeMillis() + j.optLong("expires_in", 1800) * 1000)
+            } catch (e: Exception) {
+                main.post { loginMsg.text = "네트워크 오류: ${e.message}\n메뉴 버튼을 눌러 다시 시도하세요." }
+            }
+        }
+    }
+
+    private fun pollToken(deviceCode: String, intervalSec: Long, deadline: Long) {
+        polling = true
+        var interval = intervalSec
+        try {
+            while (System.currentTimeMillis() < deadline && polling) {
+                Thread.sleep(interval * 1000)
+                val (code, j) = post("https://oauth2.googleapis.com/token", mapOf(
+                    "client_id" to BuildConfig.TV_CLIENT_ID,
+                    "client_secret" to BuildConfig.TV_CLIENT_SECRET,
+                    "device_code" to deviceCode,
+                    "grant_type" to "urn:ietf:params:oauth:grant-type:device_code"))
+                if (code == 200) {
+                    prefs.edit().putString("refresh", j.getString("refresh_token")).apply()
+                    main.post {
+                        accessToken = j.getString("access_token")
+                        accessExp = System.currentTimeMillis() + (j.optLong("expires_in", 3600) - 60) * 1000
+                        hideLogin(); inject()
+                        Toast.makeText(this, "로그인했습니다", Toast.LENGTH_SHORT).show()
+                    }
+                    return
+                }
+                when (j.optString("error")) {
+                    "authorization_pending" -> {}
+                    "slow_down" -> interval += 5
+                    "access_denied" -> { main.post { loginMsg.text = "로그인이 거부되었습니다. 메뉴 버튼을 눌러 다시 시도하세요." }; return }
+                    else -> { main.post { loginMsg.text = "로그인 실패: ${j.optString("error")}. 메뉴 버튼을 눌러 다시 시도하세요." }; return }
+                }
+            }
+            main.post { loginMsg.text = "코드가 만료되었습니다. 메뉴 버튼을 눌러 새 코드를 받으세요." }
+        } catch (e: Exception) {
+            main.post { loginMsg.text = "네트워크 오류: ${e.message}\n메뉴 버튼을 눌러 다시 시도하세요." }
+        } finally {
+            polling = false
+        }
+    }
+
+    /* ---------- 로그인 화면 ---------- */
+    private fun showLogin() {
+        loginView.visibility = View.VISIBLE
+        if (loginCode.text.isNullOrBlank() && !polling && BuildConfig.TV_CLIENT_ID.isNotBlank()) startDeviceLogin()
+    }
+    private fun hideLogin() { loginView.visibility = View.GONE; web.requestFocus() }
+
+    private fun buildLoginView(): LinearLayout {
+        fun tv(size: Float, bold: Boolean = false, color: Int = Color.rgb(232, 234, 240)) = TextView(this).apply {
+            textSize = size; setTextColor(color); gravity = Gravity.CENTER
+            if (bold) typeface = Typeface.DEFAULT_BOLD
+        }
+        loginQr = ImageView(this)
+        loginCode = tv(44f, true, Color.WHITE).apply { letterSpacing = 0.1f }
+        loginMsg = tv(18f, color = Color.rgb(154, 163, 181)).apply { setPadding(0, 24, 0, 0) }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(Color.rgb(15, 17, 21))
+            visibility = View.GONE
+            isClickable = true
+            addView(tv(30f, true).apply { text = "우리집 재생목록 — Google 로그인"; setPadding(0, 0, 0, 24) })
+            addView(loginQr, LinearLayout.LayoutParams(360, 360).apply { gravity = Gravity.CENTER })
+            addView(loginCode)
+            addView(loginMsg)
+        }
+    }
+
+    private fun qr(text: String, size: Int): Bitmap {
+        val m = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, size, size)
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.RGB_565)
+        for (x in 0 until size) for (y in 0 until size) bmp.setPixel(x, y, if (m[x, y]) Color.BLACK else Color.WHITE)
+        return bmp
+    }
+
+    override fun onResume() { super.onResume(); web.onResume(); if (hasRefreshToken() && System.currentTimeMillis() > accessExp) refreshAndInject() }
+    override fun onPause() { web.onPause(); super.onPause() }
+    override fun onDestroy() { polling = false; main.removeCallbacksAndMessages(null); web.destroy(); super.onDestroy() }
+}
