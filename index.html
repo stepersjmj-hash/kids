@@ -13,7 +13,10 @@
   body.tv #side { display:none; }
   #stage { min-width:0; position:relative; background:#000; display:flex; flex-direction:column; }
   #player-wrap { position:relative; flex:1; }
-  #player { position:absolute; inset:0; width:100%; height:100%; }
+  /* 플레이어 두 개(A/B)를 겹쳐 두고 하나만 보임. 대기(standby) 쪽은 다음 영상을 미리 불러 둔다 — visibility 로 숨겨야 재생이 멈추지 않음 */
+  #player-wrap .yt { position:absolute; inset:0; }
+  #player-wrap .yt iframe { width:100%; height:100%; display:block; }
+  #player-wrap .yt.standby { visibility:hidden; pointer-events:none; }
   /* 끝화면/추천 가리기용 덮개: 재생 중엔 투명, 전환 중엔 불투명 */
   #cover { position:absolute; inset:0; background:#000; display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:20px; transition:opacity .25s; pointer-events:none; }
   #cover.hidden { opacity:0; }
@@ -103,7 +106,8 @@
 
 <div id="stage">
   <div id="player-wrap">
-    <div id="player"></div>
+    <div class="yt" id="wrapA"><div id="playerA"></div></div>
+    <div class="yt standby" id="wrapB"><div id="playerB"></div></div>
     <div id="cover">재생목록에서 영상을 선택하세요</div>
   </div>
   <div id="bar">
@@ -579,36 +583,85 @@ function step(dir){
 }
 
 /* ---------- 플레이어 ---------- */
+// 플레이어는 A/B 두 개. `player` = 보이는 쪽(활성), `spare` = 숨긴 쪽(대기).
+// 대기 플레이어에 다음 영상을 음소거로 미리 '재생'해 앞 광고를 소진시킨 뒤 0초에 멈춰 두고, 활성 영상이 끝나면 둘을 맞바꿔
+// 바로 이어 재생한다 (PRELOAD). 앱(TVAPP)에선 기본 켜짐, ?preload=1|0 으로 강제 — PC 는 보통 프리미엄 쿠키로 광고가 없어 불필요
+const PRELOAD = (p => p === null ? TVAPP : p === '1')(new URLSearchParams(location.search).get('preload'));
+const PLAYER_VARS = { autoplay:1, controls:1, rel:0, modestbranding:1, iv_load_policy:3, fs:0, playsinline:1, disablekb:1, cc_load_policy:0 };
+let playerA = null, spare = null, spareReady = false;
+let spareId = null;            // 대기 플레이어에 불러 둔 영상 id
+let spareState = 'idle';       // idle(비어 있음) → loading(불러오는 중·광고 소진 중) → ready(본영상 0초에서 일시정지)
+let mainStarted = false;       // 활성 영상이 (광고 끝나고) 실제로 시작됐는지
+function makePlayer(elId, extraVars, onReady){
+  return new YT.Player(elId, { width:'100%', height:'100%', playerVars: { ...PLAYER_VARS, ...extraVars }, events: { onReady, onStateChange: onPlayerState, onError: onPlayerError } });
+}
 function onYouTubeIframeAPIReady(){
   ytReady = true;
   if (pendingSync) { pendingSync = false; syncPlaylist(); }
-  player = new YT.Player('player', {
-    width:'100%', height:'100%',
-    playerVars: { autoplay:1, controls:1, rel:0, modestbranding:1, iv_load_policy:3, fs:0, playsinline:1, disablekb:1, cc_load_policy:0 },
-    events: {
-      onReady: () => { ready = true; if (idx>=0) playIndex(idx, true); else maybeAutoStart(); if (BENCH) benchSecondPlayer(); },
-      onStateChange: e => {
-        if (e.data === YT.PlayerState.ENDED) { showCover('다음 영상…'); setTimeout(()=>step(1), 150); }
-        if (e.data === YT.PlayerState.PLAYING) { hideCover(); captionsOff(); adUnmute(); }
-      },
-      onError: e => {
-        // 100: 없음/비공개, 101/150: 임베드 금지, 2: 잘못된 ID
-        if (idx>=0 && items[idx]) { items[idx].bad = true; save(); toast(`재생 불가(코드 ${e.data}) → 건너뜀`); rebuildOrder(); render(); }
-        setTimeout(()=>step(1), 300);
-      }
-    }
-  });
+  player = playerA = makePlayer('playerA', {}, () => { ready = true; if (idx>=0) playIndex(idx, true); else maybeAutoStart(); });
+  if (PRELOAD) spare = makePlayer('playerB', { mute:1 }, () => { spareReady = true; if (mainStarted) preloadNext(); });
+}
+function onPlayerState(e){
+  if (e.target !== player) { onSpareState(e); return; }
+  if (e.data === YT.PlayerState.ENDED) { showCover('다음 영상…'); setTimeout(()=>step(1), 150); }
+  if (e.data === YT.PlayerState.PLAYING) { hideCover(); captionsOff(); adUnmute(); if (!mainStarted) { mainStarted = true; preloadNext(); } }
+}
+function onPlayerError(e){
+  // 100: 없음/비공개, 101/150: 임베드 금지, 2: 잘못된 ID
+  if (e.target !== player) { onSpareError(e); return; }
+  if (idx>=0 && items[idx]) { items[idx].bad = true; save(); toast(`재생 불가(코드 ${e.data}) → 건너뜀`); rebuildOrder(); render(); }
+  setTimeout(()=>step(1), 300);
 }
 function playIndex(i, viaOrder){
   if (i<0 || i>=items.length) return;
   idx = i;
   if (settings.last !== items[i].id) { settings.last = items[i].id; localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }  // 새로 고쳐도 이어 보기
+  mainStarted = false;
   if (!viaOrder) { if (items[i].bad) { items[i].bad = false; } rebuildOrder(); }
   render();
   if (!ready) return;
   showCover(items[i].title || items[i].id);
+  if (spareState !== 'idle' && spareId === items[i].id) { swapToSpare(); return; }   // 미리 받아 둔 영상이면 플레이어 교대
   adMute();
   player.loadVideoById(items[i].id);
+}
+
+/* ---------- 다음 영상 미리 받기 (PRELOAD) ---------- */
+// 현재 순서에서 다음에 재생될 인덱스 (step(1) 과 같은 규칙, 상태는 바꾸지 않음)
+function peekNext(){
+  if (!order.length) return -1;
+  let p = orderPos < 0 ? 0 : orderPos + 1;
+  if (p >= order.length) { if (!settings.loop) return -1; p = 0; }
+  return order[p];
+}
+function preloadNext(){
+  if (!PRELOAD || !spareReady || !mainStarted) return;
+  const n = peekNext();
+  if (n < 0) { if (spareState !== 'idle') { try { spare.stopVideo(); } catch {} spareId = null; spareState = 'idle'; } return; }
+  if (spareId === items[n].id) return;          // 이미 그 영상
+  spareId = items[n].id; spareState = 'loading';
+  try { spare.mute(); spare.loadVideoById(spareId); } catch {}
+}
+function onSpareState(e){
+  // 광고는 PLAYING 을 내지 않으므로, PLAYING = 본영상 시작 → 바로 멈추고 처음으로
+  if (e.data === YT.PlayerState.PLAYING && spareState === 'loading') { spareState = 'ready'; try { spare.pauseVideo(); spare.seekTo(0, true); } catch {} }
+}
+function onSpareError(e){
+  const id = spareId; spareId = null; spareState = 'idle';
+  const it = items.find(x => x.id === id);
+  if (it && !it.bad) { it.bad = true; save(); rebuildOrder(); render(); }
+  preloadNext();                                // 그 다음 영상으로 다시 시도
+}
+// 대기 플레이어를 활성으로 올리고, 쓰던 활성 플레이어는 비워서 대기로 내린다
+function swapToSpare(){
+  const old = player; player = spare; spare = old;
+  $('#wrapA').classList.toggle('standby', player !== playerA);
+  $('#wrapB').classList.toggle('standby', player === playerA);
+  const wasReady = spareState === 'ready';
+  spareId = null; spareState = 'idle';
+  try { spare.stopVideo(); } catch {}
+  if (wasReady) { adMuted = false; try { player.unMute(); player.playVideo(); } catch {} }   // 광고 이미 소진 → 바로 재생
+  else { adMuted = true; }                                                                   // 아직 광고 중 → 음소거 유지, 본영상 PLAYING 때 해제
 }
 // 자막 끄기: cc_load_policy:0 만으로는 영상·언어 설정에 따라 자동 자막이 켜지므로 재생 시작 때마다 자막 모듈을 내린다
 function captionsOff(){
@@ -620,16 +673,6 @@ function captionsOff(){
 let adMuted = false;
 function adMute(){ try { if (!player.isMuted()) { player.mute(); adMuted = true; } } catch {} }
 function adUnmute(){ if (adMuted) { try { player.unMute(); } catch {} adMuted = false; } }
-// 측정용(?bench=1): 숨긴 두 번째 플레이어에 다음 영상을 '불러오기만'(cue) 해서 플레이어 하나가 더 있을 때의
-// 메모리·네트워크 비용을 잰다. 재생하지 않으므로 광고도 나오지 않는다 (광고 미리 소진 용도로 쓰지 말 것)
-const BENCH = new URLSearchParams(location.search).get('bench') === '1';
-function benchSecondPlayer(){
-  const next = items.find((x, i) => i !== idx && !x.bad) || items[0];
-  if (!next) return;
-  const d = document.createElement('div'); d.style.cssText = 'position:fixed;left:-9999px;top:0;width:640px;height:360px';
-  d.innerHTML = '<div id="benchPlayer"></div>'; document.body.appendChild(d);
-  new YT.Player('benchPlayer', { width: 640, height: 360, videoId: next.id, playerVars: { autoplay: 0, mute: 1 } });
-}
 function showCover(t){ const c=$('#cover'); c.textContent=t; c.classList.remove('hidden'); }
 function hideCover(){ $('#cover').classList.add('hidden'); }
 function togglePlay(){
@@ -681,8 +724,8 @@ $('#btnClear').onclick = () => { if (confirm('재생목록을 모두 지울까�
 $('#btnPrev').onclick = () => step(-1);
 $('#btnNext').onclick = () => step(1);
 $('#btnPlay').onclick = togglePlay;
-$('#btnLoop').onclick = () => { settings.loop=!settings.loop; save(); render(); };
-$('#btnShuffle').onclick = () => { settings.shuffle=!settings.shuffle; save(); rebuildOrder(); render(); };
+$('#btnLoop').onclick = () => { settings.loop=!settings.loop; save(); render(); preloadNext(); };
+$('#btnShuffle').onclick = () => { settings.shuffle=!settings.shuffle; save(); rebuildOrder(); render(); preloadNext(); };
 $('#btnReload').onclick = () => TVAPP && KidsTV.reload ? KidsTV.reload() : location.reload();
 $('#btnTv').onclick = () => { settings.tv=!settings.tv; save(); render(); };
 $('#btnFull').onclick = () => {

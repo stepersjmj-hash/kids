@@ -13,9 +13,8 @@
 - main에 push하면 Pages가 자동 반영 (1~2분)
 
 ## 로드맵
-- B(현재): PC 크롬 탭 전송으로 크롬캐스트 재생
-- A(다음): Chromecast with Google TV에 WebView로 이 페이지를 띄우는 Android TV 앱(ADB 사이드로드).
-  키 처리는 이미 D-pad(←/→/Enter)와 Media 키에 맞춰 둠.
+- B: PC 크롬 탭 전송으로 크롬캐스트 재생
+- A(구현됨, `android-tv/`): Chromecast with Google TV에 WebView로 이 페이지를 띄우는 Android TV 앱(ADB 사이드로드)
 - 대안 C: pychromecast YouTubeController로 TV의 공식 YouTube 앱 원격 조종 (미검증)
 
 ## Google 로그인 (방법 1)
@@ -25,7 +24,7 @@
 - 승인된 JavaScript 원본: `https://stepersjmj-hash.github.io`, `http://localhost:8765` — 포트 바꾸면 콘솔에도 추가
 - GIS 토큰 클라이언트(팝업). `requestAccessToken` 은 클릭 핸들러에서 동기 호출해야 팝업 차단을 피함 → GIS는 시작 시 미리 로드
 - 좋아요: `videos?myRating=like`, 재생목록: `playlists?mine=true` → `playlistItems` (50개씩 페이지네이션)
-- 로컬 실행: `serve.bat` (python http.server 8765, 127.0.0.1 바인딩)
+- 로컬 실행: `serve.bat` (python http.server 8765, 127.0.0.1 바인딩). Claude 앱 브라우저 패널은 `.claude/launch.json` 의 `kids` 로 같은 서버 실행
 
 ## 로그인 UI
 - 로그인 범위: `openid email profile drive.file drive.appdata`. **youtube.readonly 는 drive.file 과 한 요청에 못 넣음**
@@ -91,7 +90,12 @@
 - TV 목록은 전부 그리고 선택 줄 `scrollIntoView({block:'nearest'})` (고정 줄 수로 자르면 화면 크기에 따라 마지막 줄 잘림)
 - 자막: `cc_load_policy:0` 만으로는 자동 생성 자막이 켜짐 → PLAYING 때마다 `unloadModule('captions')`(`captionsOff`). 영상에 박힌 자막은 못 지움
 - 광고 음소거: 앞 광고는 덮개 아래에서 소리만 남 → loadVideoById 직전 mute(`adMute`), 본영상 PLAYING 때 unMute(`adUnmute`).
-  IFrame API 엔 광고 상태가 없어 중간 광고는 못 막음
+  IFrame API 엔 광고 상태가 없어 중간 광고는 못 막음. **광고는 onStateChange 를 내지 않음** → PLAYING = 본영상 시작 (아래 미리 받기도 이 가정)
+- 다음 영상 미리 받기(`PRELOAD`, 앱에선 기본 켜짐·`?preload=1|0`): 플레이어 A/B 두 개를 #player-wrap 에 겹쳐 두고 `player`(활성)/`spare`(대기).
+  활성이 PLAYING 되면 `preloadNext()` 가 `peekNext()` 영상을 대기 쪽에 음소거로 loadVideoById → 광고 소진 → PLAYING 오면 pause+seekTo(0) (`spareState` idle→loading→ready).
+  `playIndex` 에서 대상 id 가 `spareId` 와 같으면 `swapToSpare()` 로 교대(ready 면 unMute+play, loading 이면 음소거 유지하고 PLAYING 때 해제), 다르면 기존대로 활성에 load.
+  대기 쪽은 `.standby`(visibility:hidden — display:none 이면 재생 안 됨) 로 숨김. 이벤트는 `e.target === player` 로 활성/대기 구분.
+  셔플 재구성·목록 편집으로 순서가 바뀌면 교대 조건이 안 맞아 자동으로 기존 경로로 떨어짐. 로컬 테스트: `?preload=1&add=영상ID 영상ID`
 - 프리미엄: 임베드 플레이어는 유튜브 로그인 쿠키가 있어야 광고 제거 → TV 앱(WebView)·아이폰 사파리는 불가, 사용자는 광고 감수(B안) 선택
 - 끝화면 추천은 `rel=0`으로 못 막음 → ENDED 시 덮개(#cover)로 가리고 바로 다음 영상
 - onError 100/101/150 = 비공개/임베드 금지 → `bad` 표시 후 건너뜀
