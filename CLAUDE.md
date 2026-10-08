@@ -18,6 +18,15 @@
   키 처리는 이미 D-pad(←/→/Enter)와 Media 키에 맞춰 둠.
 - 대안 C: pychromecast YouTubeController로 TV의 공식 YouTube 앱 원격 조종 (미검증)
 
+## Google 로그인 (방법 1)
+- Google Cloud 프로젝트 `kids-player`, YouTube Data API v3, OAuth 동의 화면 **테스트 모드**
+  (테스트 사용자만 로그인 가능), 범위 `youtube.readonly`
+- 웹 클라이언트 ID는 `index.html` 의 `GOOGLE_CLIENT_ID` (공개 값). secret 은 쓰지 않으며 저장소에 넣지 말 것
+- 승인된 JavaScript 원본: `https://stepersjmj-hash.github.io`, `http://localhost:8765` — 포트 바꾸면 콘솔에도 추가
+- GIS 토큰 클라이언트(팝업). `requestAccessToken` 은 클릭 핸들러에서 동기 호출해야 팝업 차단을 피함 → GIS는 시작 시 미리 로드
+- 좋아요: `videos?myRating=like`, 재생목록: `playlists?mine=true` → `playlistItems` (50개씩 페이지네이션)
+- 로컬 실행: `serve.bat` (python http.server 8765, 127.0.0.1 바인딩)
+
 ## 관례·함정
 - 유튜브 재생목록 연결(`settings.pl`, `?pl=`): API 키 없이 숨긴 보조 YT.Player(#plLoader)를
   `playerVars.list`로 만들고 `getPlaylist()`로 ID 목록을 얻음. **기존 플레이어에 cuePlaylist 재호출은
