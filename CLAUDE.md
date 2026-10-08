@@ -3,7 +3,9 @@
 내가 고른 유튜브 영상만 연속 재생하는 정적 웹페이지. GitHub Pages(main 브랜치 루트)로 배포.
 
 ## 구성
-- `index.html` — 전부 이 파일 하나 (YouTube IFrame Player API + oEmbed로 제목 조회, 외부 의존성 없음)
+- `index.html` — 전부 이 파일 하나 (YouTube IFrame Player API + oEmbed로 제목 조회, 외부 의존성은 Google Fonts(Jua·Gowun Dodum)뿐)
+- `ic_launcher.png` — 로고 줄 아이콘 (android-tv 의 mipmap 과 같은 그림)
+- `design_handoff_kids_1b/` — "아이 손" 리디자인 시안·핸드오프(README 에 토큰·치수 확정값). git 에는 안 올림. 화면을 고칠 땐 이 문서 기준
 - `playlist.json` — `?list=` 로 불러오는 공유 목록 (`[{id,title}]`)
 - `README.md` — 사용자용 사용법
 
@@ -58,9 +60,13 @@
   `window.kidsTvToken(t, exp)` 로 페이지에 주입(만료 10분 전 갱신). 페이지의 login/logout 은 `window.KidsTV` 로 앱 호출
 - 리모컨: WebView 기본 포커스 이동이 방향키를 먹으므로 앱 `dispatchKeyEvent` 에서 가로채 `window.kidsTvKey(key)` 로 전달.
   뒤로 키는 `window.kidsTvBack()` (목록 닫았으면 true). 페이지 키 처리는 `handleKey()` 하나로 통일
-- 앱(body.app)에서 ←/→ = 하단 바 버튼 포커스 이동(`barIdx`/`barMark`, 노란 .kfocus), 가운데 = 그 버튼 클릭. ↑↓ = 목록(맨 위에
-  🔄 새로고침·🔑 재로그인 기능 줄, `tvActions`). 맨 위/맨 아래에서 더 누르면 반대쪽 끝으로 순환. PC 키보드는 ←/→ 이전/다음 그대로
-- 앱 전체화면 = `body.full`(하단 바 숨김, ⛶ 버튼). 뒤로 순서: 목록 닫기 → 전체화면 해제 → 앱의 "한 번 더 누르면 종료"
+- 앱(body.app)에서 ←/→ = 바의 세 버튼(이전·재생·다음) 포커스 이동(`barIdx`/`barMark`, 노란 링 .kfocus — `barButtons()` 는 #bar 안 **보이는** button 만 세므로
+  칩 버튼은 body.app 에서 display:none). 가운데 = 그 버튼 클릭. ↑↓ = 골라 보기(#tvList). PC 키보드는 ←/→ 이전/다음 그대로
+- 골라 보기: 맨 위 칩 줄(`tvChips()`: 반복·셔플·새로고침·전체화면·(앱)로그인) + 3×2 격자(`TV_PAGE`=6, 페이지 점). 상태 `tvSel`(-1 = 칩 줄, `tvChip` 번째) /
+  `tvPage`. `tvKey()` 가 2D 이동: ↓ 다음 줄(마지막 줄이면 다음 페이지, 끝이면 칩 줄로 순환), ↑ 첫 줄에서 칩 줄, 칩 줄에서 ↑는 마지막 영상, ←/→ 는 전체 순환.
+  반복·셔플 칩은 눌러도 안 닫힘(`keep`)
+- 앱 전체화면 = `body.full`(#frame 을 fixed 로 화면 가득, 나머지 숨김). 골라 보기의 전체화면 칩으로 켬. 뒤로 순서: 골라 보기 닫기 → 전체화면 해제 → 앱의 "한 번 더 누르면 종료"
+- PC 에서 앱 화면 흉내: `?app=1` (가짜 `KidsTV` 주입 → TVAPP=true, 로그인은 토스트만). 쓰고 나면 settings.tv 가 true 로 남으니 T 로 끄기
 - ←/→ 연속 누름(`ARROW_WAIT` 200ms 안): 2번 10초 · 3번 30초 · 이후 +10초 (`seekTotal`/`seekByTotal`), 한 번 누름은 200ms 지연 후 실행. 연속 seek 는
   `seekBase + seekSum` 으로 계산 (seekTo 직후 getCurrentTime 이 안 바뀌어 누적이 안 됐던 문제)
 - Chromecast 리모컨엔 **메뉴 키 없음** → 로그인 화면 새 코드는 가운데 버튼
@@ -87,7 +93,14 @@
   129개 재생목록까지 확인됨(상한은 미확인, 예전 기준 200개 내외로 알려짐)
 - localStorage 키: `home-playlist-v1`, `home-playlist-settings-v1` — 형식 바꾸면 키 버전 올릴 것
 - 높이는 `100dvh` (iOS 사파리 100vh 는 툴바 뒤까지 포함돼 목록 마지막 줄이 가려짐). 스크롤 영역(#list, #tvItems)은 flex 자식이라 `min-height:0` 필수
-- TV 목록은 전부 그리고 선택 줄 `scrollIntoView({block:'nearest'})` (고정 줄 수로 자르면 화면 크기에 따라 마지막 줄 잘림)
+- 디자인: `:root` 토큰(크림 배경 `--bg`, 빨강 `--accent`, 포커스 `--focus`…)과 글꼴 Jua(제목·칩·번호, `padding-top:2px` 로 세로 보정)·Gowun Dodum(본문).
+  TV 화면(body.app, #tvList)은 시안 960×540 기준이라 `--u: calc(100vh/540)` 단위로 치수를 적어 WebView 해상도가 달라도 비율 유지.
+  둥근 버튼 두께 그림자는 꼭 `inset`(바깥이면 포커스 링 안에서 처져 보임). 영상 틀 #frame(흰 테두리) 안에 #player-wrap(A/B 플레이어)
+- 목록 순서 변경: PC 는 HTML5 DnD(`.item[draggable]`, `moveItem`), 폰(`pointer:coarse`)은 손잡이 Pointer Events 로 DOM 을 직접 옮긴 뒤 `moveItem`,
+  행 왼쪽 스와이프 = 삭제(`attachTouch`, `.item { touch-action:pan-y }`). ▲▼ 버튼은 없앰
+- 진행 막대 `tickProgress` 500ms, 제목 옆 점 `renderDots`(order 기준, 25개 넘으면 숫자), TV 이전·다음 썸네일 `renderDeck`, ⏯ 아이콘은 PLAYING/BUFFERING 때 정지 모양
+- 폰(≤820px)은 세로 한 줄: 영상 틀 → 제목·동기화 알약 → 붙여넣기 카드 → 목록. 하단 바·진행 막대 없음(유튜브 자체 컨트롤·목록 터치로 조작), 도구는 "도구 보기" 로 접힘.
+  폰은 settings.tv 가 true 여도 목록을 보여 줌
 - 자막: `cc_load_policy:0` 만으로는 자동 생성 자막이 켜짐 → PLAYING 때마다 `unloadModule('captions')`(`captionsOff`). 영상에 박힌 자막은 못 지움
 - 광고 음소거: 앞 광고는 덮개 아래에서 소리만 남 → loadVideoById 직전 mute(`adMute`), 본영상 PLAYING 때 unMute(`adUnmute`).
   IFrame API 엔 광고 상태가 없어 중간 광고는 못 막음. **광고는 onStateChange 를 내지 않음** → PLAYING = 본영상 시작 (아래 미리 받기도 이 가정)

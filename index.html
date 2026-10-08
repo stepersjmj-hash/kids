@@ -4,160 +4,336 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>우리집 재생목록</title>
+<link rel="icon" href="ic_launcher.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
 <style>
-  :root { --bg:#0f1115; --panel:#181b22; --line:#2a2f3a; --text:#e8eaf0; --sub:#9aa3b5; --accent:#ff5c5c; --ok:#3ddc84; }
+  /* 디자인 토큰 (design_handoff_kids_1b "아이 손") */
+  :root {
+    --bg:#fbf3e4; --panel:#fffaf1; --card:#ffffff; --line:#efe2c8; --line2:#e6d9c0; --text:#2b2118; --sub:#a1866a; --sub2:#b59c7c; --grip:#cbb594;
+    --accent:#ff5c5c; --accent-dark:#d94545; --accent-top:#ff7272; --ok:#3ddc84; --ok-ink:#0f2a1a; --ok-text:#1f8f50; --focus:#ffd54a; --current:#ffe9a8;
+    --danger:#c23b3b; --btn-depth:#ead9bb; --video:#2a3140;
+    --jua:Jua, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; --gowun:"Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; --num:Pretendard, system-ui, sans-serif;
+    /* TV 화면 단위: 시안 기준 960×540 CSS px. 1u = 1px@540 → WebView 해상도가 달라도 비율 유지 */
+    --u:calc(100vh / 540);
+  }
   * { box-sizing:border-box; }
-  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
-  body { display:grid; grid-template-columns: minmax(0,1fr) 360px; grid-template-rows:100vh; grid-template-rows:100dvh; }
-  body.tv { grid-template-columns: minmax(0,1fr); }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:var(--gowun); }
+  body { display:grid; grid-template-columns:minmax(0,1fr) 380px; grid-template-rows:100vh; grid-template-rows:100dvh; }
+  body.tv { grid-template-columns:minmax(0,1fr); }
   body.tv #side { display:none; }
-  #stage { min-width:0; position:relative; background:#000; display:flex; flex-direction:column; }
-  #player-wrap { position:relative; flex:1; }
+  button { font:inherit; color:inherit; background:none; border:0; padding:0; margin:0; cursor:pointer; }
+  button svg, .chip svg { display:block; flex:none; }
+  .ph { display:none; }
+
+  /* ---------- 무대 (영상 + 조작) ---------- */
+  #stage { min-width:0; min-height:0; position:relative; display:flex; flex-direction:column; align-items:center; padding:24px 40px 28px; overflow:auto; }
+  #logo { width:100%; height:32px; display:flex; align-items:center; gap:8px; color:var(--sub); flex:none; }
+  #logo img { width:24px; height:24px; border-radius:7px; display:block; flex:none; }
+  #logo span { font:400 15px/24px var(--jua); padding-top:2px; }
+  #pickHint { display:none; }
+  #frame { width:min(980px, 100%, calc((100dvh - 330px) * 16 / 9)); aspect-ratio:16/9; border:10px solid #fff; border-radius:34px; background:var(--video); box-shadow:0 14px 30px rgba(120,80,30,.16); margin-top:16px; flex:none; overflow:hidden; }
+  #player-wrap { position:relative; width:100%; height:100%; overflow:hidden; border-radius:24px; background:var(--video); }
   /* 플레이어 두 개(A/B)를 겹쳐 두고 하나만 보임. 대기(standby) 쪽은 다음 영상을 미리 불러 둔다 — visibility 로 숨겨야 재생이 멈추지 않음 */
   #player-wrap .yt { position:absolute; inset:0; }
   #player-wrap .yt iframe { width:100%; height:100%; display:block; }
   #player-wrap .yt.standby { visibility:hidden; pointer-events:none; }
   /* 끝화면/추천 가리기용 덮개: 재생 중엔 투명, 전환 중엔 불투명 */
-  #cover { position:absolute; inset:0; background:#000; display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:20px; transition:opacity .25s; pointer-events:none; }
+  #cover { position:absolute; inset:0; background:var(--video); display:flex; align-items:center; justify-content:center; color:#aab3c4; font:400 20px/1.4 var(--jua); padding:0 24px; text-align:center; transition:opacity .25s; pointer-events:none; }
   #cover.hidden { opacity:0; }
-  #bar { display:flex; gap:8px; align-items:center; padding:10px 12px; background:var(--panel); border-top:1px solid var(--line); }
-  #bar button { white-space:nowrap; flex:none; }
-  #bar .title { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:15px; }
-  button { background:#242938; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 12px; font-size:14px; cursor:pointer; }
-  button:hover { background:#2d3346; }
-  button.on { border-color:var(--ok); color:var(--ok); }
-  /* TV 리모컨 ←/→ 로 고른 버튼 */
-  button.kfocus { outline:3px solid #ffd54a; outline-offset:2px; background:#3a3420; }
-  body:not(.app) #btnReload { display:none; }
-  button.danger { color:var(--accent); }
+  #titleRow2 { width:min(980px, 100%); display:flex; align-items:center; gap:16px; margin-top:20px; flex:none; }
+  #nowTitle { flex:1; min-width:0; font:400 26px/32px var(--jua); padding-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #dots { display:flex; gap:6px; align-items:center; flex:none; max-width:45%; overflow:hidden; }
+  #dots i { width:10px; height:10px; border-radius:5px; background:var(--line2); flex:none; }
+  #dots i.seen { background:var(--ok); }
+  #dots i.now { width:28px; background:var(--accent); }
+  #dots b { font:400 13px/1 var(--num); color:var(--sub); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  #prog { width:min(980px, 100%); display:flex; align-items:center; gap:14px; margin-top:14px; flex:none; }
+  #prog time { font:400 13px/1 var(--num); color:var(--sub); font-variant-numeric:tabular-nums; min-width:3ch; }
+  #prog time:last-child { text-align:right; }
+  #prog .track { flex:1; height:10px; border-radius:5px; background:var(--line); position:relative; }
+  #prog .fill { position:absolute; left:0; top:0; bottom:0; width:0; border-radius:5px; background:var(--accent); }
+  #prog .knob { position:absolute; left:0; top:50%; width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:10px; background:#fff; box-shadow:0 0 0 4px var(--accent); }
+  #bar { width:min(980px, 100%); display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; margin-top:22px; flex:none; }
+  #bar .l, #bar .r { display:flex; gap:8px; align-items:center; min-width:0; }
+  #bar .r { justify-content:flex-end; }
+  #bar .m { display:flex; align-items:center; gap:24px; }
+  /* 알약 칩 */
+  .chip { height:40px; display:inline-flex; align-items:center; gap:6px; padding:0 16px; border-radius:999px; background:var(--card); color:var(--text); white-space:nowrap; }
+  .chip:hover { background:#fff3dc; }
+  .chip span { font:400 15px/24px var(--jua); padding-top:2px; }
+  .chip svg { width:16px; height:16px; }
+  .chip .ck { display:none; }
+  .chip.on { background:var(--ok); color:var(--ok-ink); padding-left:12px; }
+  .chip.on:hover { background:#4fe693; }
+  .chip.on .ck { display:block; }
+  .chip.ico { padding-left:12px; }
+  /* 둥근 버튼: 이전 · 재생 · 다음 (두께 그림자는 꼭 inset) */
+  .rb { width:64px; height:64px; border-radius:50%; background:linear-gradient(#fff,#fff8ec); box-shadow:inset 0 -5px 0 var(--btn-depth), 0 6px 14px rgba(120,80,30,.12); display:flex; align-items:center; justify-content:center; color:var(--text); padding-bottom:4px; flex:none; }
+  .rb svg { width:28px; height:28px; }
+  #btnPrev svg { margin-left:-2px; }
+  #btnNext svg { margin-right:-2px; }
+  #btnPlay { width:84px; height:84px; background:linear-gradient(var(--accent-top), var(--accent)); box-shadow:inset 0 2px 0 rgba(255,255,255,.35), inset 0 -5px 0 var(--accent-dark), 0 8px 18px rgba(217,69,69,.25); color:#fff; padding-bottom:0; }
+  #btnPlay svg { width:38px; height:38px; }
+  #btnPlay .pause { margin-top:-3px; }
+  #btnPlay .play { transform:translateX(1.5px); }
+  #btnPlay.playing .play, #btnPlay:not(.playing) .pause { display:none; }
+  #btnReload { display:none; }
+  .thumbNav { display:none; }
+
+  /* ---------- TV 앱 재생 화면 (body.app, 960×540 기준 → u 단위) ---------- */
+  body.app #stage { padding:calc(14 * var(--u)) 0 0; overflow:hidden; }
+  body.app #logo { position:absolute; left:calc(24 * var(--u)); top:calc(18 * var(--u)); width:auto; height:calc(32 * var(--u)); gap:calc(8 * var(--u)); }
+  body.app #logo img { width:calc(24 * var(--u)); height:calc(24 * var(--u)); border-radius:calc(7 * var(--u)); }
+  body.app #logo span { font-size:calc(15 * var(--u)); line-height:calc(24 * var(--u)); padding-top:calc(2 * var(--u)); }
+  body.app #pickHint { display:flex; position:absolute; right:calc(24 * var(--u)); top:calc(18 * var(--u)); height:calc(32 * var(--u)); align-items:center; gap:calc(6 * var(--u)); padding:0 calc(14 * var(--u)) 0 calc(10 * var(--u)); border-radius:999px; background:#fff; color:var(--sub); }
+  body.app #pickHint svg { width:calc(16 * var(--u)); height:calc(16 * var(--u)); display:block; }
+  body.app #pickHint span { font:400 calc(14 * var(--u)) / calc(24 * var(--u)) var(--jua); padding-top:calc(2 * var(--u)); }
+  body.app #frame { width:calc(548 * var(--u)); margin-top:0; border-width:calc(10 * var(--u)); border-radius:calc(30 * var(--u)); box-shadow:0 calc(14 * var(--u)) calc(30 * var(--u)) rgba(120,80,30,.16); }
+  body.app #player-wrap { border-radius:calc(20 * var(--u)); }
+  body.app #cover { font-size:calc(20 * var(--u)); }
+  body.app #titleRow2 { width:calc(596 * var(--u)); margin-top:calc(14 * var(--u)); gap:calc(16 * var(--u)); }
+  body.app #nowTitle { font-size:calc(23 * var(--u)); line-height:calc(28 * var(--u)); padding-top:calc(3 * var(--u)); }
+  body.app #dots { gap:calc(6 * var(--u)); }
+  body.app #dots i { width:calc(10 * var(--u)); height:calc(10 * var(--u)); border-radius:calc(5 * var(--u)); }
+  body.app #dots i.now { width:calc(28 * var(--u)); }
+  body.app #dots b { font-size:calc(13 * var(--u)); }
+  body.app #prog { width:calc(596 * var(--u)); margin-top:calc(12 * var(--u)); gap:0; }
+  body.app #prog time { display:none; }
+  body.app #prog .track { height:calc(10 * var(--u)); border-radius:calc(5 * var(--u)); }
+  body.app #prog .fill { border-radius:calc(5 * var(--u)); }
+  body.app #prog .knob { width:calc(20 * var(--u)); height:calc(20 * var(--u)); margin:calc(-10 * var(--u)) 0 0 calc(-10 * var(--u)); box-shadow:0 0 0 calc(4 * var(--u)) var(--accent); }
+  body.app #bar { width:calc(596 * var(--u)); margin-top:calc(28 * var(--u)); }
+  body.app #bar .chip { display:none; }
+  body.app #bar .m { gap:calc(28 * var(--u)); }
+  body.app .thumbNav { display:flex; align-items:center; gap:calc(10 * var(--u)); min-width:0; }
+  body.app #prevThumb { opacity:.75; }
+  body.app #nextThumb { justify-content:flex-end; }
+  body.app .thumbNav img { width:calc(96 * var(--u)); height:calc(54 * var(--u)); border-radius:calc(14 * var(--u)); border:calc(4 * var(--u)) solid #fff; object-fit:cover; background:var(--video); display:block; flex:none; }
+  body.app #nextThumb img { box-shadow:0 calc(3 * var(--u)) 0 var(--btn-depth); }
+  body.app .thumbNav span { font:400 calc(15 * var(--u)) / calc(20 * var(--u)) var(--jua); padding-top:calc(2 * var(--u)); color:var(--sub); white-space:nowrap; }
+  body.app #nextThumb span { color:var(--text); }
+  body.app .thumbNav.empty { visibility:hidden; }
+  body.app .rb { width:calc(72 * var(--u)); height:calc(72 * var(--u)); padding-bottom:calc(4 * var(--u)); box-shadow:inset 0 calc(-5 * var(--u)) 0 var(--btn-depth), 0 calc(6 * var(--u)) calc(14 * var(--u)) rgba(120,80,30,.12); }
+  body.app .rb svg { width:calc(32 * var(--u)); height:calc(32 * var(--u)); }
+  body.app #btnPlay { width:calc(96 * var(--u)); height:calc(96 * var(--u)); padding-bottom:0; box-shadow:inset 0 calc(2 * var(--u)) 0 rgba(255,255,255,.35), inset 0 calc(-5 * var(--u)) 0 var(--accent-dark); }
+  body.app #btnPlay svg { width:calc(44 * var(--u)); height:calc(44 * var(--u)); }
+  /* 리모컨 포커스 링 — transition 없음 (TV WebView 성능) */
+  body.app .rb.kfocus { box-shadow:inset 0 calc(-5 * var(--u)) 0 var(--btn-depth), 0 calc(6 * var(--u)) calc(14 * var(--u)) rgba(120,80,30,.12), 0 0 0 calc(8 * var(--u)) var(--bg), 0 0 0 calc(15 * var(--u)) var(--focus); }
+  body.app #btnPlay.kfocus { box-shadow:inset 0 calc(2 * var(--u)) 0 rgba(255,255,255,.35), inset 0 calc(-5 * var(--u)) 0 var(--accent-dark), 0 0 0 calc(8 * var(--u)) var(--bg), 0 0 0 calc(15 * var(--u)) var(--focus); }
+  body.app #btnImportYt, body.app #bookmarkHint, body.app #btnTv { display:none; }
+  /* TV 앱 전체화면: 영상 틀만 화면 가득 */
+  body.full #frame { position:fixed; inset:0; width:auto; height:auto; aspect-ratio:auto; border:0; border-radius:0; box-shadow:none; margin:0; z-index:5; }
+  body.full #player-wrap { border-radius:0; }
+  body.full #stage > :not(#frame) { display:none; }
+
+  /* ---------- 사이드 (PC 목록) ---------- */
   #side { background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column; min-height:0; }
-  #side header { padding:14px 14px 10px; border-bottom:1px solid var(--line); }
-  #side h1 { font-size:17px; margin:0; flex:1; }
-  #titleRow { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-  #btnGoogle { background:#fff; color:#1f1f1f; border-color:#dadce0; font-weight:600; padding:7px 12px; display:flex; align-items:center; gap:6px; }
+  #side header { padding:24px 22px 16px; display:flex; flex-direction:column; gap:14px; border-bottom:1px solid var(--line); flex:none; }
+  #titleRow { display:flex; flex-wrap:wrap; align-items:center; gap:14px 8px; }
+  #side h1 { flex:1; min-width:0; margin:0; font:400 24px/30px var(--jua); padding-top:3px; white-space:nowrap; }
+  #btnGoogle { height:34px; display:inline-flex; align-items:center; gap:7px; padding:0 12px; border-radius:999px; background:#fff; border:1px solid var(--line2); color:#1f1f1f; font:600 13px/1 var(--num); flex:none; }
   #btnGoogle:hover { background:#f1f3f4; }
-  #syncStatus { font-size:12px; color:var(--sub); margin:-4px 0 8px; }
-  #syncStatus.on { color:var(--ok); }
-  #syncStatus.warn { color:#f5b84a; }
   #btnGoogle svg { width:16px; height:16px; }
-  #gAvatar { width:20px; height:20px; border-radius:50%; object-fit:cover; margin:-2px 0; }
+  #gAvatar { width:20px; height:20px; border-radius:50%; object-fit:cover; }
   #btnGoogle.in svg { display:none; }
-  #add { display:flex; gap:6px; }
-  #add input { flex:1; background:#0f1115; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 10px; font-size:14px; }
-  #tools { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-  #tools button { padding:6px 9px; font-size:12px; }
-  #list { flex:1; min-height:0; overflow:auto; padding:8px; }
-  .item { display:grid; grid-template-columns:auto 72px 1fr auto; gap:8px; align-items:center; padding:6px; border-radius:10px; cursor:pointer; border:1px solid transparent; }
-  .item:hover { background:#1f2430; }
-  .item.current { border-color:var(--ok); background:#1a2a22; }
-  .item.bad { opacity:.5; }
-  .item .n { min-width:2ch; text-align:right; font-size:12px; color:var(--sub); font-variant-numeric:tabular-nums; }
-  .item.current .n { color:var(--ok); }
-  .item img { width:72px; height:40px; object-fit:cover; border-radius:6px; background:#000; }
-  .item .t { font-size:13px; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-  .item .t small { display:block; color:var(--sub); font-size:11px; margin-top:2px; }
-  .item .ops { display:flex; flex-direction:column; gap:3px; }
-  .item .ops button { padding:2px 6px; font-size:11px; line-height:1.4; }
-  #hint a { color:var(--ok); }
-  #hint { padding:8px 14px 12px; color:var(--sub); font-size:12px; line-height:1.5; border-top:1px solid var(--line); }
-  #link { margin-top:8px; font-size:12px; color:var(--sub); display:flex; gap:6px; align-items:center; }
-  #link.on { color:var(--ok); }
-  #link span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #link button { padding:4px 8px; font-size:12px; }
+  #syncStatus { order:3; flex-basis:100%; display:flex; align-items:center; gap:6px; color:var(--sub); font:400 12px/18px var(--gowun); min-width:0; }
+  #syncStatus i { width:8px; height:8px; border-radius:4px; background:var(--line2); flex:none; }
+  #syncStatus.on i { background:var(--ok); }
+  #syncStatus.warn i { background:#f5b84a; }
+  #syncStatus span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #syncStatus b { display:none; font-weight:400; }
+  /* 붙여넣기 카드 */
+  #add { display:flex; flex-direction:column; gap:10px; padding:14px; border-radius:20px; background:var(--accent); }
+  #add label { font:400 16px/22px var(--jua); padding-top:2px; color:#fff; }
+  #add .row { display:flex; gap:8px; }
+  #add input { flex:1; min-width:0; height:44px; background:#fff; border:0; border-radius:12px; padding:0 12px; font:400 14px/1 var(--gowun); color:var(--text); }
+  #add input::placeholder { color:var(--sub); }
+  #btnAdd { height:44px; padding:2px 18px 0; border-radius:12px; background:var(--text); color:#fff; font:400 16px/22px var(--jua); flex:none; }
+  #btnTools { display:none; }
+  #tools { display:flex; flex-wrap:wrap; gap:6px; }
+  #tools button { height:30px; display:inline-flex; align-items:center; padding:0 12px; border-radius:999px; background:#fff; border:1px solid var(--line); font:400 12px/1 var(--gowun); }
+  #tools button:hover { background:#fff3dc; }
+  #tools #btnClear { color:var(--danger); border-color:#f3c9c3; }
+  #tools #btnClear:hover { background:#fff0ee; }
+  #link { font:400 12px/18px var(--gowun); color:var(--sub); display:flex; gap:6px; align-items:center; }
+  #link.on { color:var(--ok-text); }
+  #link span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #link button { height:24px; padding:0 10px; border-radius:999px; background:#fff; border:1px solid var(--line); font:400 12px/1 var(--gowun); color:var(--text); flex:none; }
+  /* 목록 행 */
+  #list { flex:1; min-height:0; overflow:auto; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+  .item { display:flex; align-items:center; gap:10px; padding:7px 7px 7px 4px; border-radius:16px; background:var(--card); cursor:grab; user-select:none; -webkit-user-select:none; flex:none; position:relative; transition:transform .15s; }
+  .item.current { background:var(--current); }
+  .item.bad { opacity:.55; }
+  .item.dragging { opacity:.4; }
+  .item.swiping { transition:none; }
+  .item.drop-after { box-shadow:0 3px 0 var(--accent); }
+  .item.drop-before { box-shadow:0 -3px 0 var(--accent); }
+  .item .grip { width:14px; height:24px; display:grid; grid-template-columns:repeat(2,4px); grid-auto-rows:4px; gap:3px; align-content:center; justify-content:center; flex:none; opacity:.7; touch-action:none; }
+  .item .grip i { border-radius:2px; background:var(--grip); }
+  .item .n { width:28px; height:28px; border-radius:14px; background:var(--bg); color:var(--text); display:flex; align-items:center; justify-content:center; font:400 14px/1 var(--jua); padding-top:2px; flex:none; }
+  .item.current .n { background:var(--accent); color:#fff; }
+  .item img { width:68px; height:40px; border-radius:10px; object-fit:cover; background:var(--video); flex:none; }
+  .item .t { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+  .item .t em { font:400 13px/1.35 var(--gowun); font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .item .t small { font:400 11px/1 var(--gowun); color:var(--sub2); }
+  .item.current .t small, .item.bad .t small { color:var(--danger); }
+  .item .del { width:24px; height:24px; border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--sub2); flex:none; }
+  .item .del:hover { background:#fde4e0; color:var(--danger); }
+  .item .del svg { width:13px; height:13px; }
+  #hint { padding:12px 22px 16px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px; font:400 12px/1.6 var(--gowun); color:#8a7258; flex:none; }
+  #hint .keys { display:flex; flex-wrap:wrap; gap:4px 10px; }
+  #hint .bm { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  #bookmarklet { height:26px; display:inline-flex; align-items:center; padding:0 10px; border-radius:8px; background:#fff; border:1px dashed #d9c3a0; color:var(--text); text-decoration:none; }
+  #hint code { font-family:var(--num); }
   #plLoader { position:fixed; left:-9999px; top:0; width:320px; height:180px; }
-  #gModal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:10; }
+  /* Google 가져오기 모달 */
+  #gModal { position:fixed; inset:0; background:rgba(43,33,24,.45); display:flex; align-items:center; justify-content:center; z-index:10; }
   #gModal[hidden] { display:none; }
-  #gModal .box { background:var(--panel); border:1px solid var(--line); border-radius:14px; width:min(560px, 92vw); max-height:80vh; display:flex; flex-direction:column; }
-  #gModal .head { display:flex; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line); }
-  #gModal .head b { flex:1; }
+  #gModal .box { background:var(--panel); border-radius:20px; width:min(560px, 92vw); max-height:80vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(60,40,10,.2); }
+  #gModal .head { display:flex; align-items:center; padding:16px 18px; border-bottom:1px solid var(--line); }
+  #gModal .head b { flex:1; font:400 18px/24px var(--jua); padding-top:2px; }
+  #gModal .head button, .src button { height:30px; padding:0 12px; border-radius:999px; background:#fff; border:1px solid var(--line); font:400 12px/1 var(--gowun); white-space:nowrap; }
+  .src button:hover, #gModal .head button:hover { background:#fff3dc; }
   #gList { overflow:auto; padding:8px; }
-  .src { display:flex; gap:6px; align-items:center; padding:8px; border-radius:10px; }
-  .src:hover { background:#1f2430; }
+  .src { display:flex; gap:6px; align-items:center; padding:8px 10px; border-radius:12px; }
+  .src:hover { background:#fff3dc; }
   .src .n { flex:1; font-size:14px; }
   .src .n small { display:block; color:var(--sub); font-size:11px; margin-top:2px; }
-  .src button { padding:5px 9px; font-size:12px; }
-  /* TV 리모컨용 목록 (↓ 로 열기) */
-  #tvList { position:fixed; inset:0; background:rgba(8,10,14,.92); z-index:20; display:flex; flex-direction:column; padding:4vh 6vw; }
+
+  /* ---------- TV 골라 보기 (↓) ---------- */
+  #tvList { position:fixed; inset:0; background:var(--bg); z-index:20; display:flex; flex-direction:column; gap:calc(22 * var(--u)); padding:calc(32 * var(--u)) calc(40 * var(--u)); }
   #tvList[hidden] { display:none; }
-  #tvList h2 { margin:0 0 2vh; font-size:3.2vh; color:var(--sub); font-weight:500; }
-  #tvItems { flex:1; min-height:0; overflow-y:auto; scrollbar-width:none; padding:.4vh 0; display:flex; flex-direction:column; gap:1.2vh; }
-  .tvi { display:flex; align-items:center; gap:2vw; padding:1vh 1vw; border-radius:1.4vh; border:.4vh solid transparent; flex:none; }
-  .tvi .n { min-width:3ch; text-align:right; font-size:3vh; color:var(--sub); font-variant-numeric:tabular-nums; flex:none; }
-  .tvi.cur .n { color:var(--ok); }
-  .tvi img { width:19vh; height:10.7vh; object-fit:cover; border-radius:1vh; background:#000; flex:none; }
-  .tvi span { flex:1; min-width:0; font-size:3vh; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-  .tvi.sel { border-color:var(--ok); background:#1a2a22; }
-  .tvi.act { background:#161a22; }
-  .tvi .ico { width:19vh; text-align:center; font-size:5vh; flex:none; }
-  .tvi.cur span::before { content:'▶ '; color:var(--ok); }
-  body.app #btnImportYt, body.app #bookmarkHint, body.app #btnTv { display:none; }
-  /* TV 앱 전체화면: 하단 바 숨기고 영상만 */
-  body.full #bar { display:none; }
-  #toast { position:fixed; left:50%; bottom:70px; transform:translateX(-50%); background:#242938; border:1px solid var(--line); padding:8px 14px; border-radius:10px; font-size:13px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  #tvHead { display:flex; align-items:center; gap:calc(10 * var(--u)); flex:none; }
+  #tvHead h2 { flex:1; min-width:0; margin:0; font:400 calc(36 * var(--u)) / calc(40 * var(--u)) var(--jua); padding-top:calc(4 * var(--u)); white-space:nowrap; }
+  #tvChips { display:flex; gap:calc(10 * var(--u)); flex:none; }
+  #tvChips .chip { height:calc(40 * var(--u)); padding:0 calc(16 * var(--u)); gap:calc(6 * var(--u)); }
+  #tvChips .chip.on { padding-left:calc(12 * var(--u)); }
+  #tvChips .chip span { font-size:calc(16 * var(--u)); line-height:calc(24 * var(--u)); padding-top:calc(2 * var(--u)); }
+  #tvChips .chip svg { width:calc(16 * var(--u)); height:calc(16 * var(--u)); }
+  #tvChips .chip.sel { box-shadow:0 0 0 calc(3 * var(--u)) var(--bg), 0 0 0 calc(7 * var(--u)) var(--focus); }
+  #tvItems { flex:1; min-height:0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); grid-auto-rows:max-content; gap:calc(24 * var(--u)) calc(28 * var(--u)); align-content:start; padding:calc(10 * var(--u)) 0 0 calc(10 * var(--u)); }
+  .tvi { display:flex; flex-direction:column; gap:calc(10 * var(--u)); min-width:0; transition:transform .15s; cursor:pointer; }
+  .tvi .th { height:calc(136 * var(--u)); border-radius:calc(24 * var(--u)); border:calc(6 * var(--u)) solid #fff; background:var(--video); box-shadow:0 calc(3 * var(--u)) 0 var(--btn-depth); position:relative; transition:box-shadow .15s; }
+  .tvi .th img { width:100%; height:100%; object-fit:cover; border-radius:calc(18 * var(--u)); display:block; }
+  .tvi .n { position:absolute; left:calc(-10 * var(--u) - 6 * var(--u)); top:calc(-10 * var(--u) - 6 * var(--u)); width:calc(40 * var(--u)); height:calc(40 * var(--u)); border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font:400 calc(20 * var(--u)) / 1 var(--jua); padding-top:calc(3 * var(--u)); box-shadow:0 0 0 calc(4 * var(--u)) var(--bg); }
+  .tvi span { font:400 calc(19 * var(--u)) / 1.2 var(--jua); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 calc(4 * var(--u)); }
+  .tvi.sel { transform:translateY(calc(-6 * var(--u))); }
+  .tvi.sel .th { border-color:var(--focus); box-shadow:0 calc(12 * var(--u)) calc(24 * var(--u)) rgba(120,80,30,.22); }
+  .tvi.bad { opacity:.55; }
+  .tvEmpty { grid-column:1 / -1; font:400 calc(22 * var(--u)) / 1.4 var(--jua); color:var(--sub); padding:calc(20 * var(--u)) 0; }
+  #tvPages { display:flex; justify-content:center; gap:calc(8 * var(--u)); flex:none; min-height:calc(10 * var(--u)); }
+  #tvPages i { width:calc(10 * var(--u)); height:calc(10 * var(--u)); border-radius:calc(5 * var(--u)); background:var(--line2); }
+  #tvPages i.now { width:calc(28 * var(--u)); background:var(--text); }
+
+  #toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:var(--text); color:#fff; padding:10px 16px; border-radius:999px; font:400 13px/1.3 var(--gowun); opacity:0; transition:opacity .2s; pointer-events:none; z-index:30; max-width:90vw; text-align:center; }
   #toast.show { opacity:1; }
+  body.app #toast { left:auto; right:calc(24 * var(--u)); bottom:calc(14 * var(--u)); transform:none; font-size:calc(14 * var(--u)); padding:calc(10 * var(--u)) calc(16 * var(--u)); max-width:calc(300 * var(--u)); }   /* TV: 조작 버튼을 가리지 않게 오른쪽 아래 */
+
+  /* ---------- 폰 (≤820px): 세로로 한 줄 ---------- */
   @media (max-width: 820px) {
-    body { grid-template-columns:1fr; grid-template-rows: 56vh 44vh; grid-template-rows: 45dvh 55dvh; }
-    #hint { display:none; }   /* 폰: 키보드·북마클릿 안내는 공간만 차지 */
-    #btnTv, #btnFull { display:none; }
-    #bar { gap:6px; padding:8px; }
-    #bar button { padding:7px 9px; }
-    #side { padding-bottom: env(safe-area-inset-bottom); }
-    #side { border-left:none; border-top:1px solid var(--line); }
+    body { display:flex; flex-direction:column; }
+    .pc { display:none; }
+    .ph { display:inline; }
+    #stage { flex:none; padding:16px 16px 0; overflow:visible; }
+    #logo, #titleRow2, #prog, #bar { display:none; }
+    #frame { width:100%; max-width:none; border-width:8px; border-radius:22px; margin-top:0; }
+    #player-wrap { border-radius:14px; }
+    #side, body.tv #side { display:flex; flex:1; min-height:0; border-left:0; padding-bottom:env(safe-area-inset-bottom); }   /* 폰은 TV 모드여도 목록을 보여 준다 */
+    #side header { padding:18px 20px 12px; border-bottom:0; }
+    #titleRow { flex-wrap:nowrap; }
+    #side h1 { font:400 26px/32px var(--jua); padding-top:3px; white-space:normal; }
+    #syncStatus { order:0; flex-basis:auto; height:30px; padding:0 12px 0 10px; border-radius:999px; background:#fff; font:400 13px/18px var(--gowun); }
+    #syncStatus.on { color:var(--ok-text); }
+    #syncStatus span { display:none; }
+    #syncStatus b { display:inline; }
+    #btnGoogle { width:34px; padding:0; justify-content:center; }
+    #gLabel { display:none; }
+    #add label { font-size:17px; }
+    #btnTools { display:inline-flex; align-self:flex-start; height:30px; align-items:center; padding:0 12px; border-radius:999px; background:#fff; border:1px solid var(--line); font:400 12px/1 var(--gowun); margin-top:-4px; }
+    #tools, #link { display:none; }
+    body.tools-open #tools, body.tools-open #link { display:flex; }
+    #list { padding:2px 20px 20px; gap:10px; }
+    .item { gap:12px; padding:8px; border-radius:18px; cursor:default; touch-action:pan-y; }
+    .item .grip { order:9; width:24px; height:24px; display:flex; flex-direction:column; justify-content:center; gap:4px; padding:0 4px; }
+    .item .grip i { height:2.5px; }
+    .item .grip i:nth-child(n+4) { display:none; }
+    .item .n { width:30px; height:30px; border-radius:15px; font-size:15px; }
+    .item img { width:72px; height:44px; border-radius:12px; }
+    .item .t em { font-size:14px; white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+    .item .t small { display:none; }
+    .item .del { display:none; }
+    #hint { display:none; }
   }
 </style>
 </head>
 <body>
 
 <div id="stage">
-  <div id="player-wrap">
+  <div id="logo"><img src="ic_launcher.png" alt=""><span>우리집 재생목록</span></div>
+  <div id="pickHint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg><span>골라 보기</span></div>
+  <div id="frame"><div id="player-wrap">
     <div class="yt" id="wrapA"><div id="playerA"></div></div>
     <div class="yt standby" id="wrapB"><div id="playerB"></div></div>
     <div id="cover">재생목록에서 영상을 선택하세요</div>
-  </div>
+  </div></div>
+  <div id="titleRow2"><div id="nowTitle">—</div><div id="dots"></div></div>
+  <div id="prog"><time id="tCur">0:00</time><div class="track"><div class="fill"></div><div class="knob"></div></div><time id="tDur">0:00</time></div>
   <div id="bar">
-    <button id="btnPrev" title="이전 (←)">⏮</button>
-    <button id="btnPlay" title="재생/일시정지 (Space)">⏯</button>
-    <button id="btnNext" title="다음 (→)">⏭</button>
-    <div class="title" id="nowTitle">—</div>
-    <button id="btnLoop" class="on" title="반복 (L)">🔁 반복</button>
-    <button id="btnShuffle" title="셔플 (S)">🔀 셔플</button>
-    <button id="btnReload" title="새로고침: 최신 목록·버전 받기">🔄</button>
-    <button id="btnTv" title="TV 모드: 목록 숨김 (T)">📺 TV</button>
-    <button id="btnFull" title="전체화면 (F)">⛶</button>
+    <div class="l">
+      <button id="btnLoop" class="chip on" title="반복 (L)"><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>처음부터 다시</span></button>
+      <button id="btnShuffle" class="chip" title="셔플 (S)"><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>섞어서</span></button>
+      <div id="prevThumb" class="thumbNav empty"><img alt=""><span>이전</span></div>
+    </div>
+    <div class="m">
+      <button id="btnPrev" class="rb" title="이전 (←)"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="3.4" height="14" rx="1.7" fill="currentColor"/><path d="M19.5 6.6v10.8c0 1.2-1.3 1.9-2.3 1.2l-7.9-5.4a1.5 1.5 0 0 1 0-2.4l7.9-5.4c1-.7 2.3 0 2.3 1.2z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg></button>
+      <button id="btnPlay" class="rb" title="재생/일시정지 (Space)"><svg class="play" viewBox="0 0 24 24"><path d="M7 5.6v12.8c0 1.2 1.3 1.9 2.3 1.2l9.4-6.4a1.5 1.5 0 0 0 0-2.4L9.3 4.4C8.3 3.7 7 4.4 7 5.6z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg><svg class="pause" viewBox="0 0 24 24"><rect x="5.5" y="4.5" width="4.6" height="15" rx="2.3" fill="currentColor"/><rect x="13.9" y="4.5" width="4.6" height="15" rx="2.3" fill="currentColor"/></svg></button>
+      <button id="btnNext" class="rb" title="다음 (→)"><svg viewBox="0 0 24 24"><path d="M4.5 6.6v10.8c0 1.2 1.3 1.9 2.3 1.2l7.9-5.4a1.5 1.5 0 0 0 0-2.4L6.8 5.4c-1-.7-2.3 0-2.3 1.2z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/><rect x="16.6" y="5" width="3.4" height="14" rx="1.7" fill="currentColor"/></svg></button>
+    </div>
+    <div class="r">
+      <div id="nextThumb" class="thumbNav empty"><span>다음</span><img alt=""></div>
+      <button id="btnTv" class="chip" title="TV 모드: 목록 숨김 (T)"><span>TV 모드</span></button>
+      <button id="btnFull" class="chip ico" title="전체화면 (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></svg><span>전체화면</span></button>
+      <button id="btnReload" title="새로고침: 최신 목록·버전 받기">새로고침</button>
+    </div>
   </div>
 </div>
 
 <aside id="side">
   <header>
     <div id="titleRow">
-      <h1>우리집 재생목록</h1>
+      <h1><span class="pc">우리 영상</span><span class="ph">우리집 재생목록</span></h1>
+      <div id="syncStatus"><i></i><span id="syncText">로그인하면 구글 드라이브로 폰·TV와 목록이 맞춰집니다</span><b id="syncShort">로그인 안 함</b></div>
       <button id="btnGoogle" title="로그인: 드라이브 동기화 + 좋아요·재생목록 가져오기"><svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.2-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg><img id="gAvatar" alt="" hidden referrerpolicy="no-referrer"><span id="gLabel">Google 로그인</span></button>
     </div>
-    <div id="syncStatus">☁ 로그인하면 구글 드라이브로 기기 간 목록이 동기화됩니다</div>
     <div id="add">
-      <input id="urlInput" placeholder="유튜브 URL 또는 영상 ID 붙여넣기 (여러 개는 줄바꿈/공백 구분)">
-      <button id="btnAdd">추가</button>
+      <label for="urlInput"><span class="pc">유튜브 링크나 재생목록 주소를 여기에</span><span class="ph">유튜브에서 공유 → 링크 복사 → 여기에</span></label>
+      <div class="row"><input id="urlInput" placeholder="링크 붙여넣기 (여러 개는 공백으로 구분)"><button id="btnAdd">넣기</button></div>
     </div>
+    <button id="btnTools">도구 보기</button>
     <div id="tools">
+      <button id="btnImportYt" title="구글 계정의 좋아요·재생목록에서 가져오기">유튜브에서 가져오기</button>
       <button id="btnExport">JSON 내보내기</button>
       <button id="btnImport">JSON 가져오기</button>
-      <button id="btnImportYt" title="구글 계정의 좋아요·재생목록에서 가져오기">유튜브에서 가져오기</button>
       <button id="btnClearBad">재생불가 삭제</button>
-      <button id="btnClear" class="danger">전체 삭제</button>
+      <button id="btnClear">전체 삭제</button>
       <input type="file" id="fileInput" accept="application/json" hidden>
     </div>
-    <div id="link"><span id="linkText">유튜브 재생목록 URL을 붙여넣으면 연결됩니다</span><button id="btnSync" hidden>🔄 동기화</button><button id="btnUnlink" hidden>연결 해제</button></div>
+    <div id="link"><span id="linkText">유튜브 재생목록 URL을 붙여넣으면 연결됩니다</span><button id="btnSync" hidden>동기화</button><button id="btnUnlink" hidden>연결 해제</button></div>
   </header>
   <div id="list"></div>
   <div id="hint">
-    키보드: Space 재생/정지 · ←/→ 이전/다음 · L 반복 · S 셔플 · T TV모드 · F 전체화면<br>
-    <span id="bookmarkHint">PC 유튜브에서 바로 추가: 이 버튼을 북마크바로 드래그 → <a id="bookmarklet" href="javascript:(()=>{window.open('https://stepersjmj-hash.github.io/kids/?add='+encodeURIComponent(location.href),'_blank')})()" onclick="event.preventDefault(); toast('클릭하지 말고 북마크바로 끌어다 놓으세요', 3000)">📌 재생목록에 추가</a><br></span>
-    유튜브 재생목록 연결: 입력칸에 재생목록 URL 붙여넣기 또는 <code>?pl=재생목록ID</code><br>원격 JSON 목록: <code>?list=JSON주소</code>
+    <div class="keys"><span>Space 재생</span><span>←/→ 이전·다음</span><span>L 반복</span><span>S 섞기</span><span>T TV 모드</span><span>F 전체화면</span></div>
+    <div class="bm" id="bookmarkHint"><span>유튜브에서 바로 추가:</span><a id="bookmarklet" href="javascript:(()=>{window.open('https://stepersjmj-hash.github.io/kids/?add='+encodeURIComponent(location.href),'_blank')})()" onclick="event.preventDefault(); toast('클릭하지 말고 북마크바로 끌어다 놓으세요', 3000)">재생목록에 추가</a><span>← 북마크바로 끌기</span></div>
+    <div>재생목록 연결: <code>?pl=재생목록ID</code> · 원격 JSON 목록: <code>?list=JSON주소</code></div>
   </div>
 </aside>
 
 <div id="toast"></div>
-<div id="tvList" hidden><h2>↑↓ 고르기 · 가운데 버튼 재생 · 뒤로 닫기</h2><div id="tvItems"></div></div>
+<div id="tvList" hidden>
+  <div id="tvHead"><h2>뭐 볼까?</h2><div id="tvChips"></div></div>
+  <div id="tvItems"></div>
+  <div id="tvPages"></div>
+</div>
 <div id="gModal" hidden><div class="box">
   <div class="head"><b>Google에서 가져오기</b><button id="gClose">닫기</button></div>
   <div id="gList"></div>
@@ -167,6 +343,9 @@
 <script>
 /* ---------- 설정 ---------- */
 // TV 앱(android-tv/) 안에서 열렸는지 — 앱이 addJavascriptInterface 로 KidsTV 를 넣어 준다
+// ?app=1 : PC 브라우저에서 TV 앱 화면을 흉내 내기 (가짜 KidsTV — 로그인은 안내만, 키보드 방향키·Enter·Esc = 리모컨)
+if (typeof window.KidsTV === 'undefined' && new URLSearchParams(location.search).get('app') === '1')
+  window.KidsTV = { login(){ toast('로그인은 TV 앱에서만 됩니다 (여기선 흉내 모드)', 2500); }, logout(){}, reload(){ location.reload(); } };
 const TVAPP = typeof window.KidsTV !== 'undefined';
 // Google Cloud 콘솔 > kids-player > 클라이언트 의 웹 클라이언트 ID (공개돼도 되는 값)
 const GOOGLE_CLIENT_ID = '1096780537185-l0sv1gm1j2b0hvnu401ttnm274lun102.apps.googleusercontent.com';
@@ -317,7 +496,11 @@ const BASE_KEY = 'home-playlist-drive-base';
 const DRIVE_FILE = '우리집 재생목록 (동기화).json';
 const LEGACY_FILE = 'playlist.json';   // appDataFolder (이전용으로 읽기만)
 let driveFileId = null, driveBusy = null, driveTimer = null;
-function setSyncStatus(cls, text){ const el = $('#syncStatus'); el.className = cls; el.textContent = text; }
+function setSyncStatus(cls, text){
+  const el = $('#syncStatus'); el.className = cls;
+  $('#syncText').textContent = text.replace(/^[☁⚠]\s*/, '');
+  $('#syncShort').textContent = cls === 'on' ? '동기화됨' : cls === 'warn' ? '동기화 문제' : loggedIn() ? '동기화 중' : '로그인 안 함';
+}
 const loggedIn = () => gToken && Date.now() < gTokenExp;
 function scheduleDriveSync(){ if (!loggedIn()) return; clearTimeout(driveTimer); driveTimer = setTimeout(driveSync, 1500); }
 async function drive(url, opt = {}){
@@ -538,28 +721,37 @@ async function fillTitles(){
 }
 
 /* ---------- 목록 렌더 ---------- */
+const ICON = {
+  check: '<svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+};
+const TOUCH = matchMedia('(pointer:coarse)').matches;   // 폰: HTML5 DnD 대신 Pointer Events
+const thumb = id => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+let dragFrom = -1;
 function render(){
   const el = $('#list'); el.innerHTML = '';
   items.forEach((it, i) => {
     const d = document.createElement('div');
     d.className = 'item' + (i===idx?' current':'') + (it.bad?' bad':'');
+    d.draggable = !TOUCH;
     d.innerHTML = `
+      <div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <span class="n">${i+1}</span>
-      <img src="https://img.youtube.com/vi/${it.id}/mqdefault.jpg" alt="">
-      <div class="t">${esc(it.title||it.id)}<small>${it.bad ? '⚠ 재생 불가 (임베드 제한)' : it.id}</small></div>
-      <div class="ops">
-        <button data-op="up" title="위로">▲</button>
-        <button data-op="down" title="아래로">▼</button>
-        <button data-op="del" title="삭제">✕</button>
-      </div>`;
+      <img src="${thumb(it.id)}" alt="" draggable="false">
+      <div class="t"><em>${esc(it.title||it.id)}</em><small>${it.bad ? '재생 불가 · 건너뜀' : i===idx ? '지금 보는 중' : esc(it.id)}</small></div>
+      <button class="del" title="삭제">${ICON.x}</button>`;
     d.addEventListener('click', e => {
-      const op = e.target.dataset.op;
-      if (op === 'del') { items.splice(i,1); if (idx===i) idx=-1; else if (idx>i) idx--; save(); rebuildOrder(); render(); return; }
-      if (op === 'up' && i>0) { [items[i-1],items[i]]=[items[i],items[i-1]]; if(idx===i)idx--; else if(idx===i-1)idx++; save(); rebuildOrder(); render(); return; }
-      if (op === 'down' && i<items.length-1) { [items[i+1],items[i]]=[items[i],items[i+1]]; if(idx===i)idx++; else if(idx===i+1)idx--; save(); rebuildOrder(); render(); return; }
-      if (op) return;
+      if (d._swiped) return;
+      if (e.target.closest('.del')) { removeItem(i); return; }
       playIndex(i);
     });
+    // PC: HTML5 Drag & Drop 으로 순서 바꾸기 (▲▼ 대신)
+    d.addEventListener('dragstart', e => { dragFrom = i; e.dataTransfer.effectAllowed = 'move'; d.classList.add('dragging'); });
+    d.addEventListener('dragover', e => { e.preventDefault(); if (dragFrom < 0 || dragFrom === i) return; clearDrop(); d.classList.add(dragFrom < i ? 'drop-after' : 'drop-before'); });
+    d.addEventListener('dragleave', () => d.classList.remove('drop-after', 'drop-before'));
+    d.addEventListener('drop', e => { e.preventDefault(); moveItem(dragFrom, i); });
+    d.addEventListener('dragend', () => { dragFrom = -1; clearDrop(); d.classList.remove('dragging'); });
+    if (TOUCH) attachTouch(d, i);
     el.appendChild(d);
   });
   $('#nowTitle').textContent = idx>=0 && items[idx] ? (items[idx].title||items[idx].id) : '—';
@@ -570,7 +762,97 @@ function render(){
   $('#link').classList.toggle('on', !!settings.pl);
   $('#linkText').textContent = syncing ? '재생목록 불러오는 중…' : settings.pl ? `🔗 연결된 재생목록: ${settings.pl}` : '유튜브 재생목록 URL을 붙여넣으면 연결됩니다';
   $('#btnSync').hidden = $('#btnUnlink').hidden = !settings.pl;
+  renderDots(); renderDeck();
 }
+function clearDrop(){ document.querySelectorAll('.item.drop-after, .item.drop-before').forEach(x => x.classList.remove('drop-after', 'drop-before')); }
+function moveItem(from, to){
+  if (from < 0 || to < 0 || from === to || from >= items.length) return;
+  const curId = idx >= 0 ? items[idx].id : null;
+  const [m] = items.splice(from, 1); items.splice(to, 0, m);
+  idx = curId ? items.findIndex(x => x.id === curId) : -1;
+  save(); rebuildOrder(); render(); preloadNext();   // save() 의 id 서명이 바뀌어 드라이브 동기화도 예약됨
+}
+function removeItem(i){
+  items.splice(i, 1); if (idx === i) idx = -1; else if (idx > i) idx--;
+  save(); rebuildOrder(); render(); preloadNext();
+}
+// 폰: 손잡이(≡)를 눌러 끌면 순서 바꾸기, 행을 왼쪽으로 밀면 삭제
+function attachTouch(d, i){
+  const grip = d.querySelector('.grip'), list = $('#list');
+  grip.addEventListener('pointerdown', e => {
+    e.preventDefault(); grip.setPointerCapture(e.pointerId);
+    d.classList.add('dragging');
+    const move = ev => {
+      const y = ev.clientY, sibs = [...list.children].filter(x => x !== d);
+      const before = sibs.find(x => { const r = x.getBoundingClientRect(); return y < r.top + r.height / 2; });
+      if ((before || null) !== d.nextElementSibling) list.insertBefore(d, before || null);   // 끌리는 행을 DOM 에서 바로 옮긴다
+      const lr = list.getBoundingClientRect();
+      if (y < lr.top + 40) list.scrollTop -= 8; else if (y > lr.bottom - 40) list.scrollTop += 8;
+    };
+    const up = () => {
+      grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up);
+      d.classList.remove('dragging');
+      const to = [...list.children].indexOf(d);
+      to === i ? render() : moveItem(i, to);
+    };
+    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
+  });
+  d.addEventListener('pointerdown', e => {
+    if (e.target.closest('.grip')) return;
+    const x0 = e.clientX, y0 = e.clientY; let dx = 0, swiping = false;
+    const move = ev => {
+      dx = ev.clientX - x0; const dy = ev.clientY - y0;
+      if (!swiping) {
+        if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5) { swiping = true; d.setPointerCapture(ev.pointerId); d.classList.add('swiping'); }
+        else return;
+      }
+      d.style.transform = `translateX(${Math.min(0, dx)}px)`;
+    };
+    const up = () => {
+      d.removeEventListener('pointermove', move); d.removeEventListener('pointerup', up); d.removeEventListener('pointercancel', up);
+      if (!swiping) return;
+      d._swiped = true; setTimeout(() => { d._swiped = false; }, 300);
+      d.classList.remove('swiping');
+      if (dx < -80) { d.style.transform = 'translateX(-110%)'; setTimeout(() => removeItem(i), 150); }
+      else d.style.transform = '';
+    };
+    d.addEventListener('pointermove', move); d.addEventListener('pointerup', up); d.addEventListener('pointercancel', up);
+  });
+}
+// 제목 옆 점: 재생 순서(order) 기준으로 본 것(초록)·지금(빨강)·남은 것(베이지). 너무 많으면 숫자로
+function renderDots(){
+  const el = $('#dots'); el.innerHTML = '';
+  if (!order.length) return;
+  if (order.length > 24) { el.innerHTML = `<b>${Math.max(0, orderPos) + 1} / ${order.length}</b>`; return; }
+  order.forEach((_, p) => {
+    const i = document.createElement('i');
+    if (orderPos >= 0 && p < orderPos) i.className = 'seen'; else if (p === orderPos) i.className = 'now';
+    el.appendChild(i);
+  });
+}
+// TV: 이전·다음 버튼 옆 썸네일
+function renderDeck(){
+  const n = order.length;
+  const prevI = n && orderPos >= 0 ? order[(orderPos - 1 + n) % n] : -1;
+  const nextI = peekNext();
+  for (const [sel, i] of [['#prevThumb', prevI], ['#nextThumb', nextI]]) {
+    const el = $(sel), img = el.querySelector('img');
+    el.classList.toggle('empty', i < 0);
+    const src = i >= 0 ? thumb(items[i].id) : '';
+    if (img.getAttribute('src') !== src) img.src = src;
+  }
+}
+// 진행 막대: 0.5초마다
+const fmt = x => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
+function tickProgress(){
+  let cur = 0, dur = 0;
+  if (ready && idx >= 0) { try { cur = player.getCurrentTime() || 0; dur = player.getDuration() || 0; } catch {} }
+  const pct = dur ? Math.min(100, cur / dur * 100) : 0;
+  $('#prog .fill').style.width = pct + '%'; $('#prog .knob').style.left = pct + '%';
+  $('#tCur').textContent = fmt(cur); $('#tDur').textContent = fmt(dur);
+}
+setInterval(tickProgress, 500);
+const setPlayIcon = on => $('#btnPlay').classList.toggle('playing', on);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* ---------- 재생 순서 ---------- */
@@ -608,6 +890,7 @@ function onYouTubeIframeAPIReady(){
 }
 function onPlayerState(e){
   if (e.target !== player) { onSpareState(e); return; }
+  setPlayIcon(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
   if (e.data === YT.PlayerState.ENDED) { showCover('다음 영상…'); setTimeout(()=>step(1), 150); }
   if (e.data === YT.PlayerState.PLAYING) { hideCover(); captionsOff(); adUnmute(); if (!mainStarted) { mainStarted = true; preloadNext(); } }
 }
@@ -626,6 +909,7 @@ function playIndex(i, viaOrder){
   render();
   if (!ready) return;
   showCover(items[i].title || items[i].id);
+  tickProgress();
   if (spareState !== 'idle' && spareId === items[i].id) { swapToSpare(); return; }   // 미리 받아 둔 영상이면 플레이어 교대
   adMute();
   player.loadVideoById(items[i].id);
@@ -722,6 +1006,7 @@ $('#btnUnlink').onclick = () => { settings.pl = ''; save(); render(); toast('연
 $('#btnGoogle').onclick = googleClick;
 $('#btnImportYt').onclick = importClick;
 $('#gClose').onclick = () => $('#gModal').hidden = true;
+$('#btnTools').onclick = () => { const on = document.body.classList.toggle('tools-open'); $('#btnTools').textContent = on ? '도구 닫기' : '도구 보기'; };
 $('#btnClearBad').onclick = () => { items = items.filter(x=>!x.bad); idx = -1; save(); rebuildOrder(); render(); };
 $('#btnClear').onclick = () => { if (confirm('재생목록을 모두 지울까요?')) { items=[]; idx=-1; save(); rebuildOrder(); render(); } };
 
@@ -763,8 +1048,8 @@ function seekByTotal(total){
   seekSum = total;
   const dur = player.getDuration() || 0, t = Math.max(0, Math.min(dur - 1, seekBase + seekSum));
   player.seekTo(t, true);
-  const mmss = x => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
-  toast(`${seekSum > 0 ? '⏩ +' : '⏪ '}${seekSum}초 · ${mmss(t)} / ${mmss(dur)}`, 1200);
+  toast(`${seekSum > 0 ? '⏩ +' : '⏪ '}${seekSum}초 · ${fmt(t)} / ${fmt(dur)}`, 1200);
+  tickProgress();
 }
 function arrowPress(k){
   if (arrowTimer && arrowKey === k) {            // 두 번째 이후 누름 → 10초 이동
@@ -818,40 +1103,65 @@ window.kidsTvToken = (t, exp) => {
   updateAuthUI();
   if (first) { loadProfile(); driveSync(); }
 };
-// 리모컨 ↓ 로 여는 목록
-let tvSel = -1;
+// 리모컨 ↓ 로 여는 "골라 보기": 맨 위 칩 줄(반복·셔플·새로고침·전체화면·로그인) + 3×2 격자, 페이지 넘김
+let tvSel = -1, tvChip = 0, tvPage = 0;   // tvSel: -1 = 칩 줄(tvChip 번째), 0~ = 영상 인덱스
+const TV_PAGE = 6, TV_COLS = 3;
 const tvOpen = () => !$('#tvList').hidden;
-// 목록 맨 위의 기능 줄 (Chromecast 리모컨엔 메뉴 버튼이 없어서 여기에 둔다)
-function tvActions(){
-  const a = [{ icon: '🔄', label: '새로고침 — 최신 목록·최신 버전 받기', run: () => TVAPP && KidsTV.reload ? KidsTV.reload() : location.reload() }];
-  if (TVAPP) a.push({ icon: '🔑', label: 'Google 계정 다시 로그인' + (accountText() ? ` (지금: ${accountText()})` : ''), run: () => KidsTV.login() });
-  return a;
+function tvChips(){
+  const c = [
+    { label: '처음부터 다시', on: settings.loop, keep: true, run: () => $('#btnLoop').click() },
+    { label: '섞어서', on: settings.shuffle, keep: true, run: () => $('#btnShuffle').click() },
+    { label: '새로고침', run: () => TVAPP && KidsTV.reload ? KidsTV.reload() : location.reload() },
+    { label: '전체화면', run: () => $('#btnFull').click() },
+  ];
+  if (TVAPP) c.push({ label: loggedIn() ? '다시 로그인' : '로그인', title: accountText(), run: () => KidsTV.login() });
+  return c;
 }
-function tvRows(){ return [...tvActions().map(x => ({ act: x })), ...items.map((it, i) => ({ it, i }))]; }
+function runChip(k){ const c = tvChips()[k]; if (!c) return; if (c.keep) { c.run(); tvRender(); } else { tvHide(); c.run(); } }
 function tvRender(){
-  const box = $('#tvItems'), rows = tvRows(); box.innerHTML = '';
-  // 전부 그리고 선택 줄이 보이도록 스크롤 (고정 7줄은 TV 화면에 다 안 들어가 마지막 줄이 잘렸음)
-  rows.forEach((r, n) => {
-    const d = document.createElement('div');
-    d.className = 'tvi' + (n === tvSel ? ' sel' : '') + (r.it && r.i === idx ? ' cur' : '') + (r.act ? ' act' : '');
-    d.innerHTML = r.act
-      ? `<b class="n"></b><b class="ico">${r.act.icon}</b><span>${esc(r.act.label)}</span>`
-      : `<b class="n">${r.i + 1}</b><img src="https://img.youtube.com/vi/${r.it.id}/mqdefault.jpg" alt=""><span>${esc(r.it.title || r.it.id)}${r.it.bad ? ' ⚠' : ''}</span>`;
-    box.appendChild(d);
+  const chips = tvChips(), cb = $('#tvChips'); cb.innerHTML = '';
+  chips.forEach((c, k) => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (c.on ? ' on' : '') + (tvSel < 0 && k === tvChip ? ' sel' : '');
+    b.innerHTML = ICON.check + `<span>${esc(c.label)}</span>`; if (c.title) b.title = c.title;
+    b.onclick = () => runChip(k);
+    cb.appendChild(b);
   });
-  if (!items.length) box.insertAdjacentHTML('beforeend', '<div class="tvi"><span>목록이 비어 있습니다 — 휴대폰에서 영상을 추가하세요</span></div>');
-  box.querySelector('.tvi.sel')?.scrollIntoView({ block: 'nearest' });
+  const grid = $('#tvItems'); grid.innerHTML = '';
+  const pages = Math.max(1, Math.ceil(items.length / TV_PAGE));
+  if (tvSel >= 0) tvPage = Math.floor(tvSel / TV_PAGE);
+  tvPage = Math.min(tvPage, pages - 1);
+  items.slice(tvPage * TV_PAGE, (tvPage + 1) * TV_PAGE).forEach((it, k) => {
+    const i = tvPage * TV_PAGE + k, d = document.createElement('div');
+    d.className = 'tvi' + (i === tvSel ? ' sel' : '') + (i === idx ? ' cur' : '') + (it.bad ? ' bad' : '');
+    d.innerHTML = `<div class="th"><img src="${thumb(it.id)}" alt=""><b class="n">${i + 1}</b></div><span>${esc(it.title || it.id)}</span>`;
+    d.onclick = () => { tvHide(); playIndex(i); };
+    grid.appendChild(d);
+  });
+  if (!items.length) grid.innerHTML = '<div class="tvEmpty">목록이 비어 있습니다 — 휴대폰에서 영상을 추가하세요</div>';
+  const pg = $('#tvPages'); pg.innerHTML = '';
+  if (pages > 1) for (let p = 0; p < pages; p++) { const i = document.createElement('i'); if (p === tvPage) i.className = 'now'; pg.appendChild(i); }
 }
-function tvShow(){ const A = tvActions().length; tvSel = idx >= 0 ? A + idx : (items.length ? A : 0); $('#tvList').hidden = false; tvRender(); }
+function tvShow(){ tvSel = idx >= 0 ? idx : (items.length ? 0 : -1); tvChip = 0; $('#tvList').hidden = false; tvRender(); }
 function tvHide(){ $('#tvList').hidden = true; }
 function tvKey(k){
-  const rows = tvRows();
-  if (!rows.length) return;
-  if (k === 'ArrowDown') tvSel = (tvSel + 1) % rows.length;                    // 끝에서 아래 → 맨 위로 순환
-  else if (k === 'ArrowUp') tvSel = (tvSel - 1 + rows.length) % rows.length;   // 맨 위에서 위 → 끝으로
-  else if (k === 'Enter' || k === ' ') {
-    const r = rows[tvSel]; tvHide();
-    if (r?.act) r.act.run(); else if (r) playIndex(r.i);
+  const n = items.length, C = tvChips().length;
+  const row = i => Math.floor(i / TV_COLS);
+  if (k === 'ArrowDown') {
+    if (tvSel < 0) tvSel = n ? tvPage * TV_PAGE : -1;              // 칩 줄 → 이 페이지 첫 줄
+    else if (tvSel + TV_COLS < n) tvSel += TV_COLS;                 // 다음 줄 (마지막 줄이면 다음 페이지)
+    else if (row(tvSel) < row(n - 1)) tvSel = n - 1;                // 아래 줄이 짧으면 마지막 영상
+    else tvSel = -1;                                                // 끝 → 칩 줄로 순환
+  } else if (k === 'ArrowUp') {
+    if (tvSel < 0) tvSel = n - 1;                                   // 칩 줄에서 ↑ → 마지막 영상으로 순환
+    else if (tvSel - TV_COLS >= 0) tvSel -= TV_COLS;
+    else tvSel = -1;                                                // 첫 줄에서 ↑ → 칩 줄
+  } else if (k === 'ArrowLeft' || k === 'ArrowRight') {
+    const dir = k === 'ArrowRight' ? 1 : -1;
+    if (tvSel < 0) tvChip = (tvChip + dir + C) % C;
+    else if (n) tvSel = (tvSel + dir + n) % n;
+  } else if (k === 'Enter' || k === ' ') {
+    if (tvSel < 0) runChip(tvChip); else { tvHide(); playIndex(tvSel); }
     return;
   }
   else if (k === 'Escape' || k === 'Backspace' || k === 'GoBack') { tvHide(); return; }
