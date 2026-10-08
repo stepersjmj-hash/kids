@@ -681,8 +681,43 @@ function barMark(){
   const bs = barButtons(); barIdx = Math.max(0, Math.min(bs.length - 1, barIdx));
   bs.forEach((b, i) => b.classList.toggle('kfocus', i === barIdx));
 }
+// TV 앱 ←/→: 한 번 = 기존 동작(버튼 이동 / 전체화면에선 이전·다음), 빠르게 두 번 이상 = 10초씩 뒤로·앞으로.
+// 두 번째 누름을 기다려야 하므로 한 번 누르기는 ARROW_WAIT 만큼 늦게 실행된다
+const ARROW_WAIT = 300;
+let arrowTimer = null, arrowKey = null, arrowCount = 0, seekSum = 0, seekBase = 0;
+function arrowSingle(k){
+  if (isFull()) step(k === 'ArrowRight' ? 1 : -1);
+  else { barIdx += k === 'ArrowRight' ? 1 : -1; barMark(); }
+}
+function seekBy(sec){
+  if (!ready || idx < 0) return;
+  const st = player.getPlayerState();
+  if (st !== YT.PlayerState.PLAYING && st !== YT.PlayerState.PAUSED && st !== YT.PlayerState.BUFFERING) return;
+  // seekTo 직후엔 getCurrentTime 이 아직 안 바뀌므로 연속 누름은 처음 위치 + 누적값으로 계산
+  if (seekSum === 0) seekBase = player.getCurrentTime();
+  seekSum += sec;
+  const dur = player.getDuration() || 0, t = Math.max(0, Math.min(dur - 1, seekBase + seekSum));
+  player.seekTo(t, true);
+  const mmss = x => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
+  toast(`${seekSum > 0 ? '⏩ +' : '⏪ '}${seekSum}초 · ${mmss(t)} / ${mmss(dur)}`, 1200);
+}
+function arrowPress(k){
+  if (arrowTimer && arrowKey === k) {            // 두 번째 이후 누름 → 10초 이동
+    clearTimeout(arrowTimer);
+    seekBy(k === 'ArrowRight' ? 10 : -10);
+    arrowCount++;
+  } else {                                       // 첫 누름 (다른 방향이면 이전 것은 버림)
+    clearTimeout(arrowTimer);
+    arrowKey = k; arrowCount = 1; seekSum = 0;
+  }
+  arrowTimer = setTimeout(() => {
+    if (arrowCount === 1) arrowSingle(arrowKey);
+    arrowTimer = null; arrowKey = null; arrowCount = 0; seekSum = 0;
+  }, ARROW_WAIT);
+}
 function handleKey(k){
   if (tvOpen()) { tvKey(k); return true; }
+  if (TVAPP && (k === 'ArrowLeft' || k === 'ArrowRight')) { arrowPress(k); return true; }
   // 전체화면(하단 바 없음): ←/→ 이전·다음, 가운데 재생·정지
   if (TVAPP && isFull()) {
     if (k === 'ArrowLeft' || k === 'ArrowRight') { step(k === 'ArrowRight' ? 1 : -1); return true; }
