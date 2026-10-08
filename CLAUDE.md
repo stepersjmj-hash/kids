@@ -21,8 +21,9 @@
 - 대안 C: pychromecast YouTubeController로 TV의 공식 YouTube 앱 원격 조종 (미검증)
 
 ## Google 로그인 (방법 1)
-- Google Cloud 프로젝트 `kids-player`, YouTube Data API v3, OAuth 동의 화면 **테스트 모드**
-  (테스트 사용자만 로그인 가능), 범위 `youtube.readonly`
+- Google Cloud 프로젝트 `kids-player`, YouTube Data API v3, OAuth 동의 화면 **프로덕션 게시됨(2026-10-09, 심사 안 받음)**
+  → 아무 구글 계정이나 로그인 가능. `youtube.readonly` 는 민감 범위라 가져오기 팝업에 "확인되지 않은 앱" 경고가 뜨며 고급 → 이동으로 진행.
+  브랜딩: 홈페이지 https://stepersjmj-hash.github.io/kids/, 개인정보처리방침 /privacy.html (로고는 올리지 말 것 — 브랜드 심사 요구됨)
 - 웹 클라이언트 ID는 `index.html` 의 `GOOGLE_CLIENT_ID` (공개 값). secret 은 쓰지 않으며 저장소에 넣지 말 것
 - 승인된 JavaScript 원본: `https://stepersjmj-hash.github.io`, `http://localhost:8765` — 포트 바꾸면 콘솔에도 추가
 - GIS 토큰 클라이언트(팝업). `requestAccessToken` 은 클릭 핸들러에서 동기 호출해야 팝업 차단을 피함 → GIS는 시작 시 미리 로드
@@ -75,7 +76,7 @@
 - 페이지 최신화: 앱이 `?_v=시각` 붙여 로드, 10분 넘게 백그라운드였다 돌아오면 재로드, `KidsTV.reload()`(🔄). `settings.last` 로 보던 영상부터 이어 재생
 - TV용 OAuth 클라이언트(유형 "TV 및 제한된 입력 기기")의 ID/secret 은 `android-tv/local.properties`
   (`tv.clientId`, `tv.clientSecret`) — git 제외. 공개 저장소에 절대 커밋하지 말 것
-- 테스트 모드는 refresh token 7일 만료 → 콘솔에서 앱 게시(프로덕션) 권장
+- 프로덕션 게시 전(테스트 모드)에 받은 refresh token 은 7일 만료가 붙어 있음 → 게시 후 TV 에서 다시 로그인해 새 토큰을 받아야 만료 없음
 
 ### 빌드·설치
 - 도구(이 PC): `C:\Users\stepe\Android\` 에 jdk17 · Sdk(platform-tools, build-tools 35, platforms 35) · gradle-8.10.2
