@@ -27,6 +27,15 @@
 - 좋아요: `videos?myRating=like`, 재생목록: `playlists?mine=true` → `playlistItems` (50개씩 페이지네이션)
 - 로컬 실행: `serve.bat` (python http.server 8765, 127.0.0.1 바인딩)
 
+## 구글 드라이브 동기화
+- 범위 `drive.appdata` (Google Cloud 에서 Drive API 사용 설정 필요). appDataFolder 의 `playlist.json` = `{updatedAt, items:[{id,title}]}`
+- 기기별 마지막 동기화 상태를 localStorage `home-playlist-drive-base` 에 두고 3-way 병합(`mergeLists`):
+  한쪽만 바뀌면 그쪽을 채택, 둘 다 바뀌면 로컬 + 원격 추가분 − 원격 삭제분
+- 동기화 트리거: 로그인 직후, 영상 구성/순서 변경 시 1.5초 디바운스(`save()` 의 id 서명 비교 — 제목·설정 변경은 제외),
+  화면 복귀(visibilitychange), 1분 주기
+- 아동용(MFK) 영상은 유튜브 재생목록 저장·좋아요 기록이 막혀 있어 이 동기화가 주 경로
+- 테스트: 로그인 없이 브라우저 콘솔에서 `fetch` 를 가짜 드라이브로 바꾸고 `gToken`/`gTokenExp` 설정 후 `driveSync()` 호출
+
 ## 관례·함정
 - 유튜브 재생목록 연결(`settings.pl`, `?pl=`): API 키 없이 숨긴 보조 YT.Player(#plLoader)를
   `playerVars.list`로 만들고 `getPlaylist()`로 ID 목록을 얻음. **기존 플레이어에 cuePlaylist 재호출은
