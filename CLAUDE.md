@@ -84,6 +84,8 @@
   목록이 안 바뀜** → 매번 destroy 후 새로 생성. 실패(비공개·잘못된 ID)는 15초 타임아웃으로 처리.
   129개 재생목록까지 확인됨(상한은 미확인, 예전 기준 200개 내외로 알려짐)
 - localStorage 키: `home-playlist-v1`, `home-playlist-settings-v1` — 형식 바꾸면 키 버전 올릴 것
+- 높이는 `100dvh` (iOS 사파리 100vh 는 툴바 뒤까지 포함돼 목록 마지막 줄이 가려짐). 스크롤 영역(#list, #tvItems)은 flex 자식이라 `min-height:0` 필수
+- TV 목록은 전부 그리고 선택 줄 `scrollIntoView({block:'nearest'})` (고정 줄 수로 자르면 화면 크기에 따라 마지막 줄 잘림)
 - 끝화면 추천은 `rel=0`으로 못 막음 → ENDED 시 덮개(#cover)로 가리고 바로 다음 영상
 - onError 100/101/150 = 비공개/임베드 금지 → `bad` 표시 후 건너뜀
 - file:// 로 열면 플레이어 오류가 날 수 있음 → http(s)에서 테스트
