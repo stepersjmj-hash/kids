@@ -47,6 +47,29 @@
 - 액세스 토큰은 만료 시각까지 localStorage `home-playlist-gtoken` 에 저장 (새 탭에서도 바로 동기화). 401이면 삭제
 - 북마클릿 href 는 index.html #bookmarklet (배포 주소 하드코딩)
 
+## TV 앱 (android-tv/)
+- Kotlin 단일 Activity(`MainActivity.kt`): WebView 로 `https://stepersjmj-hash.github.io/kids/?tv=1` 로드.
+  재생·목록·동기화는 전부 페이지 담당 → **페이지만 고치면 앱 재설치 없이 반영** (WebView 캐시 최대 10분)
+- 로그인: WebView 안 구글 로그인은 차단됨 → OAuth **기기 코드 흐름**(QR + google.com/device), 범위
+  `openid email profile drive.appdata`. refresh token 은 SharedPreferences, 액세스 토큰은
+  `window.kidsTvToken(t, exp)` 로 페이지에 주입(만료 10분 전 갱신). 페이지의 login/logout 은 `window.KidsTV` 로 앱 호출
+- 리모컨: WebView 기본 포커스 이동이 방향키를 먹으므로 앱 `dispatchKeyEvent` 에서 가로채 `window.kidsTvKey(key)` 로 전달.
+  뒤로 키는 `window.kidsTvBack()` (목록 닫았으면 true). 페이지 키 처리는 `handleKey()` 하나로 통일
+- TV용 OAuth 클라이언트(유형 "TV 및 제한된 입력 기기")의 ID/secret 은 `android-tv/local.properties`
+  (`tv.clientId`, `tv.clientSecret`) — git 제외. 공개 저장소에 절대 커밋하지 말 것
+- 테스트 모드는 refresh token 7일 만료 → 콘솔에서 앱 게시(프로덕션) 권장
+
+### 빌드·설치
+- 도구(이 PC): `C:\Users\stepe\Android\` 에 jdk17 · Sdk(platform-tools, build-tools 35, platforms 35) · gradle-8.10.2
+  (`%LOCALAPPDATA%` 는 Claude 앱 샌드박스에서 가상화되므로 쓰지 말 것)
+- `local.properties` 의 `sdk.dir` 은 슬래시로: `sdk.dir=C:/Users/stepe/Android/Sdk` (역슬래시 이스케이프 실수 시 빌드 실패)
+- `android-tv\build-install.bat <TV IP:포트>` = 빌드 + adb 설치. release 도 debug 키로 서명(사이드로드용)
+- TV(sabrina, Android 14) 연결: 개발자 옵션 → **무선 디버깅** → "페어링 코드로 기기 페어링" → `adb pair IP:페어링포트 코드`
+  → `adb connect IP:연결포트` (연결 포트는 무선 디버깅 화면 상단, TV 재부팅/디버깅 재시작 시 바뀜). 5555 포트는 거부됨
+- 테스트 훅: `adb shell am start -n io.github.stepersjmj.kids/.MainActivity --es url "'https://...?tv=1&add=...'"`
+  화면 확인 `adb exec-out screencap -p > x.png`, 키 `adb shell input keyevent KEYCODE_DPAD_DOWN`
+- **테스트 후 `adb shell pm clear io.github.stepersjmj.kids`** — 테스트 영상이 로그인 시 드라이브 목록에 합쳐지는 것 방지
+
 ## 관례·함정
 - 유튜브 재생목록 연결(`settings.pl`, `?pl=`): API 키 없이 숨긴 보조 YT.Player(#plLoader)를
   `playerVars.list`로 만들고 `getPlaylist()`로 ID 목록을 얻음. **기존 플레이어에 cuePlaylist 재호출은
