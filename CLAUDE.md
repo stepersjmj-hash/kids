@@ -98,8 +98,11 @@
   둥근 버튼 두께 그림자는 꼭 `inset`(바깥이면 포커스 링 안에서 처져 보임). 영상 틀 #frame(흰 테두리) 안에 #player-wrap(A/B 플레이어)
 - 목록 순서 변경: PC 는 HTML5 DnD(`.item[draggable]`, `moveItem`), 폰(`pointer:coarse`)은 손잡이 Pointer Events 로 DOM 을 직접 옮긴 뒤 `moveItem`,
   행 왼쪽 스와이프 = 삭제(`attachTouch`, `.item { touch-action:pan-y }`). ▲▼ 버튼은 없앰
-- 진행 막대 `tickProgress` 500ms, 제목 옆 점 `renderDots`(order 기준, 25개 넘으면 숫자), TV 이전·다음 썸네일 `renderDeck`, ⏯ 아이콘은 PLAYING/BUFFERING 때 정지 모양
-- 폰(≤820px)은 세로 한 줄: 영상 틀 → 제목·동기화 알약 → 붙여넣기 카드 → 목록. 하단 바·진행 막대 없음(유튜브 자체 컨트롤·목록 터치로 조작), 도구는 "도구 보기" 로 접힘.
+- 진행 막대 `tickProgress` 500ms + 클릭·드래그 이동(`scrubbing` 중엔 tick 멈춤, 놓을 때 seekTo), 제목 옆 점 `renderDots`(order 기준, 25개 넘으면 숫자), TV 이전·다음 썸네일 `renderDeck`, ⏯ 아이콘은 PLAYING/BUFFERING 때 정지 모양
+- 유튜브 자체 UI 숨김: `controls:0`(하단 바·설정·자막 버튼 제거) + iframe 을 위아래 `--crop`(72px)만큼 키워 틀 밖으로 밀어 마우스 올림 때 제목 줄·로고를 가림(영상은 16:9 로 가운데 맞춰져 안 잘림)
+  + PAUSED 때 `showCover('일시정지', id)` 로 영상 썸네일(maxresdefault → 없으면 mqdefault) 덮개(유튜브 일시정지 추천 화면 가림). 덮개는 pointer-events:none 이라 눌러서 재개 가능.
+  영상에 박힌 자막·워터마크는 못 지움
+- 폰(≤820px)은 세로 한 줄: 영상 틀 → 진행 막대 → 작은 이전·재생·다음(칩 없음) → 제목·동기화 알약 → 붙여넣기 카드 → 목록. 도구는 "도구 보기" 로 접힘.
   폰은 settings.tv 가 true 여도 목록을 보여 줌
 - 자막: `cc_load_policy:0` 만으로는 자동 생성 자막이 켜짐 → PLAYING 때마다 `unloadModule('captions')`(`captionsOff`). 영상에 박힌 자막은 못 지움
 - 광고 음소거: 앞 광고는 덮개 아래에서 소리만 남 → loadVideoById 직전 mute(`adMute`), 본영상 PLAYING 때 unMute(`adUnmute`).

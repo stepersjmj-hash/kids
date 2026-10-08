@@ -35,10 +35,16 @@
   #player-wrap { position:relative; width:100%; height:100%; overflow:hidden; border-radius:24px; background:var(--video); }
   /* 플레이어 두 개(A/B)를 겹쳐 두고 하나만 보임. 대기(standby) 쪽은 다음 영상을 미리 불러 둔다 — visibility 로 숨겨야 재생이 멈추지 않음 */
   #player-wrap .yt { position:absolute; inset:0; }
-  #player-wrap .yt iframe { width:100%; height:100%; display:block; }
+  /* 유튜브가 마우스 올림·일시정지 때 띄우는 제목 줄(위)·로고(아래)를 가리려고 iframe 을 위아래로 --crop 만큼 키워 틀 밖으로 밀어낸다.
+     영상은 16:9 로 가운데 맞춰지고 남는 위아래는 검정이라 그림은 잘리지 않음 */
+  #player-wrap { --crop:72px; }
+  #player-wrap .yt iframe { position:absolute; left:0; top:calc(-1 * var(--crop)); width:100%; height:calc(100% + 2 * var(--crop)); display:block; }
   #player-wrap .yt.standby { visibility:hidden; pointer-events:none; }
   /* 끝화면/추천 가리기용 덮개: 재생 중엔 투명, 전환 중엔 불투명 */
-  #cover { position:absolute; inset:0; background:var(--video); display:flex; align-items:center; justify-content:center; color:#aab3c4; font:400 20px/1.4 var(--jua); padding:0 24px; text-align:center; transition:opacity .25s; pointer-events:none; }
+  #cover { position:absolute; inset:0; background:var(--video); display:flex; align-items:center; justify-content:center; color:#aab3c4; font:400 20px/1.4 var(--jua); padding:0 24px; text-align:center; transition:opacity .25s; pointer-events:none; overflow:hidden; }
+  #cover img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; }
+  #cover.paused img { display:block; }
+  #cover.paused span { position:relative; background:rgba(43,33,24,.7); color:#fff; padding:8px 16px; border-radius:999px; font-size:16px; }
   #cover.hidden { opacity:0; }
   #titleRow2 { width:min(980px, 100%); display:flex; align-items:center; gap:16px; margin-top:20px; flex:none; }
   #nowTitle { flex:1; min-width:0; font:400 26px/32px var(--jua); padding-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -50,7 +56,8 @@
   #prog { width:min(980px, 100%); display:flex; align-items:center; gap:14px; margin-top:14px; flex:none; }
   #prog time { font:400 13px/1 var(--num); color:var(--sub); font-variant-numeric:tabular-nums; min-width:3ch; }
   #prog time:last-child { text-align:right; }
-  #prog .track { flex:1; height:10px; border-radius:5px; background:var(--line); position:relative; }
+  #prog .track { flex:1; height:10px; border-radius:5px; background:var(--line); position:relative; cursor:pointer; touch-action:none; }
+  #prog .track::before { content:''; position:absolute; left:0; right:0; top:-12px; bottom:-12px; }   /* 누르기 쉬운 넓은 영역 */
   #prog .fill { position:absolute; left:0; top:0; bottom:0; width:0; border-radius:5px; background:var(--accent); }
   #prog .knob { position:absolute; left:0; top:50%; width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:10px; background:#fff; box-shadow:0 0 0 4px var(--accent); }
   #bar { width:min(980px, 100%); display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; margin-top:22px; flex:none; }
@@ -235,7 +242,13 @@
     .pc { display:none; }
     .ph { display:inline; }
     #stage { flex:none; padding:16px 16px 0; overflow:visible; }
-    #logo, #titleRow2, #prog, #bar { display:none; }
+    #logo, #titleRow2 { display:none; }
+    #prog { margin-top:12px; gap:10px; }
+    #bar { margin-top:10px; display:flex; justify-content:center; }
+    #bar .l, #bar .r { display:none; }
+    #bar .m { gap:20px; }
+    .rb { width:48px; height:48px; } .rb svg { width:22px; height:22px; }
+    #btnPlay { width:64px; height:64px; } #btnPlay svg { width:30px; height:30px; }
     #frame { width:100%; max-width:none; border-width:8px; border-radius:22px; margin-top:0; }
     #player-wrap { border-radius:14px; }
     #side, body.tv #side { display:flex; flex:1; min-height:0; border-left:0; padding-bottom:env(safe-area-inset-bottom); }   /* 폰은 TV 모드여도 목록을 보여 준다 */
@@ -274,7 +287,7 @@
   <div id="frame"><div id="player-wrap">
     <div class="yt" id="wrapA"><div id="playerA"></div></div>
     <div class="yt standby" id="wrapB"><div id="playerB"></div></div>
-    <div id="cover">재생목록에서 영상을 선택하세요</div>
+    <div id="cover"><img alt=""><span>재생목록에서 영상을 선택하세요</span></div>
   </div></div>
   <div id="titleRow2"><div id="nowTitle">—</div><div id="dots"></div></div>
   <div id="prog"><time id="tCur">0:00</time><div class="track"><div class="fill"></div><div class="knob"></div></div><time id="tDur">0:00</time></div>
@@ -780,7 +793,7 @@ function removeItem(i){
 function attachTouch(d, i){
   const grip = d.querySelector('.grip'), list = $('#list');
   grip.addEventListener('pointerdown', e => {
-    e.preventDefault(); grip.setPointerCapture(e.pointerId);
+    e.preventDefault(); try { grip.setPointerCapture(e.pointerId); } catch {}
     d.classList.add('dragging');
     const move = ev => {
       const y = ev.clientY, sibs = [...list.children].filter(x => x !== d);
@@ -803,7 +816,7 @@ function attachTouch(d, i){
     const move = ev => {
       dx = ev.clientX - x0; const dy = ev.clientY - y0;
       if (!swiping) {
-        if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5) { swiping = true; d.setPointerCapture(ev.pointerId); d.classList.add('swiping'); }
+        if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5) { swiping = true; try { d.setPointerCapture(ev.pointerId); } catch {} d.classList.add('swiping'); }
         else return;
       }
       d.style.transform = `translateX(${Math.min(0, dx)}px)`;
@@ -845,6 +858,7 @@ function renderDeck(){
 // 진행 막대: 0.5초마다
 const fmt = x => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
 function tickProgress(){
+  if (scrubbing) return;
   let cur = 0, dur = 0;
   if (ready && idx >= 0) { try { cur = player.getCurrentTime() || 0; dur = player.getDuration() || 0; } catch {} }
   const pct = dur ? Math.min(100, cur / dur * 100) : 0;
@@ -852,6 +866,17 @@ function tickProgress(){
   $('#tCur').textContent = fmt(cur); $('#tDur').textContent = fmt(dur);
 }
 setInterval(tickProgress, 500);
+// 막대 클릭·드래그로 이동: 끄는 동안은 손잡이만 따라가고 놓을 때 seekTo
+let scrubbing = false;
+{
+  const track = $('#prog .track');
+  const ratioAt = e => { const r = track.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); };
+  const paint = r => { let dur = 0; try { dur = player.getDuration() || 0; } catch {} $('#prog .fill').style.width = r * 100 + '%'; $('#prog .knob').style.left = r * 100 + '%'; $('#tCur').textContent = fmt(r * dur); };
+  track.addEventListener('pointerdown', e => { if (!ready || idx < 0) return; scrubbing = true; try { track.setPointerCapture(e.pointerId); } catch {} paint(ratioAt(e)); e.preventDefault(); });
+  track.addEventListener('pointermove', e => { if (scrubbing) paint(ratioAt(e)); });
+  track.addEventListener('pointerup', e => { if (!scrubbing) return; scrubbing = false; let dur = 0; try { dur = player.getDuration() || 0; } catch {} if (dur) { try { player.seekTo(ratioAt(e) * dur, true); } catch {} } tickProgress(); });
+  track.addEventListener('pointercancel', () => { scrubbing = false; });
+}
 const setPlayIcon = on => $('#btnPlay').classList.toggle('playing', on);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -874,7 +899,7 @@ function step(dir){
 // 대기 플레이어에 다음 영상을 음소거로 미리 '재생'해 앞 광고를 소진시킨 뒤 0초에 멈춰 두고, 활성 영상이 끝나면 둘을 맞바꿔
 // 바로 이어 재생한다 (PRELOAD). 앱(TVAPP)에선 기본 켜짐, ?preload=1|0 으로 강제 — PC 는 보통 프리미엄 쿠키로 광고가 없어 불필요
 const PRELOAD = (p => p === null ? TVAPP : p === '1')(new URLSearchParams(location.search).get('preload'));
-const PLAYER_VARS = { autoplay:1, controls:1, rel:0, modestbranding:1, iv_load_policy:3, fs:0, playsinline:1, disablekb:1, cc_load_policy:0 };
+const PLAYER_VARS = { autoplay:1, controls:0, rel:0, modestbranding:1, iv_load_policy:3, fs:0, playsinline:1, disablekb:1, cc_load_policy:0 };
 let playerA = null, spare = null, spareReady = false;
 let spareId = null;            // 대기 플레이어에 불러 둔 영상 id
 let spareState = 'idle';       // idle(비어 있음) → loading(불러오는 중·광고 소진 중) → ready(본영상 0초에서 일시정지)
@@ -891,6 +916,7 @@ function onYouTubeIframeAPIReady(){
 function onPlayerState(e){
   if (e.target !== player) { onSpareState(e); return; }
   setPlayIcon(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
+  if (e.data === YT.PlayerState.PAUSED && idx >= 0 && items[idx]) showCover('일시정지', items[idx].id);   // 유튜브 일시정지 화면(제목·추천) 가리기
   if (e.data === YT.PlayerState.ENDED) { showCover('다음 영상…'); setTimeout(()=>step(1), 150); }
   if (e.data === YT.PlayerState.PLAYING) { hideCover(); captionsOff(); adUnmute(); if (!mainStarted) { mainStarted = true; preloadNext(); } }
 }
@@ -962,7 +988,12 @@ function captionsOff(){
 let adMuted = false;
 function adMute(){ try { if (!player.isMuted()) { player.mute(); adMuted = true; } } catch {} }
 function adUnmute(){ if (adMuted) { try { player.unMute(); } catch {} adMuted = false; } }
-function showCover(t){ const c=$('#cover'); c.textContent=t; c.classList.remove('hidden'); }
+function showCover(t, img){
+  const c = $('#cover'), im = c.querySelector('img');
+  c.querySelector('span').textContent = t; c.classList.toggle('paused', !!img); c.classList.remove('hidden');
+  if (img) { im.onerror = () => { im.onerror = null; im.src = thumb(img); }; im.src = `https://img.youtube.com/vi/${img}/maxresdefault.jpg`; }   // 고화질 없으면 mqdefault
+  else im.removeAttribute('src');
+}
 function hideCover(){ $('#cover').classList.add('hidden'); }
 function togglePlay(){
   if (!ready) return;
