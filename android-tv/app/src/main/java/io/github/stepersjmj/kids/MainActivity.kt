@@ -80,7 +80,7 @@ class MainActivity : Activity() {
         setContentView(root)
 
         // 테스트용: adb shell am start ... --es url "https://..." 로 시작 주소를 바꿀 수 있다
-        web.loadUrl(intent.getStringExtra("url") ?: BuildConfig.START_URL)
+        loadPage()
         web.requestFocus()
 
         // 액세스 토큰(1시간)을 만료 전에 갱신
@@ -290,7 +290,21 @@ class MainActivity : Activity() {
         return bmp
     }
 
-    override fun onResume() { super.onResume(); web.onResume(); if (hasRefreshToken() && System.currentTimeMillis() > accessExp) refreshAndInject() }
-    override fun onPause() { web.onPause(); super.onPause() }
+    // 페이지(index.html)는 항상 최신으로: 캐시 무시용 쿼리를 붙인다 (유튜브 플레이어 등 나머지는 캐시 사용)
+    private fun loadPage() {
+        val base = intent.getStringExtra("url") ?: BuildConfig.START_URL
+        pageReady = false
+        web.loadUrl(base + (if ('?' in base) "&" else "?") + "_v=" + System.currentTimeMillis())
+    }
+
+    // 홈으로 나갔다 오면 Activity 가 살아 있어 예전 페이지가 그대로 남는다 →
+    // 10분 넘게 나가 있었으면 새로 불러온다 (페이지가 마지막 영상부터 이어 재생)
+    private var pausedAt = 0L
+    override fun onResume() {
+        super.onResume(); web.onResume()
+        if (pausedAt > 0 && System.currentTimeMillis() - pausedAt > 10 * 60_000) loadPage()
+        else if (hasRefreshToken() && System.currentTimeMillis() > accessExp) refreshAndInject()
+    }
+    override fun onPause() { pausedAt = System.currentTimeMillis(); web.onPause(); super.onPause() }
     override fun onDestroy() { polling = false; main.removeCallbacksAndMessages(null); web.destroy(); super.onDestroy() }
 }
