@@ -47,10 +47,12 @@
   #tools { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   #tools button { padding:6px 9px; font-size:12px; }
   #list { flex:1; min-height:0; overflow:auto; padding:8px; }
-  .item { display:grid; grid-template-columns:72px 1fr auto; gap:8px; align-items:center; padding:6px; border-radius:10px; cursor:pointer; border:1px solid transparent; }
+  .item { display:grid; grid-template-columns:auto 72px 1fr auto; gap:8px; align-items:center; padding:6px; border-radius:10px; cursor:pointer; border:1px solid transparent; }
   .item:hover { background:#1f2430; }
   .item.current { border-color:var(--ok); background:#1a2a22; }
   .item.bad { opacity:.5; }
+  .item .n { min-width:2ch; text-align:right; font-size:12px; color:var(--sub); font-variant-numeric:tabular-nums; }
+  .item.current .n { color:var(--ok); }
   .item img { width:72px; height:40px; object-fit:cover; border-radius:6px; background:#000; }
   .item .t { font-size:13px; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
   .item .t small { display:block; color:var(--sub); font-size:11px; margin-top:2px; }
@@ -80,6 +82,8 @@
   #tvList h2 { margin:0 0 2vh; font-size:3.2vh; color:var(--sub); font-weight:500; }
   #tvItems { flex:1; min-height:0; overflow-y:auto; scrollbar-width:none; padding:.4vh 0; display:flex; flex-direction:column; gap:1.2vh; }
   .tvi { display:flex; align-items:center; gap:2vw; padding:1vh 1vw; border-radius:1.4vh; border:.4vh solid transparent; flex:none; }
+  .tvi .n { min-width:3ch; text-align:right; font-size:3vh; color:var(--sub); font-variant-numeric:tabular-nums; flex:none; }
+  .tvi.cur .n { color:var(--ok); }
   .tvi img { width:19vh; height:10.7vh; object-fit:cover; border-radius:1vh; background:#000; flex:none; }
   .tvi span { flex:1; min-width:0; font-size:3vh; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
   .tvi.sel { border-color:var(--ok); background:#1a2a22; }
@@ -540,6 +544,7 @@ function render(){
     const d = document.createElement('div');
     d.className = 'item' + (i===idx?' current':'') + (it.bad?' bad':'');
     d.innerHTML = `
+      <span class="n">${i+1}</span>
       <img src="https://img.youtube.com/vi/${it.id}/mqdefault.jpg" alt="">
       <div class="t">${esc(it.title||it.id)}<small>${it.bad ? '⚠ 재생 불가 (임베드 제한)' : it.id}</small></div>
       <div class="ops">
@@ -830,8 +835,8 @@ function tvRender(){
     const d = document.createElement('div');
     d.className = 'tvi' + (n === tvSel ? ' sel' : '') + (r.it && r.i === idx ? ' cur' : '') + (r.act ? ' act' : '');
     d.innerHTML = r.act
-      ? `<b class="ico">${r.act.icon}</b><span>${esc(r.act.label)}</span>`
-      : `<img src="https://img.youtube.com/vi/${r.it.id}/mqdefault.jpg" alt=""><span>${esc(r.it.title || r.it.id)}${r.it.bad ? ' ⚠' : ''}</span>`;
+      ? `<b class="n"></b><b class="ico">${r.act.icon}</b><span>${esc(r.act.label)}</span>`
+      : `<b class="n">${r.i + 1}</b><img src="https://img.youtube.com/vi/${r.it.id}/mqdefault.jpg" alt=""><span>${esc(r.it.title || r.it.id)}${r.it.bad ? ' ⚠' : ''}</span>`;
     box.appendChild(d);
   });
   if (!items.length) box.insertAdjacentHTML('beforeend', '<div class="tvi"><span>목록이 비어 있습니다 — 휴대폰에서 영상을 추가하세요</span></div>');
