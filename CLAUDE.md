@@ -69,7 +69,8 @@
   `tvPage`. `tvKey()` 가 2D 이동: ↓ 다음 줄(마지막 줄이면 다음 페이지, 끝이면 칩 줄로 순환), ↑ 첫 줄에서 칩 줄, 칩 줄에서 ↑는 마지막 영상, ←/→ 는 전체 순환.
   반복·셔플 칩은 눌러도 안 닫힘(`keep`)
 - 앱 전체화면 = `body.full`(#frame 을 fixed 로 화면 가득, 나머지 숨김). 바의 전체화면 버튼으로 켬. 뒤로 순서: 골라 보기 닫기 → 전체화면 해제 → 앱의 "한 번 더 누르면 종료"
-- PC 에서 앱 화면 흉내: `?app=1` (가짜 `KidsTV` 주입 → TVAPP=true, 로그인은 토스트만). 쓰고 나면 settings.tv 가 true 로 남으니 T 로 끄기
+- PC 에서 앱 화면 흉내: `?app=1` (가짜 `KidsTV` 주입 → TVAPP=true, 로그인은 토스트만, `html.sim` 으로 창 가운데 16:9 상자(960×540u)에 그려 TV 와 같은 비율).
+  실제 TV 와 남는 차이는 오버스캔(가장자리 잘림)과 글꼴 렌더링뿐. 쓰고 나면 settings.tv 가 true 로 남으니 T 로 끄기
 - ←/→ 연속 누름(`ARROW_WAIT` 200ms 안): 2번 10초 · 3번 30초 · 이후 +10초 (`seekTotal`/`seekByTotal`), 한 번 누름은 200ms 지연 후 실행. 연속 seek 는
   `seekBase + seekSum` 으로 계산 (seekTo 직후 getCurrentTime 이 안 바뀌어 누적이 안 됐던 문제)
 - Chromecast 리모컨엔 **메뉴 키 없음** → 로그인 화면 새 코드는 가운데 버튼
