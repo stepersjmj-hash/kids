@@ -59,7 +59,7 @@
 - 리모컨: WebView 기본 포커스 이동이 방향키를 먹으므로 앱 `dispatchKeyEvent` 에서 가로채 `window.kidsTvKey(key)` 로 전달.
   뒤로 키는 `window.kidsTvBack()` (목록 닫았으면 true). 페이지 키 처리는 `handleKey()` 하나로 통일
 - 앱(body.app)에서 ←/→ = 하단 바 버튼 포커스 이동(`barIdx`/`barMark`, 노란 .kfocus), 가운데 = 그 버튼 클릭. ↑↓ = 목록(맨 위에
-  🔄 새로고침·🔑 재로그인 기능 줄, `tvActions`). PC 키보드는 ←/→ 이전/다음 그대로
+  🔄 새로고침·🔑 재로그인 기능 줄, `tvActions`). 맨 위/맨 아래에서 더 누르면 반대쪽 끝으로 순환. PC 키보드는 ←/→ 이전/다음 그대로
 - 앱 전체화면 = `body.full`(하단 바 숨김, ⛶ 버튼). 뒤로 순서: 목록 닫기 → 전체화면 해제 → 앱의 "한 번 더 누르면 종료"
 - ←/→ 연속 누름(`ARROW_WAIT` 200ms 안): 2번 10초 · 3번 30초 · 이후 +10초 (`seekTotal`/`seekByTotal`), 한 번 누름은 200ms 지연 후 실행. 연속 seek 는
   `seekBase + seekSum` 으로 계산 (seekTo 직후 getCurrentTime 이 안 바뀌어 누적이 안 됐던 문제)

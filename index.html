@@ -841,8 +841,9 @@ function tvShow(){ const A = tvActions().length; tvSel = idx >= 0 ? A + idx : (i
 function tvHide(){ $('#tvList').hidden = true; }
 function tvKey(k){
   const rows = tvRows();
-  if (k === 'ArrowDown') tvSel = Math.min(rows.length - 1, tvSel + 1);
-  else if (k === 'ArrowUp') tvSel = Math.max(0, tvSel - 1);
+  if (!rows.length) return;
+  if (k === 'ArrowDown') tvSel = (tvSel + 1) % rows.length;                    // 끝에서 아래 → 맨 위로 순환
+  else if (k === 'ArrowUp') tvSel = (tvSel - 1 + rows.length) % rows.length;   // 맨 위에서 위 → 끝으로
   else if (k === 'Enter' || k === ' ') {
     const r = rows[tvSel]; tvHide();
     if (r?.act) r.act.run(); else if (r) playIndex(r.i);
