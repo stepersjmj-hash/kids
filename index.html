@@ -262,6 +262,7 @@ function initGoogle(){
   t.onload = () => {
     gClient = google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
+      include_granted_scopes: false,   // 예전에 허용한 권한(youtube.readonly ↔ drive.file)이 자동으로 합쳐져 invalid_request 나는 것 방지
       scope: 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata',
       callback: r => {
         if (r.error) { toast('로그인 실패: ' + r.error); return; }
@@ -274,6 +275,7 @@ function initGoogle(){
     });
     ytClient = google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
+      include_granted_scopes: false,   // 예전에 허용한 권한(youtube.readonly ↔ drive.file)이 자동으로 합쳐져 invalid_request 나는 것 방지
       scope: 'https://www.googleapis.com/auth/youtube.readonly',
       callback: r => {
         if (r.error) { toast('유튜브 권한 실패: ' + r.error); return; }
