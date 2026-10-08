@@ -27,6 +27,11 @@
 - 좋아요: `videos?myRating=like`, 재생목록: `playlists?mine=true` → `playlistItems` (50개씩 페이지네이션)
 - 로컬 실행: `serve.bat` (python http.server 8765, 127.0.0.1 바인딩)
 
+## 로그인 UI
+- 범위: `openid email profile` + youtube.readonly + drive.appdata. 계정 표시는 userinfo(v3) → 실패 시 유튜브 채널 snippet
+- 프로필은 토큰과 함께 localStorage `home-playlist-gprofile` (로그아웃·401 시 삭제)
+- 로그아웃 = 로컬 토큰 삭제만 (revoke 안 함 → 재로그인 때 동의 화면 생략). drive base 는 유지
+
 ## 구글 드라이브 동기화
 - 범위 `drive.appdata` (Google Cloud 에서 Drive API 사용 설정 필요). appDataFolder 의 `playlist.json` = `{updatedAt, items:[{id,title}]}`
 - 기기별 마지막 동기화 상태를 localStorage `home-playlist-drive-base` 에 두고 3-way 병합(`mergeLists`):

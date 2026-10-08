@@ -33,6 +33,8 @@
   #syncStatus.on { color:var(--ok); }
   #syncStatus.warn { color:#f5b84a; }
   #btnGoogle svg { width:16px; height:16px; }
+  #gAvatar { width:20px; height:20px; border-radius:50%; object-fit:cover; margin:-2px 0; }
+  #btnGoogle.in svg { display:none; }
   #add { display:flex; gap:6px; }
   #add input { flex:1; background:#0f1115; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 10px; font-size:14px; }
   #tools { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
@@ -96,7 +98,7 @@
   <header>
     <div id="titleRow">
       <h1>우리집 재생목록</h1>
-      <button id="btnGoogle" title="로그인: 드라이브 동기화 + 좋아요·재생목록 가져오기"><svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.2-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg><span id="gLabel">Google 로그인</span></button>
+      <button id="btnGoogle" title="로그인: 드라이브 동기화 + 좋아요·재생목록 가져오기"><svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.2-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg><img id="gAvatar" alt="" hidden referrerpolicy="no-referrer"><span id="gLabel">Google 로그인</span></button>
     </div>
     <div id="syncStatus">☁ 로그인하면 구글 드라이브로 기기 간 목록이 동기화됩니다</div>
     <div id="add">
@@ -106,6 +108,7 @@
     <div id="tools">
       <button id="btnExport">JSON 내보내기</button>
       <button id="btnImport">JSON 가져오기</button>
+      <button id="btnImportYt" title="구글 계정의 좋아요·재생목록에서 가져오기">유튜브에서 가져오기</button>
       <button id="btnClearBad">재생불가 삭제</button>
       <button id="btnClear" class="danger">전체 삭제</button>
       <input type="file" id="fileInput" accept="application/json" hidden>
@@ -230,7 +233,7 @@ let gToken = null, gTokenExp = 0, gClient = null;
 function restoreToken(){
   try {
     const o = JSON.parse(localStorage.getItem(TOKEN_KEY));
-    if (o && o.exp > Date.now()) { gToken = o.t; gTokenExp = o.exp; $('#gLabel').textContent = '가져오기'; return true; }
+    if (o && o.exp > Date.now()) { gToken = o.t; gTokenExp = o.exp; try { gProfile = JSON.parse(localStorage.getItem(PROFILE_KEY)); } catch {} updateAuthUI(); return true; }
     localStorage.removeItem(TOKEN_KEY);
   } catch {}
   return false;
@@ -243,14 +246,16 @@ function initGoogle(){
   t.onload = () => {
     gClient = google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/drive.appdata',
+      scope: 'openid email profile https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/drive.appdata',
+      error_callback: () => { pendingImport = false; },   // 팝업 닫음 등
       callback: r => {
-        if (r.error) { toast('로그인 실패: ' + r.error); return; }
+        if (r.error) { pendingImport = false; toast('로그인 실패: ' + r.error); return; }
         gToken = r.access_token; gTokenExp = Date.now() + (r.expires_in - 60) * 1000;
         try { localStorage.setItem(TOKEN_KEY, JSON.stringify({ t: gToken, exp: gTokenExp })); } catch {}
-        $('#gLabel').textContent = '가져오기';
+        updateAuthUI(); loadProfile();
         if (google.accounts.oauth2.hasGrantedAllScopes(r, 'https://www.googleapis.com/auth/drive.appdata')) driveSync();
         else setSyncStatus('warn', '⚠ 드라이브 권한이 허용되지 않아 동기화가 꺼져 있습니다 (다시 로그인해서 체크)');
+        if (pendingImport) { pendingImport = false; openGoogleModal(); }
       }
     });
   };
@@ -267,7 +272,7 @@ const loggedIn = () => gToken && Date.now() < gTokenExp;
 function scheduleDriveSync(){ if (!loggedIn()) return; clearTimeout(driveTimer); driveTimer = setTimeout(driveSync, 1500); }
 async function drive(url, opt = {}){
   const r = await fetch(url, { ...opt, headers: { Authorization: 'Bearer ' + gToken, ...(opt.headers || {}) } });
-  if (r.status === 401) { gToken = null; localStorage.removeItem(TOKEN_KEY); $('#gLabel').textContent = 'Google 로그인'; throw new Error('로그인 만료'); }
+  if (r.status === 401) { gToken = null; localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(PROFILE_KEY); updateAuthUI(); throw new Error('로그인 만료'); }
   if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error?.message || r.status); }
   return r;
 }
@@ -328,7 +333,7 @@ async function driveSync(){
         toast(`드라이브와 동기화: ${items.length}개`);
       }
       localStorage.setItem(BASE_KEY, JSON.stringify({ updatedAt, items: next || local }));
-      setSyncStatus('on', `☁ 드라이브 동기화 켜짐 · ${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 확인`);
+      setSyncStatus('on', `☁ ${accountText() ? accountText() + ' · ' : ''}동기화 켜짐 · ${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 확인`);
     } catch (e) {
       console.error(e);
       setSyncStatus('warn', /만료/.test(e.message) ? '⚠ 로그인이 만료되어 동기화가 멈췄습니다 — Google 로그인을 다시 눌러주세요' : '⚠ 동기화 실패: ' + e.message);
@@ -339,13 +344,52 @@ async function driveSync(){
 // 다른 기기에서 바뀐 내용 반영: 화면에 돌아올 때 + 1분마다
 document.addEventListener('visibilitychange', () => { if (!document.hidden) driveSync(); });
 setInterval(() => { if (!document.hidden) driveSync(); }, 60000);
-setInterval(() => { if (gToken && !loggedIn()) { gToken = null; $('#gLabel').textContent = 'Google 로그인'; setSyncStatus('warn', '⚠ 로그인이 만료되어 동기화가 멈췄습니다 — Google 로그인을 다시 눌러주세요'); } }, 30000);
+setInterval(() => { if (gToken && !loggedIn()) { gToken = null; updateAuthUI(); setSyncStatus('warn', '⚠ 로그인이 만료되어 동기화가 멈췄습니다 — Google 로그인을 다시 눌러주세요'); } }, 30000);
 
-function googleClick(){
+/* 로그인한 계정 표시: 구글 계정 정보(userinfo) → 안 되면 유튜브 채널 정보 */
+const PROFILE_KEY = 'home-playlist-gprofile';
+let gProfile = null;
+async function loadProfile(){
+  const get = async url => { const r = await fetch(url, { headers: { Authorization: 'Bearer ' + gToken } }); if (!r.ok) throw r.status; return r.json(); };
+  let p = null;
+  try { const u = await get('https://www.googleapis.com/oauth2/v3/userinfo'); p = { name: u.name, email: u.email, picture: u.picture }; }
+  catch {
+    try { const c = (await get('https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true')).items?.[0]?.snippet;
+          if (c) p = { name: c.title, email: '', picture: c.thumbnails?.default?.url }; } catch {}
+  }
+  gProfile = p;
+  try { p ? localStorage.setItem(PROFILE_KEY, JSON.stringify(p)) : localStorage.removeItem(PROFILE_KEY); } catch {}
+  updateAuthUI();
+}
+const accountText = () => gProfile ? (gProfile.email || gProfile.name || '') : '';
+let pendingImport = false;   // 로그아웃 상태에서 '가져오기'를 누른 경우 로그인 후 바로 열기
+function updateAuthUI(){
+  const on = loggedIn(), av = $('#gAvatar');
+  if (!on) gProfile = null;
+  $('#gLabel').textContent = on ? '로그아웃' : 'Google 로그인';
+  $('#btnGoogle').title = on ? (accountText() ? accountText() + ' — ' : '') + '이 기기에서 로그아웃 (목록은 남음)' : '로그인: 드라이브 동기화 + 좋아요·재생목록 가져오기';
+  const pic = on && gProfile && gProfile.picture;
+  av.hidden = !pic; if (pic && av.src !== pic) av.src = pic;
+  $('#btnGoogle').classList.toggle('in', !!pic);
+}
+function login(){
   if (!GOOGLE_CLIENT_ID) { toast('클라이언트 ID가 설정되지 않았습니다'); return; }
-  if (gToken && Date.now() < gTokenExp) { openGoogleModal(); return; }
   if (!gClient) { toast('Google 로그인 준비 중… 잠시 후 다시 눌러주세요'); return; }
   gClient.requestAccessToken();
+}
+// 로그아웃 = 이 브라우저에서 토큰만 잊는다 (권한 철회는 하지 않아 다음 로그인 때 동의 화면이 다시 안 뜸).
+// 목록과 동기화 기준(base)은 남겨 두어 다시 로그인하면 이어서 병합
+function logout(){
+  gToken = null; gTokenExp = 0; clearTimeout(driveTimer);
+  try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(PROFILE_KEY); } catch {}
+  updateAuthUI(); $('#gModal').hidden = true;
+  setSyncStatus('', '☁ 로그아웃됨 — 목록은 이 기기에 남아 있고, 다시 로그인하면 이어서 동기화됩니다');
+  toast('로그아웃했습니다');
+}
+function googleClick(){ loggedIn() ? logout() : login(); }
+function importClick(){
+  if (loggedIn()) { openGoogleModal(); return; }
+  pendingImport = true; login();
 }
 async function yt(path, params){
   const out = []; let pageToken = '';
@@ -554,6 +598,7 @@ $('#fileInput').onchange = async e => {
 $('#btnSync').onclick = syncPlaylist;
 $('#btnUnlink').onclick = () => { settings.pl = ''; save(); render(); toast('연결 해제 (목록은 그대로 남습니다)'); };
 $('#btnGoogle').onclick = googleClick;
+$('#btnImportYt').onclick = importClick;
 $('#gClose').onclick = () => $('#gModal').hidden = true;
 $('#btnClearBad').onclick = () => { items = items.filter(x=>!x.bad); idx = -1; save(); rebuildOrder(); render(); };
 $('#btnClear').onclick = () => { if (confirm('재생목록을 모두 지울까요?')) { items=[]; idx=-1; save(); rebuildOrder(); render(); } };
