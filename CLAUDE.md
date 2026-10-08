@@ -86,6 +86,8 @@
 - localStorage 키: `home-playlist-v1`, `home-playlist-settings-v1` — 형식 바꾸면 키 버전 올릴 것
 - 높이는 `100dvh` (iOS 사파리 100vh 는 툴바 뒤까지 포함돼 목록 마지막 줄이 가려짐). 스크롤 영역(#list, #tvItems)은 flex 자식이라 `min-height:0` 필수
 - TV 목록은 전부 그리고 선택 줄 `scrollIntoView({block:'nearest'})` (고정 줄 수로 자르면 화면 크기에 따라 마지막 줄 잘림)
+- 자막: `cc_load_policy:0` 만으로는 자동 생성 자막이 켜짐 → PLAYING 때마다 `unloadModule('captions')`(`captionsOff`). 영상에 박힌 자막은 못 지움
+- 프리미엄: 임베드 플레이어는 유튜브 로그인 쿠키가 있어야 광고 제거 → TV 앱(WebView)·아이폰 사파리는 불가, 사용자는 광고 감수(B안) 선택
 - 끝화면 추천은 `rel=0`으로 못 막음 → ENDED 시 덮개(#cover)로 가리고 바로 다음 영상
 - onError 100/101/150 = 비공개/임베드 금지 → `bad` 표시 후 건너뜀
 - file:// 로 열면 플레이어 오류가 날 수 있음 → http(s)에서 테스트

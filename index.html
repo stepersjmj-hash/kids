@@ -582,12 +582,12 @@ function onYouTubeIframeAPIReady(){
   if (pendingSync) { pendingSync = false; syncPlaylist(); }
   player = new YT.Player('player', {
     width:'100%', height:'100%',
-    playerVars: { autoplay:1, controls:1, rel:0, modestbranding:1, iv_load_policy:3, fs:0, playsinline:1, disablekb:1 },
+    playerVars: { autoplay:1, controls:1, rel:0, modestbranding:1, iv_load_policy:3, fs:0, playsinline:1, disablekb:1, cc_load_policy:0 },
     events: {
       onReady: () => { ready = true; if (idx>=0) playIndex(idx, true); else maybeAutoStart(); },
       onStateChange: e => {
         if (e.data === YT.PlayerState.ENDED) { showCover('다음 영상…'); setTimeout(()=>step(1), 150); }
-        if (e.data === YT.PlayerState.PLAYING) hideCover();
+        if (e.data === YT.PlayerState.PLAYING) { hideCover(); captionsOff(); }
       },
       onError: e => {
         // 100: 없음/비공개, 101/150: 임베드 금지, 2: 잘못된 ID
@@ -606,6 +606,11 @@ function playIndex(i, viaOrder){
   if (!ready) return;
   showCover(items[i].title || items[i].id);
   player.loadVideoById(items[i].id);
+}
+// 자막 끄기: cc_load_policy:0 만으로는 영상·언어 설정에 따라 자동 자막이 켜지므로 재생 시작 때마다 자막 모듈을 내린다
+function captionsOff(){
+  try { player.unloadModule('captions'); player.unloadModule('cc'); } catch {}
+  setTimeout(() => { try { player.unloadModule('captions'); } catch {} }, 1500);   // 늦게 켜지는 경우 대비
 }
 function showCover(t){ const c=$('#cover'); c.textContent=t; c.classList.remove('hidden'); }
 function hideCover(){ $('#cover').classList.add('hidden'); }
