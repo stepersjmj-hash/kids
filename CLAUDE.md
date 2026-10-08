@@ -98,6 +98,9 @@
   TV 화면(body.app, #tvList)은 시안 960×540 기준이라 `--u: calc(100vh/540)` 단위로 치수를 적어 WebView 해상도가 달라도 비율 유지. TV 영상 틀은 692×398(테두리 포함)로
   높이를 직접 지정 — `aspect-ratio` 는 border-box 에 걸려 16:9 내용 영역이 안 나옴
   둥근 버튼 두께 그림자는 꼭 `inset`(바깥이면 포커스 링 안에서 처져 보임). 영상 틀 #frame(흰 테두리) 안에 #player-wrap(A/B 플레이어)
+- 셔플은 UI 에서 뺌(#btnShuffle 숨김, S 키 없음, 시작 때 settings.shuffle=false 고정). 코드 경로(rebuildOrder 의 셔플)는 남아 있음
+- PC·폰 전체화면 = `#frame.requestFullscreen()`(영상 틀만). 거부되거나 800ms 안에 응답 없거나 API 없음(아이폰 사파리) → `setFull(true)`(body.full CSS 전체화면) + #fsExit ✕ / Esc.
+  Claude 앱 내장 브라우저는 요소 전체화면을 안 받아 항상 fallback 으로 떨어짐 — 실제 크롬에서 확인할 것
 - 목록 순서 변경: PC 는 HTML5 DnD(`.item[draggable]`, `moveItem`), 폰(`pointer:coarse`)은 손잡이 Pointer Events 로 DOM 을 직접 옮긴 뒤 `moveItem`,
   행 왼쪽 스와이프 = 삭제(`attachTouch`, `.item { touch-action:pan-y }`). ▲▼ 버튼은 없앰
 - 진행 막대 `tickProgress` 500ms + 클릭·드래그 이동(`scrubbing` 중엔 tick 멈춤, 놓을 때 seekTo), 제목 옆 점 `renderDots`(order 기준, 25개 넘으면 숫자), TV 이전·다음 썸네일 `renderDeck`, ⏯ 아이콘은 PLAYING/BUFFERING 때 정지 모양
