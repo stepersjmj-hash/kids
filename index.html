@@ -251,6 +251,7 @@
   #tvChips .chip span { font-size:calc(16 * var(--u)); line-height:calc(24 * var(--u)); padding-top:calc(2 * var(--u)); }
   #tvChips .chip svg { width:calc(16 * var(--u)); height:calc(16 * var(--u)); }
   #tvChips .chip.sel { box-shadow:0 0 0 calc(3 * var(--u)) var(--bg), 0 0 0 calc(7 * var(--u)) var(--focus); }
+  #tvChips .chip img { width:calc(26 * var(--u)); height:calc(26 * var(--u)); border-radius:50%; object-fit:cover; display:block; flex:none; margin-left:calc(-6 * var(--u)); }
   #tvItems { flex:1; min-height:0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); grid-auto-rows:max-content; gap:calc(24 * var(--u)) calc(28 * var(--u)); align-content:start; padding:calc(10 * var(--u)) 0 0 calc(10 * var(--u)); }
   .tvi { display:flex; flex-direction:column; gap:calc(10 * var(--u)); min-width:0; transition:transform .15s; cursor:pointer; }
   .tvi .th { height:calc(136 * var(--u)); border-radius:calc(24 * var(--u)); border:calc(6 * var(--u)) solid #fff; background:var(--video); box-shadow:0 calc(3 * var(--u)) 0 var(--btn-depth); position:relative; transition:box-shadow .15s; }
@@ -672,6 +673,7 @@ function updateAuthUI(){
   const pic = on && gProfile && gProfile.picture;
   av.hidden = !pic; if (pic && av.src !== pic) av.src = pic;
   $('#btnGoogle').classList.toggle('in', !!pic);
+  if (typeof tvOpen === 'function' && tvOpen()) tvRender();
 }
 function login(){
   if (TVAPP) { KidsTV.login(); return; }      // TV 앱: 앱이 기기 코드(QR) 로그인 화면을 띄운다
@@ -1221,7 +1223,9 @@ function tvChips(){
     { label: '처음부터 다시', on: settings.loop, keep: true, run: () => $('#btnLoop').click() },
     { label: '새로고침', title: '최신 목록·최신 버전 받기', run: () => TVAPP && KidsTV.reload ? KidsTV.reload() : location.reload() },
   ];
-  if (TVAPP) c.push({ label: loggedIn() ? '다시 로그인' : '로그인', title: accountText(), run: () => KidsTV.login() });
+  if (TVAPP) c.push(loggedIn()
+    ? { label: '로그아웃', img: gProfile && gProfile.picture, title: accountText(), keep: true, run: () => logout() }   // 프로필 사진 + 로그아웃, 칩은 '로그인' 으로 바뀜
+    : { label: '로그인', run: () => KidsTV.login() });
   return c;
 }
 function runChip(k){ const c = tvChips()[k]; if (!c) return; if (c.keep) { c.run(); tvRender(); } else { tvHide(); c.run(); } }
@@ -1230,7 +1234,7 @@ function tvRender(){
   chips.forEach((c, k) => {
     const b = document.createElement('button');
     b.className = 'chip' + (c.on ? ' on' : '') + (tvSel < 0 && k === tvChip ? ' sel' : '');
-    b.innerHTML = ICON.check + `<span>${esc(c.label)}</span>`; if (c.title) b.title = c.title;
+    b.innerHTML = ICON.check + (c.img ? `<img src="${esc(c.img)}" referrerpolicy="no-referrer" alt="">` : '') + `<span>${esc(c.label)}</span>`; if (c.title) b.title = c.title;
     b.onclick = () => runChip(k);
     cb.appendChild(b);
   });
