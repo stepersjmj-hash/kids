@@ -589,7 +589,7 @@ function onYouTubeIframeAPIReady(){
       onReady: () => { ready = true; if (idx>=0) playIndex(idx, true); else maybeAutoStart(); },
       onStateChange: e => {
         if (e.data === YT.PlayerState.ENDED) { showCover('다음 영상…'); setTimeout(()=>step(1), 150); }
-        if (e.data === YT.PlayerState.PLAYING) { hideCover(); captionsOff(); }
+        if (e.data === YT.PlayerState.PLAYING) { hideCover(); captionsOff(); adUnmute(); }
       },
       onError: e => {
         // 100: 없음/비공개, 101/150: 임베드 금지, 2: 잘못된 ID
@@ -607,6 +607,7 @@ function playIndex(i, viaOrder){
   render();
   if (!ready) return;
   showCover(items[i].title || items[i].id);
+  adMute();
   player.loadVideoById(items[i].id);
 }
 // 자막 끄기: cc_load_policy:0 만으로는 영상·언어 설정에 따라 자동 자막이 켜지므로 재생 시작 때마다 자막 모듈을 내린다
@@ -614,6 +615,11 @@ function captionsOff(){
   try { player.unloadModule('captions'); player.unloadModule('cc'); } catch {}
   setTimeout(() => { try { player.unloadModule('captions'); } catch {} }, 1500);   // 늦게 켜지는 경우 대비
 }
+// 영상 시작 전 광고는 덮개(#cover) 아래에서 소리만 나온다 → 새 영상을 불러올 때 음소거하고
+// 본영상이 PLAYING 이 되면 다시 켠다 (본영상 중간 광고는 감지할 방법이 없어 대상 아님)
+let adMuted = false;
+function adMute(){ try { if (!player.isMuted()) { player.mute(); adMuted = true; } } catch {} }
+function adUnmute(){ if (adMuted) { try { player.unMute(); } catch {} adMuted = false; } }
 function showCover(t){ const c=$('#cover'); c.textContent=t; c.classList.remove('hidden'); }
 function hideCover(){ $('#cover').classList.add('hidden'); }
 function togglePlay(){
