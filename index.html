@@ -340,6 +340,9 @@ async function driveSync(){
       const localChanged = !base || sig(local) !== sig(base.items);
       const remoteChanged = remote && (!base || remote.updatedAt !== base.updatedAt);
       let next = null, push = false;
+      // 원격 파일이 없을 때 빈 목록으로 새로 만들지 않는다 — TV가 먼저 로그인해 빈 파일을 만들면
+      // 다른 기기가 그걸 '원격 변경'으로 받아 기존 목록을 지워 버리기 때문
+      if (!remote && !local.length) { setSyncStatus('on', `☁ ${accountText() ? accountText() + ' · ' : ''}동기화 켜짐 · 아직 저장된 목록 없음`); return; }
       if (!remote) { next = local; push = true; }
       else if (remoteChanged && !localChanged) next = remote.items;
       else if (localChanged && !remoteChanged) { next = local; push = true; }
