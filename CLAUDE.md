@@ -95,6 +95,7 @@
 - localStorage 키: `home-playlist-v1`, `home-playlist-settings-v1` — 형식 바꾸면 키 버전 올릴 것
 - 높이는 `100dvh` (iOS 사파리 100vh 는 툴바 뒤까지 포함돼 목록 마지막 줄이 가려짐). 스크롤 영역(#list, #tvItems)은 flex 자식이라 `min-height:0` 필수
 - 디자인: `:root` 토큰(크림 배경 `--bg`, 빨강 `--accent`, 포커스 `--focus`…)과 글꼴 Jua(제목·칩·번호, `padding-top:2px` 로 세로 보정)·Gowun Dodum(본문).
+  이전·재생·다음 버튼은 시안보다 한 단계 작게(사용자 요청): PC 52/68, TV 40/50(u), 폰 42/54
   TV 화면(body.app, #tvList)은 시안 960×540 기준이라 `--u: calc(100vh/540)` 단위로 치수를 적어 WebView 해상도가 달라도 비율 유지. TV 영상 틀은 692×398(테두리 포함)로
   높이를 직접 지정 — `aspect-ratio` 는 border-box 에 걸려 16:9 내용 영역이 안 나옴
   둥근 버튼 두께 그림자는 꼭 `inset`(바깥이면 포커스 링 안에서 처져 보임). 영상 틀 #frame(흰 테두리) 안에 #player-wrap(A/B 플레이어)
