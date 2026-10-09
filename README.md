@@ -27,7 +27,20 @@ PC 없이 TV 리모컨만으로 보는 앱입니다. 목록은 구글 드라이�
 - 10분 넘게 다른 앱에 있다 돌아오면 자동으로 새로 고칩니다.
 - 처음 실행하면 QR과 코드가 뜹니다. 폰으로 QR을 찍거나 google.com/device 에서 코드 입력 → 같은 구글 계정으로 허용. 코드가 만료되면 가운데 버튼으로 새 코드.
 - 앱을 켜면 목록 첫 영상부터 자동 재생됩니다.
-- 설치·빌드 방법은 `android-tv/` 와 CLAUDE.md 참고 (개발자용).
+
+### 설치 (PC 없이, Downloader 앱으로)
+
+1. TV 의 Play 스토어에서 **Downloader**(AFTVnews) 앱을 설치합니다.
+2. 설정 → 앱 → 보안 및 제한 → **알 수 없는 앱 설치** → Downloader 를 허용합니다.
+3. Downloader 를 열고 주소칸에 아래 주소를 입력합니다.
+   ```
+   https://github.com/stepersjmj-hash/kids/releases/latest/download/kids-tv.apk
+   ```
+4. 내려받기가 끝나면 **설치** → 완료 후 **열기**. QR 로그인 화면이 나오면 폰으로 허용합니다.
+5. 홈 화면에 앱이 안 보이면 설정 → 앱 → 모든 앱 보기에서 "우리집 재생목록"을 실행합니다.
+
+새 버전이 나오면 같은 주소로 다시 받아 설치하면 덮어써집니다. APK 는 [Releases](https://github.com/stepersjmj-hash/kids/releases) 에 있습니다.
+개발자용 빌드·ADB 설치는 `android-tv/` 와 CLAUDE.md 참고.
 
 ## 추천: 구글 드라이브 동기화 (폰·PC 같은 목록)
 

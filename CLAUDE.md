@@ -81,6 +81,9 @@
 - 프로덕션 게시 전(테스트 모드)에 받은 refresh token 은 7일 만료가 붙어 있음 → 게시 후 TV 에서 다시 로그인해 새 토큰을 받아야 만료 없음
 
 ### 빌드·설치
+- **배포**: GitHub Releases (`gh release create tv-vX.Y app-release.apk#kids-tv.apk`). 고정 주소
+  `https://github.com/stepersjmj-hash/kids/releases/latest/download/kids-tv.apk` 를 TV 의 Downloader 앱에 넣어 설치(README). 에셋 이름은 꼭 `kids-tv.apk` 로.
+  앱 소스(`android-tv/`)가 바뀐 경우에만 새 릴리스 — 페이지 변경은 재배포 불필요. versionCode/versionName 은 `app/build.gradle.kts`
 - 도구(이 PC): `C:\Users\stepe\Android\` 에 jdk17 · Sdk(platform-tools, build-tools 35, platforms 35) · gradle-8.10.2
   (`%LOCALAPPDATA%` 는 Claude 앱 샌드박스에서 가상화되므로 쓰지 말 것)
 - `local.properties` 의 `sdk.dir` 은 슬래시로: `sdk.dir=C:/Users/stepe/Android/Sdk` (역슬래시 이스케이프 실수 시 빌드 실패)
