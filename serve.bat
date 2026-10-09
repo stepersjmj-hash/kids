@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-rem 우리집 재생목록 로컬 서버 (http://localhost:8765)
+rem 하이쮸 재생목록 로컬 서버 (http://localhost:8765)
 rem Google 로그인은 승인된 원본에 등록된 이 포트(8765)에서만 동작한다
 cd /d "%~dp0"
 set PY=python

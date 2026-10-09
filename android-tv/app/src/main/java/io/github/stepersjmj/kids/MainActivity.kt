@@ -31,7 +31,7 @@ import java.net.URLEncoder
 import kotlin.concurrent.thread
 
 /**
- * 우리집 재생목록 TV 앱.
+ * 하이쮸 재생목록 TV 앱.
  * - 웹페이지(?tv=1)를 WebView 로 띄우고 재생·목록·동기화는 페이지가 담당한다.
  * - 구글은 WebView 안 로그인을 막으므로, 로그인은 OAuth 기기 코드 흐름(폰으로 QR/코드 입력)으로
  *   앱이 직접 하고, 받은 액세스 토큰을 페이지의 window.kidsTvToken() 으로 넘긴다.
@@ -279,7 +279,7 @@ class MainActivity : Activity() {
             setBackgroundColor(Color.rgb(15, 17, 21))
             visibility = View.GONE
             isClickable = true
-            addView(tv(30f, true).apply { text = "우리집 재생목록 — Google 로그인"; setPadding(0, 0, 0, 24) })
+            addView(tv(30f, true).apply { text = "하이쮸 재생목록 — Google 로그인"; setPadding(0, 0, 0, 24) })
             addView(loginQr, LinearLayout.LayoutParams(360, 360).apply { gravity = Gravity.CENTER })
             addView(loginCode)
             addView(loginMsg)
