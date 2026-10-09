@@ -84,6 +84,7 @@
 ### 빌드·설치
 - **배포**: GitHub Releases (`gh release create tv-vX.Y app-release.apk#kids-tv.apk`). 고정 주소
   `https://github.com/stepersjmj-hash/kids/releases/latest/download/kids-tv.apk` 를 TV 의 Downloader 앱에 넣어 설치(README). 에셋 이름은 꼭 `kids-tv.apk` 로.
+  Downloader 숫자 코드 **7491178**(aftv.news/7491178, AFTVnews 단축 서비스 → 위 고정 주소). 짧은 주소 /kids/tv 도 같은 곳
   앱 소스(`android-tv/`)가 바뀐 경우에만 새 릴리스 — 페이지 변경은 재배포 불필요. versionCode/versionName 은 `app/build.gradle.kts`
 - 도구(이 PC): `C:\Users\stepe\Android\` 에 jdk17 · Sdk(platform-tools, build-tools 35, platforms 35) · gradle-8.10.2
   (`%LOCALAPPDATA%` 는 Claude 앱 샌드박스에서 가상화되므로 쓰지 말 것)

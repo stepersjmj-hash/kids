@@ -35,11 +35,8 @@ PC 없이 TV 리모컨만으로 보는 앱입니다. 목록은 구글 드라이�
    - Android TV OS 14 (Chromecast with Google TV): 설정 → **개인정보 보호** → **보안** → 알 수 없는 소스 ("위험한 앱 감지 기능 개선" 항목 옆)
    - 그 외: 설정 → 개인정보 보호 → 보안 및 제한 / 설정 → 앱 → 보안 및 제한 / 설정 → 기기 환경설정 → 보안 및 제한
    목록에 Downloader 가 없으면 4번에서 설치를 한 번 시도한 뒤 다시 들어오면 나타납니다. 설치 실패 창의 **설정** 버튼으로 바로 갈 수도 있습니다.
-3. Downloader 를 열고 주소칸에 아래 짧은 주소를 입력합니다 (APK 로 바로 넘어갑니다).
-   ```
-   stepersjmj-hash.github.io/kids/tv
-   ```
-   원본 주소: `https://github.com/stepersjmj-hash/kids/releases/latest/download/kids-tv.apk`
+3. Downloader 를 열고 주소칸에 숫자 코드 **7491178** 을 입력합니다 (APK 가 바로 내려받아집니다).
+   코드 대신 `stepersjmj-hash.github.io/kids/tv` 를 쳐도 되고, 원본 주소는 `https://github.com/stepersjmj-hash/kids/releases/latest/download/kids-tv.apk` 입니다.
 4. 내려받기가 끝나면 **설치** → 완료 후 **열기**. QR 로그인 화면이 나오면 폰으로 허용합니다.
 5. 홈 화면에 앱이 안 보이면 설정 → 앱 → 모든 앱 보기에서 "우리집 재생목록"을 실행합니다.
 
