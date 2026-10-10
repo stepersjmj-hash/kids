@@ -38,7 +38,7 @@ PC 없이 TV 리모컨만으로 보는 앱입니다. 목록은 구글 드라이�
 3. Downloader 를 열고 주소칸에 숫자 코드 **7491178** 을 입력합니다 (APK 가 바로 내려받아집니다).
    코드 대신 `stepersjmj-hash.github.io/kids/tv` 를 쳐도 되고, 원본 주소는 `https://github.com/stepersjmj-hash/kids/releases/latest/download/kids-tv.apk` 입니다.
 4. 내려받기가 끝나면 **설치** → 완료 후 **열기**. QR 로그인 화면이 나오면 폰으로 허용합니다.
-5. 홈 화면에 앱이 안 보이면 설정 → 앱 → 모든 앱 보기에서 "하이쮸 재생목록"을 실행합니다.
+5. 홈 화면에 앱이 안 보이면 설정 → 앱 → 모든 앱 보기에서 "하이쮸"를 실행합니다.
 
 새 버전이 나오면 같은 주소로 다시 받아 설치하면 덮어써집니다. APK 는 [Releases](https://github.com/stepersjmj-hash/kids/releases) 에 있습니다.
 개발자용 빌드·ADB 설치는 `android-tv/` 와 CLAUDE.md 참고.

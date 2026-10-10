@@ -20,8 +20,8 @@ android {
         applicationId = "io.github.stepersjmj.kids"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.3"
         buildConfigField("String", "TV_CLIENT_ID", "\"${prop("tv.clientId")}\"")
         buildConfigField("String", "TV_CLIENT_SECRET", "\"${prop("tv.clientSecret")}\"")
         buildConfigField("String", "START_URL", "\"https://stepersjmj-hash.github.io/kids/?tv=1\"")
