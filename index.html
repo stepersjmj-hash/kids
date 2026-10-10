@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>하이쮸 재생목록</title>
-<link rel="icon" href="ic_launcher.png">
+<link rel="icon" href="logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
 <style>
   /* 디자인 토큰 (design_handoff_kids_1b "아이 손") */
@@ -28,7 +28,7 @@
   /* ---------- 무대 (영상 + 조작) ---------- */
   #stage { min-width:0; min-height:0; position:relative; display:flex; flex-direction:column; align-items:center; padding:24px 40px 28px; overflow:auto; }
   #logo { width:100%; height:32px; display:flex; align-items:center; gap:8px; color:var(--sub); flex:none; }
-  #logo img { width:24px; height:24px; border-radius:7px; display:block; flex:none; }
+  #logo img { width:20px; height:20px; display:block; flex:none; }
   #logo span { font:400 15px/24px var(--jua); padding-top:2px; }
   #logo br { display:none; }
   #logo .sp { flex:1; }
@@ -99,7 +99,7 @@
   /* ---------- TV 앱 재생 화면 (body.app, 960×540 기준 → u 단위). 영상 틀을 최대한 크게, 나머지는 작게 ---------- */
   body.app #stage { padding:calc(14 * var(--u)) 0 0; overflow:hidden; }
   body.app #logo { position:absolute; left:calc(24 * var(--u)); top:calc(16 * var(--u)); width:auto; height:auto; gap:calc(8 * var(--u)); }
-  body.app #logo img { width:calc(28 * var(--u)); height:calc(28 * var(--u)); border-radius:calc(8 * var(--u)); }
+  body.app #logo img { width:calc(22 * var(--u)); height:calc(22 * var(--u)); }
   body.app #logo span { font-size:calc(14 * var(--u)); line-height:calc(17 * var(--u)); padding-top:calc(2 * var(--u)); }
   body.app #logo br { display:inline; }
   body.app #pickHint { display:flex; position:absolute; right:calc(24 * var(--u)); top:calc(16 * var(--u)); height:calc(32 * var(--u)); align-items:center; gap:calc(4 * var(--u)); padding:0 calc(12 * var(--u)) 0 calc(8 * var(--u)); border-radius:999px; background:#fff; color:var(--sub); }
@@ -336,7 +336,7 @@
 <body>
 
 <div id="stage">
-  <div id="logo"><img src="ic_launcher.png" alt=""><span>하이쮸 <br>재생목록</span><i class="sp"></i>
+  <div id="logo"><img src="logo.png" alt=""><span>하이쮸 <br>재생목록</span><i class="sp"></i>
     <button id="btnTv" class="chip" title="TV 모드: 목록 숨김 (T)"><span>TV 모드</span></button>
     <button id="btnApp" class="chip" title="TV 앱 화면 미리보기 (?app=1)"><span>앱 모드</span></button>
   </div>
