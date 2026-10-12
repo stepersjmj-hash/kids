@@ -229,6 +229,15 @@
   /* Google 가져오기 모달 */
   #gModal { position:fixed; inset:0; background:rgba(43,33,24,.45); display:flex; align-items:center; justify-content:center; z-index:10; }
   #gModal[hidden] { display:none; }
+  #help { position:fixed; inset:0; background:rgba(43,33,24,.45); display:flex; align-items:center; justify-content:center; z-index:26; padding:20px; cursor:pointer; }
+  #help[hidden] { display:none; }
+  #help .box { background:var(--panel); border-radius:calc(24 * var(--u)); width:min(calc(720 * var(--u)), 100%); padding:calc(26 * var(--u)) calc(30 * var(--u)) calc(20 * var(--u)); display:flex; flex-direction:column; gap:calc(14 * var(--u)); box-shadow:0 20px 50px rgba(60,40,10,.25); }
+  #help h2 { margin:0; font:400 calc(28 * var(--u)) / calc(34 * var(--u)) var(--jua); padding-top:calc(3 * var(--u)); }
+  #help .rows { display:flex; flex-direction:column; gap:calc(10 * var(--u)); }
+  #help .rows div { display:flex; align-items:center; gap:calc(14 * var(--u)); }
+  #help .rows b { flex:none; min-width:calc(64 * var(--u)); height:calc(36 * var(--u)); display:flex; align-items:center; justify-content:center; padding:0 calc(10 * var(--u)); border-radius:999px; background:#fff; border:1px solid var(--line2); font:400 calc(16 * var(--u)) / 1 var(--num); color:var(--text); }
+  #help .rows span { font:400 calc(16 * var(--u)) / 1.45 var(--gowun); }
+  #help p { margin:calc(4 * var(--u)) 0 0; font:400 calc(14 * var(--u)) / 1.4 var(--gowun); color:var(--sub); text-align:right; }
   #confirm { position:fixed; inset:0; background:rgba(43,33,24,.45); display:flex; align-items:center; justify-content:center; z-index:12; padding:20px; }
   #confirm[hidden] { display:none; }
   #confirm .box { background:var(--panel); border-radius:20px; width:min(360px, 100%); padding:22px 20px 18px; display:flex; flex-direction:column; gap:10px; box-shadow:0 20px 50px rgba(60,40,10,.2); }
@@ -411,6 +420,18 @@
   <div id="tvItems"></div>
   <div id="tvPages"></div>
 </div>
+<div id="help" hidden><div class="box">
+  <h2>리모컨 사용법</h2>
+  <div class="rows">
+    <div><b>◀ ▶</b><span>아래 버튼 고르기 (이전 · 재생 · 다음 · 전체화면). 빠르게 두 번 = 10초, 세 번 = 30초 이동</span></div>
+    <div><b>●</b><span>고른 버튼 누르기. 세 번 연타 = 지금 영상 삭제</span></div>
+    <div><b>▲ ▼</b><span>골라 보기 열기. 안에서 ◀▶▲▼ 로 고르고 ● 로 재생 (영상 위에서 세 번 연타 = 삭제)</span></div>
+    <div><b>↩</b><span>골라 보기 닫기 → 전체화면 해제 → 한 번 더 누르면 종료</span></div>
+    <div><b>⛶</b><span>오른쪽 아래 버튼: 영상만 화면 가득</span></div>
+    <div><b>＋</b><span>영상 추가·순서 바꾸기는 폰이나 PC 에서 — 같은 계정으로 로그인하면 TV 에 바로 반영</span></div>
+  </div>
+  <p>● 또는 ↩ 로 닫기</p>
+</div></div>
 <div id="confirm" hidden><div class="box">
   <b>이 영상을 삭제할까요?</b>
   <p id="confirmTitle"></p>
@@ -1132,6 +1153,11 @@ function askDelete(i, d, cancel){
   $('#confirmNo').onclick = () => { close(); cancel(); };
   m.onclick = e => { if (e.target === m) { close(); cancel(); } };
 }
+// 도움말 레이어 (골라 보기 칩). 가운데·뒤로로 닫힘, 골라 보기는 그대로 남음
+const helpOpen = () => !$('#help').hidden;
+function showHelp(){ $('#help').hidden = false; }
+function hideHelp(){ $('#help').hidden = true; }
+$('#help').onclick = hideHelp;
 // TV: 리모컨으로 쓰는 삭제 확인 (←/→ 취소·삭제, 가운데 실행, 뒤로 취소). 지금 보는 영상을 지우면 다음 영상으로 넘어간다
 const confirmOpen = () => !$('#confirm').hidden;
 let confirmSel = 0;   // 0 취소, 1 삭제
@@ -1239,6 +1265,7 @@ function enterPress(single, triple){
 }
 function handleKey(k){
   if (confirmOpen()) { confirmKey(k); return true; }
+  if (helpOpen()) { if (k === 'Enter' || k === ' ' || k === 'Escape' || k === 'Backspace' || k === 'GoBack') hideHelp(); return true; }
   if (tvOpen()) {
     if (TVAPP && (k === 'Enter' || k === ' ') && tvSel >= 0) { const i = tvSel; enterPress(() => tvKey('Enter'), () => askDeleteTv(i)); return true; }
     tvKey(k); return true;
@@ -1286,6 +1313,7 @@ function tvChips(){
   // 셔플은 TV 에 없음(폰·PC 설정을 따름). 전체화면은 재생 화면 버튼. 새로고침은 시안에서 뺐다가 사용자 요청으로 다시 넣음
   const c = [
     { label: '처음부터 다시', on: settings.loop, keep: true, run: () => $('#btnLoop').click() },
+    { label: '도움말', title: '리모컨 사용법', keep: true, run: () => showHelp() },
     { label: '새로고침', title: '최신 목록·최신 버전 받기', run: () => TVAPP && KidsTV.reload ? KidsTV.reload() : location.reload() },
   ];
   if (TVAPP) c.push(loggedIn()
@@ -1347,7 +1375,7 @@ function tvKey(k){
 function setFull(on){ document.body.classList.toggle('full', on); if (!on) barMark(); toast(on ? (TVAPP ? '전체화면 — 뒤로 버튼으로 해제' : '전체화면 — ✕ 또는 Esc 로 해제') : '전체화면 해제', 1500); }
 const isFull = () => document.body.classList.contains('full');
 // 뒤로: 목록 닫기 → 전체화면 해제 → (앱이) "한 번 더 누르면 종료"
-window.kidsTvBack = () => { if (confirmOpen()) { confirmCancel(); return true; } if (tvOpen()) { tvHide(); return true; } if (isFull()) { setFull(false); return true; } return false; };
+window.kidsTvBack = () => { if (confirmOpen()) { confirmCancel(); return true; } if (helpOpen()) { hideHelp(); return true; } if (tvOpen()) { tvHide(); return true; } if (isFull()) { setFull(false); return true; } return false; };
 // 앱에서는 켜자마자 재생
 function maybeAutoStart(){
   if (!TVAPP || !ready || idx >= 0 || !items.some(x => !x.bad)) return;
