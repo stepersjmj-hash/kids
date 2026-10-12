@@ -51,6 +51,8 @@ class MainActivity : Activity() {
     private var accessExp = 0L
     private var polling = false
     private var lastBack = 0L
+    private var enterHold = false     // 가운데 버튼을 0.5초 넘게 누르고 있음 (페이지에 EnterHold 보냄)
+    private var enterLong = false     // 2초 넘게 눌러 EnterLong 을 보냈음 (떼어도 Enter 안 보냄)
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -104,6 +106,8 @@ class MainActivity : Activity() {
         @JavascriptInterface fun reload() = main.post { loadPage() }   // TV 목록의 "새로고침" 줄
     }
 
+    private fun sendKey(k: String) = web.evaluateJavascript("window.kidsTvKey && window.kidsTvKey('$k')", null)
+
     private fun inject() {
         val t = accessToken ?: return
         if (!pageReady) return
@@ -139,8 +143,27 @@ class MainActivity : Activity() {
             else -> null
         }
         if (jsKey != null && loginView.visibility != View.VISIBLE) {
+            if (jsKey == "Enter") {
+                // 가운데 버튼은 짧게/길게 구분: 떼는 순간 Enter, 0.5초 넘게 누르면 EnterHold(안내), 2초 넘으면 EnterLong(순서 바꾸기).
+                // 0.5~2초 사이에 떼면 EnterCancel (아무 동작 없음)
+                val held = event.eventTime - event.downTime
+                when (event.action) {
+                    KeyEvent.ACTION_DOWN -> {
+                        if (event.repeatCount == 0) { enterHold = false; enterLong = false }
+                        else if (!enterLong && held >= 2000) { enterLong = true; sendKey("EnterLong") }
+                        else if (!enterHold && held >= 500) { enterHold = true; sendKey("EnterHold") }
+                    }
+                    KeyEvent.ACTION_UP -> {
+                        if (enterLong) { /* 이미 처리됨 */ }
+                        else if (enterHold) sendKey("EnterCancel")
+                        else sendKey("Enter")
+                        enterHold = false; enterLong = false
+                    }
+                }
+                return true
+            }
             if (event.action == KeyEvent.ACTION_DOWN && (event.repeatCount == 0 || jsKey == "ArrowUp" || jsKey == "ArrowDown"))
-                web.evaluateJavascript("window.kidsTvKey && window.kidsTvKey('$jsKey')", null)
+                sendKey(jsKey)
             return true
         }
         // 로그인 화면에서 가운데 버튼 → 새 코드 (Chromecast 리모컨엔 메뉴 키가 없음). 메뉴 키가 있는 리모컨은 메뉴 키도 동작

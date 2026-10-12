@@ -76,6 +76,8 @@
   실제 TV(1920×1080, 밀도 2 → CSS 960×540)와 남는 차이는 글꼴 렌더링뿐(adb screencap 으로 비교 확인). 흉내 모드는 `saveSettings()` 가 tv 값을 원래대로 저장해 PC 화면을 오염시키지 않음
 - ←/→ 연속 누름(`ARROW_WAIT` 200ms 안): 2번 10초 · 3번 30초 · 이후 +10초 (`seekTotal`/`seekByTotal`), 한 번 누름은 200ms 지연 후 실행. 연속 seek 는
   `seekBase + seekSum` 으로 계산 (seekTo 직후 getCurrentTime 이 안 바뀌어 누적이 안 됐던 문제)
+- 가운데 버튼 길게(앱 v1.4+, `dispatchKeyEvent`): 떼는 순간 `Enter`, 0.5초 넘게 누르면 `EnterHold`(안내 토스트), 2초 넘으면 `EnterLong`(골라 보기 순서 바꾸기 `tvMoveStart`), 0.5~2초에 떼면 `EnterCancel`.
+  순서 바꾸기 모드(`tvMove`): ◀▶ ±1, ▲▼ ±3 → `moveItem` 즉시 반영, ● 확정, ↩ `tvMoveCancel`(시작 때 스냅샷 `tvMoveSnap` 으로 복원). 흉내 모드는 키보드 Enter 길게 누르기로 같은 신호 생성
 - 가운데 버튼 연타(`ENTER_WAIT` 320ms, `enterPress`): 3번 = 삭제 확인(`askDeleteTv` — 재생 화면은 idx, 골라 보기는 tvSel). 한두 번 누름은 320ms 뒤 그 횟수만큼 실행.
   확인 창(#confirm)은 `confirmKey` 로 ←/→ 취소·삭제(.sel 링), 가운데 실행, 뒤로 취소(`kidsTvBack` 이 먼저 봄). 지금 영상을 지우면 `deleteAndContinue` 가 다음 영상(peekNext) 재생
 - Chromecast 리모컨엔 **메뉴 키 없음** → 로그인 화면 새 코드는 가운데 버튼
