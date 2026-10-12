@@ -238,6 +238,14 @@
   #confirm .btns button { height:40px; padding:2px 18px 0; border-radius:999px; font:400 15px/24px var(--jua); }
   #confirmNo { background:#fff; border:1px solid var(--line2); color:var(--text); }
   #confirmYes { background:var(--accent); color:#fff; box-shadow:inset 0 -3px 0 var(--accent-dark); }
+  #confirm .btns button.sel { box-shadow:0 0 0 3px var(--bg), 0 0 0 6px var(--focus); }
+  body.app #confirm { z-index:25; }
+  body.app #confirm .box { width:calc(420 * var(--u)); padding:calc(24 * var(--u)) calc(22 * var(--u)) calc(20 * var(--u)); gap:calc(10 * var(--u)); border-radius:calc(20 * var(--u)); }
+  body.app #confirm b { font-size:calc(24 * var(--u)); line-height:calc(30 * var(--u)); }
+  body.app #confirm p { font-size:calc(16 * var(--u)); }
+  body.app #confirm .btns button { height:calc(44 * var(--u)); padding:calc(2 * var(--u)) calc(20 * var(--u)) 0; font-size:calc(17 * var(--u)); line-height:calc(24 * var(--u)); }
+  body.app #confirm .btns button.sel { box-shadow:0 0 0 calc(3 * var(--u)) var(--bg), 0 0 0 calc(7 * var(--u)) var(--focus); }
+  body.app #confirmYes.sel { box-shadow:inset 0 calc(-3 * var(--u)) 0 var(--accent-dark), 0 0 0 calc(3 * var(--u)) var(--bg), 0 0 0 calc(7 * var(--u)) var(--focus); }
   .item .swipeBg { display:none; }
   #gModal .box { background:var(--panel); border-radius:20px; width:min(560px, 92vw); max-height:80vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(60,40,10,.2); }
   #gModal .head { display:flex; align-items:center; padding:16px 18px; border-bottom:1px solid var(--line); }
@@ -1124,6 +1132,33 @@ function askDelete(i, d, cancel){
   $('#confirmNo').onclick = () => { close(); cancel(); };
   m.onclick = e => { if (e.target === m) { close(); cancel(); } };
 }
+// TV: 리모컨으로 쓰는 삭제 확인 (←/→ 취소·삭제, 가운데 실행, 뒤로 취소). 지금 보는 영상을 지우면 다음 영상으로 넘어간다
+const confirmOpen = () => !$('#confirm').hidden;
+let confirmSel = 0;   // 0 취소, 1 삭제
+function confirmMark(){ $('#confirmNo').classList.toggle('sel', confirmSel === 0); $('#confirmYes').classList.toggle('sel', confirmSel === 1); }
+function confirmCancel(){ $('#confirmNo').click(); }
+function confirmKey(k){
+  if (k === 'ArrowLeft' || k === 'ArrowRight') { confirmSel = k === 'ArrowRight' ? 1 : 0; confirmMark(); }
+  else if (k === 'Enter' || k === ' ') (confirmSel ? $('#confirmYes') : $('#confirmNo')).click();
+  else if (k === 'Escape' || k === 'Backspace' || k === 'GoBack') confirmCancel();
+}
+function askDeleteTv(i){
+  if (!items[i]) return;
+  const m = $('#confirm'); m.hidden = false; confirmSel = 0; confirmMark();
+  $('#confirmTitle').textContent = items[i].title || items[i].id;
+  const close = () => { m.hidden = true; m.onclick = null; $('#confirmNo').classList.remove('sel'); $('#confirmYes').classList.remove('sel'); };
+  $('#confirmYes').onclick = () => { close(); deleteAndContinue(i); if (tvOpen()) { if (tvSel >= items.length) tvSel = items.length - 1; tvRender(); } toast('삭제했습니다', 1500); };
+  $('#confirmNo').onclick = () => { close(); };
+  m.onclick = e => { if (e.target === m) close(); };
+}
+function deleteAndContinue(i){
+  const wasCur = i === idx;
+  const n = peekNext(); const nextId = wasCur && n >= 0 && n !== i ? items[n].id : null;
+  removeItem(i);
+  if (!wasCur) return;
+  const j = nextId ? items.findIndex(x => x.id === nextId) : -1;
+  if (j >= 0) playIndex(j); else { try { player.stopVideo(); } catch {} showCover(items.length ? '재생목록에서 영상을 선택하세요' : '목록이 비어 있습니다'); }
+}
 $('#btnTools').onclick = () => { const on = document.body.classList.toggle('tools-open'); $('#btnTools').textContent = on ? '도구 닫기' : '도구 보기'; };
 $('#btnClearBad').onclick = () => { items = items.filter(x=>!x.bad); idx = -1; save(); rebuildOrder(); render(); };
 $('#btnClear').onclick = () => { if (confirm('재생목록을 모두 지울까요?')) { items=[]; idx=-1; save(); rebuildOrder(); render(); } };
@@ -1193,16 +1228,28 @@ function arrowPress(k){
     arrowTimer = null; arrowKey = null; arrowCount = 0; seekSum = 0;
   }, ARROW_WAIT);
 }
+// TV 앱 가운데 버튼 연타: ENTER_WAIT 안에 3번 누르면 삭제 확인(재생 화면 = 지금 영상, 골라 보기 = 고른 영상).
+// 연타를 기다려야 하므로 한두 번 누름은 ENTER_WAIT 뒤에 그 횟수만큼 실행된다
+const ENTER_WAIT = 320;
+let enterTimer = null, enterCount = 0;
+function enterPress(single, triple){
+  clearTimeout(enterTimer); enterCount++;
+  if (enterCount >= 3) { enterTimer = null; enterCount = 0; triple(); return; }
+  enterTimer = setTimeout(() => { const n = enterCount; enterTimer = null; enterCount = 0; for (let i = 0; i < n; i++) single(); }, ENTER_WAIT);
+}
 function handleKey(k){
-  if (tvOpen()) { tvKey(k); return true; }
-  if (TVAPP && (k === 'ArrowLeft' || k === 'ArrowRight')) { arrowPress(k); return true; }
-  // 전체화면(하단 바 없음): ←/→ 이전·다음, 가운데 재생·정지
-  if (TVAPP && isFull()) {
-    if (k === 'ArrowLeft' || k === 'ArrowRight') { step(k === 'ArrowRight' ? 1 : -1); return true; }
-    if (k === 'Enter' || k === ' ') { togglePlay(); return true; }
+  if (confirmOpen()) { confirmKey(k); return true; }
+  if (tvOpen()) {
+    if (TVAPP && (k === 'Enter' || k === ' ') && tvSel >= 0) { const i = tvSel; enterPress(() => tvKey('Enter'), () => askDeleteTv(i)); return true; }
+    tvKey(k); return true;
   }
-  if (TVAPP && (k === 'ArrowLeft' || k === 'ArrowRight')) { barIdx += k === 'ArrowRight' ? 1 : -1; barMark(); return true; }
-  if (TVAPP && (k === 'Enter' || k === ' ')) { barButtons()[barIdx]?.click(); barMark(); return true; }
+  if (TVAPP && (k === 'ArrowLeft' || k === 'ArrowRight')) { arrowPress(k); return true; }
+  if (TVAPP && (k === 'Enter' || k === ' ')) {
+    // 전체화면(하단 바 없음)이면 가운데 = 재생·정지, 아니면 고른 바 버튼 누르기
+    const single = isFull() ? togglePlay : () => { barButtons()[barIdx]?.click(); barMark(); };
+    enterPress(single, () => { if (idx >= 0) askDeleteTv(idx); });
+    return true;
+  }
   if (k === 'ArrowDown' || k === 'ArrowUp') { if (settings.tv) tvShow(); return true; }
   if (k===' '||k==='Enter'||k==='MediaPlayPause') togglePlay();
   else if (k==='ArrowRight'||k==='MediaTrackNext') step(1);
@@ -1300,7 +1347,7 @@ function tvKey(k){
 function setFull(on){ document.body.classList.toggle('full', on); if (!on) barMark(); toast(on ? (TVAPP ? '전체화면 — 뒤로 버튼으로 해제' : '전체화면 — ✕ 또는 Esc 로 해제') : '전체화면 해제', 1500); }
 const isFull = () => document.body.classList.contains('full');
 // 뒤로: 목록 닫기 → 전체화면 해제 → (앱이) "한 번 더 누르면 종료"
-window.kidsTvBack = () => { if (tvOpen()) { tvHide(); return true; } if (isFull()) { setFull(false); return true; } return false; };
+window.kidsTvBack = () => { if (confirmOpen()) { confirmCancel(); return true; } if (tvOpen()) { tvHide(); return true; } if (isFull()) { setFull(false); return true; } return false; };
 // 앱에서는 켜자마자 재생
 function maybeAutoStart(){
   if (!TVAPP || !ready || idx >= 0 || !items.some(x => !x.bad)) return;
