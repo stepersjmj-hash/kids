@@ -136,7 +136,8 @@
   활성이 PLAYING 되면 `preloadNext()` 가 `peekNext()` 영상을 대기 쪽에 음소거로 loadVideoById → 광고 소진 → PLAYING 오면 pause+seekTo(0) (`spareState` idle→loading→ready).
   `playIndex` 에서 대상 id 가 `spareId` 와 같으면 `swapToSpare()` 로 교대(ready 면 unMute+play, loading 이면 음소거 유지하고 PLAYING 때 해제), 다르면 기존대로 활성에 load.
   대기 쪽은 `.standby`(visibility:hidden — display:none 이면 재생 안 됨) 로 숨김. 이벤트는 `e.target === player` 로 활성/대기 구분.
-  셔플 재구성·목록 편집으로 순서가 바뀌면 교대 조건이 안 맞아 자동으로 기존 경로로 떨어짐. 로컬 테스트: `?preload=1&add=영상ID 영상ID`
+  목록 편집으로 순서가 바뀌면 교대 조건이 안 맞아 자동으로 기존 경로로 떨어짐. 랜덤은 켤 때 섞은 `order` 를 따라가므로 예측이 맞고, 바퀴가 끝날 때는 `peekNext()` 가 다음 바퀴를
+  미리 섞어 `nextOrder` 에 두고 `step()` 이 그대로 써서 교대가 끊기지 않음(`shuffled()` 는 첫 영상이 지금 영상과 같지 않게 함). 로컬 테스트: `?preload=1&add=영상ID 영상ID`
 - 프리미엄: 임베드 플레이어는 유튜브 로그인 쿠키가 있어야 광고 제거 → TV 앱(WebView)·아이폰 사파리는 불가, 사용자는 광고 감수(B안) 선택
 - 끝화면 추천은 `rel=0`으로 못 막음 → ENDED 시 덮개(#cover)로 가리고 바로 다음 영상
 - onError 100/101/150 = 비공개/임베드 금지 → `bad` 표시 후 건너뜀

@@ -1026,15 +1026,26 @@ const setPlayIcon = on => $('#btnPlay').classList.toggle('playing', on);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* ---------- 재생 순서 ---------- */
+let nextOrder = null;          // 랜덤 때 다음 바퀴 순서. 바퀴가 끝나기 전에 미리 섞어 두어 peekNext(미리 받기)와 step 이 같은 영상을 보게 함
+function shuffled(){
+  const o = items.map((_,i)=>i).filter(i=>!items[i].bad);
+  for (let i=o.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [o[i],o[j]]=[o[j],o[i]]; }
+  if (o.length > 1 && o[0] === idx) [o[0], o[1]] = [o[1], o[0]];   // 다음 바퀴 첫 영상이 지금 영상과 같지 않게
+  return o;
+}
 function rebuildOrder(){
-  order = items.map((_,i)=>i).filter(i=>!items[i].bad);
-  if (settings.shuffle) for (let i=order.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [order[i],order[j]]=[order[j],order[i]]; }
+  order = settings.shuffle ? shuffled() : items.map((_,i)=>i).filter(i=>!items[i].bad);
   orderPos = order.indexOf(idx);
+  nextOrder = null;
 }
 function step(dir){
   if (!order.length) { rebuildOrder(); if (!order.length) { toast('재생할 영상이 없습니다'); return; } }
   if (orderPos < 0) orderPos = 0; else orderPos += dir;
-  if (orderPos >= order.length) { if (!settings.loop) { showCover('재생목록 끝'); return; } orderPos = 0; if (settings.shuffle) rebuildOrder(); }
+  if (orderPos >= order.length) {
+    if (!settings.loop) { showCover('재생목록 끝'); return; }
+    if (settings.shuffle) { order = nextOrder || shuffled(); nextOrder = null; }   // 미리 섞어 둔 다음 바퀴로
+    orderPos = 0;
+  }
   if (orderPos < 0) orderPos = order.length-1;
   playIndex(order[orderPos], true);
 }
@@ -1091,7 +1102,11 @@ function playIndex(i, viaOrder){
 function peekNext(){
   if (!order.length) return -1;
   let p = orderPos < 0 ? 0 : orderPos + 1;
-  if (p >= order.length) { if (!settings.loop) return -1; p = 0; }
+  if (p >= order.length) {
+    if (!settings.loop) return -1;
+    if (settings.shuffle) { if (!nextOrder) nextOrder = shuffled(); return nextOrder[0]; }   // 다음 바퀴를 지금 섞어 두고 그 첫 영상
+    p = 0;
+  }
   return order[p];
 }
 function preloadNext(){
