@@ -9,7 +9,7 @@
 - `tv.html` — TV 앱 APK 로 넘어가는 짧은 주소(`/kids/tv`, meta refresh + location.replace). Downloader 에 치기 쉽게
 - `privacy.html` — 개인정보처리방침 (OAuth 동의 화면 프로덕션 게시에 필요. 브랜딩 페이지의 개인정보처리방침 URL = https://stepersjmj-hash.github.io/kids/privacy.html)
 - `design_handoff_kids_1b/` — "아이 손" 리디자인 시안·핸드오프(README 에 토큰·치수 확정값). git 에는 안 올림. 화면을 고칠 땐 이 문서 기준
-- `playlist.json` — `?list=` 로 불러오는 공유 목록 (`[{id,title}]`)
+- `playlist.json` — `?list=` 로 불러오는 공유 목록 (`[{id,title,start?}]`)
 - `README.md` — 사용자용 사용법
 
 ## 배포
@@ -106,7 +106,9 @@
   `playerVars.list`로 만들고 `getPlaylist()`로 ID 목록을 얻음. **기존 플레이어에 cuePlaylist 재호출은
   목록이 안 바뀜** → 매번 destroy 후 새로 생성. 실패(비공개·잘못된 ID)는 15초 타임아웃으로 처리.
   129개 재생목록까지 확인됨(상한은 미확인, 예전 기준 200개 내외로 알려짐)
-- localStorage 키: `home-playlist-v1`, `home-playlist-settings-v1` — 형식 바꾸면 키 버전 올릴 것
+- localStorage 키: `home-playlist-v1`, `home-playlist-settings-v1` — 형식 바꾸면 키 버전 올릴 것. 항목은 `{id,title,bad?,start?}` — `start`(초)는 영상별 시작 시각(2026-10-27).
+  PC·폰 목록 행의 ⏱(`openStart` → #startDlg, '지금 위치' = player.getCurrentTime) 로 설정, `loadVideoById({videoId,startSeconds})` 로 재생, 미리 받기도 그 지점에서 대기.
+  동기화 서명 `listSig` 에 `@start` 가 들어가 시작 시각만 바꿔도 드라이브로 밀림(드라이브 파일·JSON 내보내기에도 start 포함). TV 골라 보기 썸네일에 ⏱ 배지
 - 높이는 `100dvh` (iOS 사파리 100vh 는 툴바 뒤까지 포함돼 목록 마지막 줄이 가려짐). 스크롤 영역(#list, #tvItems)은 flex 자식이라 `min-height:0` 필수
 - 디자인: `:root` 토큰(크림 배경 `--bg`, 빨강 `--accent`, 포커스 `--focus`…)과 글꼴 Jua(제목·칩·번호, `padding-top:2px` 로 세로 보정)·Gowun Dodum(본문).
   이전·재생·다음 버튼은 시안보다 작게(사용자 요청): PC 52/68, TV 40/50(u), 폰 36/46(전체화면·새로고침 34)
