@@ -67,7 +67,7 @@
 - 앱(body.app)에서 ←/→ = 바의 네 버튼(이전·재생·다음·전체화면) 포커스 이동(`barIdx`/`barMark`, 노란 링 .kfocus — `barButtons()` 는 #bar 안 **보이는** button 만 세므로
   칩 버튼은 body.app 에서 display:none, #btnFull 만 `body.app #bar #btnFull` 로 다시 살려 오른쪽 아래 원 버튼으로 absolute 배치. #btnReload 는 PC 칩·폰 원 버튼, TV 는 골라 보기 칩). 가운데 = 그 버튼 클릭. ↑↓ = 골라 보기(#tvList).
   PC 키보드는 ←/→ 이전/다음 그대로
-- 골라 보기: 맨 위 칩 줄(`tvChips()`: 처음부터 다시(반복)·도움말(#help 레이어, 가운데·뒤로로 닫힘, `helpOpen` 이 handleKey/kidsTvBack 에서 confirm 다음 순서)·새로고침·(앱)로그인↔프로필 사진+로그아웃(`updateAuthUI` 가 열린 골라 보기를 다시 그림) — 셔플·전체화면 칩은 시안 2판에서 뺌, 새로고침은 사용자 요청으로 복귀) + 3×2 격자(`TV_PAGE`=6, 페이지 점). 상태 `tvSel`(-1 = 칩 줄, `tvChip` 번째) /
+- 골라 보기: 맨 위 칩 줄(`tvChips()`: 🔁반복·🔀랜덤(아이콘 칩 `.chip.ico`, `ICON.repeat/shuffle`, 켜짐 .on 초록, 누르면 토스트)·도움말(#help 레이어, 가운데·뒤로로 닫힘, `helpOpen` 이 handleKey/kidsTvBack 에서 confirm 다음 순서)·새로고침·(앱)로그인↔프로필 사진+로그아웃(`updateAuthUI` 가 열린 골라 보기를 다시 그림) — 셔플·전체화면 칩은 시안 2판에서 뺌, 새로고침은 사용자 요청으로 복귀) + 3×2 격자(`TV_PAGE`=6, 페이지 점). 상태 `tvSel`(-1 = 칩 줄, `tvChip` 번째) /
   `tvPage`. `tvKey()` 가 2D 이동: ↓ 다음 줄(마지막 줄이면 다음 페이지, 끝이면 칩 줄로 순환), ↑ 첫 줄에서 칩 줄, 칩 줄에서 ↑는 마지막 영상, ←/→ 는 전체 순환.
   반복·셔플 칩은 눌러도 안 닫힘(`keep`)
 - 앱 전체화면 = `body.full`(#frame 을 fixed 로 화면 가득, 나머지 숨김). 바의 전체화면 버튼으로 켬. 뒤로 순서: 골라 보기 닫기 → 전체화면 해제 → 앱의 "한 번 더 누르면 종료"
@@ -113,7 +113,7 @@
   TV 화면(body.app, #tvList)은 시안 960×540 기준이라 `--u: calc(100vh/540)` 단위로 치수를 적어 WebView 해상도가 달라도 비율 유지. TV 영상 틀은 692×398(테두리 포함)로
   높이를 직접 지정 — `aspect-ratio` 는 border-box 에 걸려 16:9 내용 영역이 안 나옴
   둥근 버튼 두께 그림자는 꼭 `inset`(바깥이면 포커스 링 안에서 처져 보임). 영상 틀 #frame(흰 테두리) 안에 #player-wrap(A/B 플레이어)
-- 셔플은 UI 에서 뺌(#btnShuffle 숨김, S 키 없음, 시작 때 settings.shuffle=false 고정). 코드 경로(rebuildOrder 의 셔플)는 남아 있음
+- 셔플(랜덤 재생): PC·폰 UI 에는 없음(#btnShuffle 숨김, S 키 없음), TV 골라 보기 🔀 칩이 숨은 #btnShuffle 을 클릭해 토글. 설정은 기기별 localStorage 에 저장(2026-10-27 부터 시작 때 끄지 않음)
 - PC·폰 전체화면 = `#frame.requestFullscreen()`(영상 틀만). 거부되거나 800ms 안에 응답 없거나 API 없음(아이폰 사파리) → `setFull(true)`(body.full CSS 전체화면) + #fsExit ✕ / Esc.
   Claude 앱 내장 브라우저는 요소 전체화면을 안 받아 항상 fallback 으로 떨어짐(실제 크롬·TV·폰에서는 정상 동작 확인됨, 2026-10-09)
 - 목록 순서 변경: PC 는 HTML5 DnD(`.item[draggable]`, `moveItem`), 폰(`pointer:coarse`)은 손잡이 Pointer Events — **끄는 동안 DOM 을 옮기면(insertBefore) 포인터 캡처가 풀려

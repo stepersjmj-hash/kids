@@ -278,6 +278,8 @@
   #tvChips .chip span { font-size:calc(16 * var(--u)); line-height:calc(24 * var(--u)); padding-top:calc(2 * var(--u)); }
   #tvChips .chip svg { width:calc(16 * var(--u)); height:calc(16 * var(--u)); }
   #tvChips .chip.sel { box-shadow:0 0 0 calc(3 * var(--u)) var(--bg), 0 0 0 calc(7 * var(--u)) var(--focus); }
+  #tvChips .chip.ico, #tvChips .chip.ico.on { width:calc(40 * var(--u)); padding:0; justify-content:center; }
+  #tvChips .chip.ico svg { width:calc(20 * var(--u)); height:calc(20 * var(--u)); }
   #tvChips .chip img { width:calc(26 * var(--u)); height:calc(26 * var(--u)); border-radius:50%; object-fit:cover; display:block; flex:none; margin-left:calc(-6 * var(--u)); }
   #tvItems { flex:1; min-height:0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); grid-auto-rows:max-content; gap:calc(24 * var(--u)) calc(28 * var(--u)); align-content:start; padding:calc(10 * var(--u)) 0 0 calc(10 * var(--u)); }
   .tvi { display:flex; flex-direction:column; gap:calc(10 * var(--u)); min-width:0; transition:transform .15s; cursor:pointer; }
@@ -836,6 +838,8 @@ async function fillTitles(){
 const ICON = {
   check: '<svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  repeat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
+  shuffle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/></svg>',
 };
 const TOUCH = matchMedia('(pointer:coarse)').matches;   // 폰: HTML5 DnD 대신 Pointer Events
 const thumb = id => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
@@ -1335,7 +1339,10 @@ const tvOpen = () => !$('#tvList').hidden;
 function tvChips(){
   // 셔플은 TV 에 없음(폰·PC 설정을 따름). 전체화면은 재생 화면 버튼. 새로고침은 시안에서 뺐다가 사용자 요청으로 다시 넣음
   const c = [
-    { label: '처음부터 다시', on: settings.loop, keep: true, run: () => $('#btnLoop').click() },
+    { icon: ICON.repeat, label: '반복', title: '반복: 마지막 영상 다음에 처음부터 다시', on: settings.loop, keep: true,
+      run: () => { $('#btnLoop').click(); toast(settings.loop ? '반복 켜짐 — 끝나면 처음부터 다시' : '반복 꺼짐 — 마지막 영상에서 멈춤', 1800); } },
+    { icon: ICON.shuffle, label: '랜덤 재생', title: '랜덤 재생: 순서를 섞어서', on: settings.shuffle, keep: true,
+      run: () => { $('#btnShuffle').click(); toast(settings.shuffle ? '랜덤 재생 켜짐' : '랜덤 재생 꺼짐 — 순서대로', 1800); } },
     { label: '도움말', title: '리모컨 사용법', keep: true, run: () => showHelp() },
     { label: '새로고침', title: '최신 목록·최신 버전 받기', run: () => TVAPP && KidsTV.reload ? KidsTV.reload() : location.reload() },
   ];
@@ -1350,8 +1357,9 @@ function tvRender(){
   const chips = tvChips(), cb = $('#tvChips'); cb.innerHTML = '';
   chips.forEach((c, k) => {
     const b = document.createElement('button');
-    b.className = 'chip' + (c.on ? ' on' : '') + (tvSel < 0 && k === tvChip ? ' sel' : '');
-    b.innerHTML = ICON.check + (c.img ? `<img src="${esc(c.img)}" referrerpolicy="no-referrer" alt="">` : '') + `<span>${esc(c.label)}</span>`; if (c.title) b.title = c.title;
+    b.className = 'chip' + (c.icon ? ' ico' : '') + (c.on ? ' on' : '') + (tvSel < 0 && k === tvChip ? ' sel' : '');
+    b.innerHTML = c.icon ? c.icon : ICON.check + (c.img ? `<img src="${esc(c.img)}" referrerpolicy="no-referrer" alt="">` : '') + `<span>${esc(c.label)}</span>`;
+    b.title = c.title || c.label; b.setAttribute('aria-label', c.label);
     b.onclick = () => runChip(k);
     cb.appendChild(b);
   });
@@ -1473,7 +1481,6 @@ function handleAddParam(raw){
 /* ---------- 시작 ---------- */
 load();
 simTvWas = !!settings.tv;
-settings.shuffle = false;   // 셔플 버튼을 없앴으므로 예전에 켜 둔 설정도 끈다
 save._sig = items.map(x => x.id).join(',');
 const hadToken = restoreToken();
 const remote = new URLSearchParams(location.search).get('list');
