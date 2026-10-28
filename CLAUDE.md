@@ -111,6 +111,7 @@
   PC·폰 목록 행의 ⏱(SVG `ICON.clock` 알약 `.st`, 설정되면 `.set` 노란 알약+시간. `openStart` → #startDlg "여기서부터 보기", '지금 위치 1:12' 라벨은 재생 중이면 0.5초마다 갱신,
   '처음부터로' = 지우기. 폰은 화면 가운데 카드. ⏱·✕ 위 mousedown 은 행 draggable 을 잠시 꺼 DnD 가 안 시작되게) 로 설정, `loadVideoById({videoId,startSeconds})` 로 재생, 미리 받기도 그 지점에서 대기.
   동기화 서명 `listSig` 에 `@start` 가 들어가 시작 시각만 바꿔도 드라이브로 밀림(드라이브 파일·JSON 내보내기에도 start 포함). TV 골라 보기 썸네일에 ⏱ 배지
+- 폰 입력란(#urlInput)은 글자 16px — iOS 사파리는 16px 미만 input 에 포커스하면 화면을 확대함
 - 높이는 `100dvh` (iOS 사파리 100vh 는 툴바 뒤까지 포함돼 목록 마지막 줄이 가려짐). 스크롤 영역(#list, #tvItems)은 flex 자식이라 `min-height:0` 필수
 - 디자인: `:root` 토큰(크림 배경 `--bg`, 빨강 `--accent`, 포커스 `--focus`…)과 글꼴 Jua(제목·칩·번호, `padding-top:2px` 로 세로 보정)·Gowun Dodum(본문).
   이전·재생·다음 버튼은 시안(v2: TV 44/56, 폰 40/52)보다 작게(사용자 요청, 2026-10-28 재확인): PC 52/68, TV 40/50(u), 폰 36/46(반복·랜덤·전체화면·새로고침 34). 진행 막대는 세 화면 모두 `시간 · 막대 · 시간`(Pretendard 600, TV 13u·폰 12px)
