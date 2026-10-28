@@ -516,6 +516,7 @@ function saveSettings(){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(SIM ?
 function load(){
   try { items = JSON.parse(localStorage.getItem(KEY)) || []; } catch { items = []; }
   try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch {}
+  settings.loop = true;   // 반복은 시작할 때 항상 켬 (끄면 그 세션에만 적용)
 }
 async function loadRemote(url){
   try {

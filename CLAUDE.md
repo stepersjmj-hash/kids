@@ -116,7 +116,7 @@
   높이를 직접 지정 — `aspect-ratio` 는 border-box 에 걸려 16:9 내용 영역이 안 나옴
   둥근 버튼 두께 그림자는 꼭 `inset`(바깥이면 포커스 링 안에서 처져 보임). 영상 틀 #frame(흰 테두리) 안에 #player-wrap(A/B 플레이어)
 - 반복·랜덤(셔플): 세 화면 모두 아이콘 칩(🔁 `ICON.repeat`, 🔀 `ICON.shuffle`, 켜짐 .on 초록). PC 바 40px 원·폰 바 왼쪽 34px 원·TV 골라 보기 칩(숨은 #btnLoop/#btnShuffle 을 클릭). S 키 복귀.
-  토스트는 #btnLoop/#btnShuffle onclick 에서 한 번만. 설정은 기기별 localStorage(2026-10-27 부터 시작 때 끄지 않음)
+  토스트는 #btnLoop/#btnShuffle onclick 에서 한 번만. 랜덤은 기기별 localStorage 에 저장, 반복은 `load()` 에서 시작할 때 항상 켬(2026-10-28, 끄면 그 세션만)
 - PC·폰 전체화면 = `#frame.requestFullscreen()`(영상 틀만). 거부되거나 800ms 안에 응답 없거나 API 없음(아이폰 사파리) → `setFull(true)`(body.full CSS 전체화면) + #fsExit ✕ / Esc.
   Claude 앱 내장 브라우저는 요소 전체화면을 안 받아 항상 fallback 으로 떨어짐(실제 크롬·TV·폰에서는 정상 동작 확인됨, 2026-10-09)
 - 목록 순서 변경: PC 는 HTML5 DnD(`.item[draggable]`, `moveItem`), 폰(`pointer:coarse`)은 손잡이 Pointer Events — **끄는 동안 DOM 을 옮기면(insertBefore) 포인터 캡처가 풀려
