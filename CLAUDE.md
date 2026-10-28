@@ -6,6 +6,7 @@
 - `index.html` — 전부 이 파일 하나 (YouTube IFrame Player API + oEmbed로 제목 조회, 외부 의존성은 Google Fonts(Jua·Gowun Dodum)뿐)
 - `logo.png` — 페이지 로고·favicon (ic_launcher 에서 크림 여백을 잘라 집만 남긴 투명 PNG — 런처 PNG 를 그대로 쓰면 여백 때문에 집이 작아 보임)
 - `ic_launcher.png` — 런처 아이콘 원본 (192px, 빨간 집 + 재생 삼각형. android-tv 의 mipmap-*(48~192px)·drawable(-xhdpi)/banner.png(320×180·640×360)과 같은 그림, 2026-10-10 교체)
+- `icons/icon-{180,192,512}.png` + `manifest.webmanifest` — 홈 화면·앱 바로가기(아이폰, 네이버 앱)용 정사각 아이콘(크림 배경, ic_launcher 에서 생성). 투명 favicon 만 있으면 네이버 바로가기가 글자 아이콘으로 떨어짐(2026-10-28). head 에 apple-touch-icon·manifest·og:image
 - `tv.html` — TV 앱 APK 로 넘어가는 짧은 주소(`/kids/tv`, meta refresh + location.replace). Downloader 에 치기 쉽게
 - `privacy.html` — 개인정보처리방침 (OAuth 동의 화면 프로덕션 게시에 필요. 브랜딩 페이지의 개인정보처리방침 URL = https://stepersjmj-hash.github.io/kids/privacy.html)
 - `design_handoff_kids_1b/` — "아이 손" 리디자인 시안·핸드오프(README 에 토큰·치수 확정값, `CHANGES-v2.md` 가 2026-10-28 수정분). git 에는 안 올림. 화면을 고칠 땐 이 문서 기준.
