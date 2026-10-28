@@ -8,7 +8,8 @@
 - `ic_launcher.png` — 런처 아이콘 원본 (192px, 빨간 집 + 재생 삼각형. android-tv 의 mipmap-*(48~192px)·drawable(-xhdpi)/banner.png(320×180·640×360)과 같은 그림, 2026-10-10 교체)
 - `tv.html` — TV 앱 APK 로 넘어가는 짧은 주소(`/kids/tv`, meta refresh + location.replace). Downloader 에 치기 쉽게
 - `privacy.html` — 개인정보처리방침 (OAuth 동의 화면 프로덕션 게시에 필요. 브랜딩 페이지의 개인정보처리방침 URL = https://stepersjmj-hash.github.io/kids/privacy.html)
-- `design_handoff_kids_1b/` — "아이 손" 리디자인 시안·핸드오프(README 에 토큰·치수 확정값). git 에는 안 올림. 화면을 고칠 땐 이 문서 기준
+- `design_handoff_kids_1b/` — "아이 손" 리디자인 시안·핸드오프(README 에 토큰·치수 확정값, `CHANGES-v2.md` 가 2026-10-28 수정분). git 에는 안 올림. 화면을 고칠 땐 이 문서 기준.
+  v2 의 2절(TV 골라 보기 칩을 반복·로그인만 남기기)은 **적용 안 함** — 랜덤·새로고침·도움말 칩은 사용자가 직접 요청한 것이고 랜덤은 기기별 설정이라 TV 에서 꺼야 함
 - `playlist.json` — `?list=` 로 불러오는 공유 목록 (`[{id,title,start?}]`)
 - `README.md` — 사용자용 사용법
 
@@ -107,12 +108,13 @@
   목록이 안 바뀜** → 매번 destroy 후 새로 생성. 실패(비공개·잘못된 ID)는 15초 타임아웃으로 처리.
   129개 재생목록까지 확인됨(상한은 미확인, 예전 기준 200개 내외로 알려짐)
 - localStorage 키: `home-playlist-v1`, `home-playlist-settings-v1` — 형식 바꾸면 키 버전 올릴 것. 항목은 `{id,title,bad?,start?}` — `start`(초)는 영상별 시작 시각(2026-10-27).
-  PC·폰 목록 행의 ⏱(`openStart` → #startDlg, '지금 위치' = player.getCurrentTime) 로 설정, `loadVideoById({videoId,startSeconds})` 로 재생, 미리 받기도 그 지점에서 대기.
+  PC·폰 목록 행의 ⏱(SVG `ICON.clock` 알약 `.st`, 설정되면 `.set` 노란 알약+시간. `openStart` → #startDlg "여기서부터 보기", '지금 위치 1:12' 라벨은 재생 중이면 0.5초마다 갱신,
+  '처음부터로' = 지우기. 폰은 화면 가운데 카드. ⏱·✕ 위 mousedown 은 행 draggable 을 잠시 꺼 DnD 가 안 시작되게) 로 설정, `loadVideoById({videoId,startSeconds})` 로 재생, 미리 받기도 그 지점에서 대기.
   동기화 서명 `listSig` 에 `@start` 가 들어가 시작 시각만 바꿔도 드라이브로 밀림(드라이브 파일·JSON 내보내기에도 start 포함). TV 골라 보기 썸네일에 ⏱ 배지
 - 높이는 `100dvh` (iOS 사파리 100vh 는 툴바 뒤까지 포함돼 목록 마지막 줄이 가려짐). 스크롤 영역(#list, #tvItems)은 flex 자식이라 `min-height:0` 필수
 - 디자인: `:root` 토큰(크림 배경 `--bg`, 빨강 `--accent`, 포커스 `--focus`…)과 글꼴 Jua(제목·칩·번호, `padding-top:2px` 로 세로 보정)·Gowun Dodum(본문).
-  이전·재생·다음 버튼은 시안보다 작게(사용자 요청): PC 52/68, TV 40/50(u), 폰 36/46(전체화면·새로고침 34)
-  TV 화면(body.app, #tvList)은 시안 960×540 기준이라 `--u: calc(100vh/540)` 단위로 치수를 적어 WebView 해상도가 달라도 비율 유지. TV 영상 틀은 692×398(테두리 포함)로
+  이전·재생·다음 버튼: PC 52/68, TV 44/56(u), 폰 40/52(반복·랜덤·전체화면·새로고침 36) — v2 시안(2026-10-28) 값. 진행 막대는 세 화면 모두 `시간 · 막대 · 시간`(Pretendard 600, TV 13u·폰 12px)
+  TV 화면(body.app, #tvList)은 시안 960×540 기준이라 `--u: calc(100vh/540)` 단위로 치수를 적어 WebView 해상도가 달라도 비율 유지. TV 영상 틀은 660×380(테두리 10 포함, v2)로
   높이를 직접 지정 — `aspect-ratio` 는 border-box 에 걸려 16:9 내용 영역이 안 나옴
   둥근 버튼 두께 그림자는 꼭 `inset`(바깥이면 포커스 링 안에서 처져 보임). 영상 틀 #frame(흰 테두리) 안에 #player-wrap(A/B 플레이어)
 - 반복·랜덤(셔플): 세 화면 모두 아이콘 칩(🔁 `ICON.repeat`, 🔀 `ICON.shuffle`, 켜짐 .on 초록). PC 바 40px 원·폰 바 왼쪽 34px 원·TV 골라 보기 칩(숨은 #btnLoop/#btnShuffle 을 클릭). S 키 복귀.
