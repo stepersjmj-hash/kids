@@ -26,22 +26,25 @@ def extract(vid, start, fn=''):
     ytdlp = find('yt-dlp'); find('ffmpeg')
     tmp = tempfile.mkdtemp(prefix='kids-mp3-')
     safe = re.sub(r'[\\/:*?"<>|\r\n]+', ' ', fn).strip()[:120]
-    cmd = [ytdlp, '--no-playlist', '-f', 'bestaudio[ext=m4a]/bestaudio', '-x', '--audio-format', 'mp3', '--audio-quality', '128K',
-           '-o', os.path.join(tmp, (safe or '%(title)s') + '.%(ext)s'), '--no-mtime']
-    if start > 0:
-        # 시작 시각부터 끝까지만. 키프레임을 자르는 위치에 강제해 앞부분이 남지 않게
-        cmd += ['--download-sections', f'*{start}-inf', '--force-keyframes-at-cuts']
-    cmd.append(f'https://www.youtube.com/watch?v={vid}')
+    # 1) yt-dlp 로 원본 오디오(m4a)만 받고 2) ffmpeg 로 자르기+mp3 128k 변환 (NAS 의 Reelsnap /audio 와 같은 방식)
+    cmd = [ytdlp, '--no-playlist', '-f', 'bestaudio[ext=m4a]/bestaudio',
+           '-o', os.path.join(tmp, 'a.%(ext)s'), '--no-mtime', f'https://www.youtube.com/watch?v={vid}']
     print('>', ' '.join(cmd), flush=True)
     r = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace')
-    if r.returncode != 0:
+    src = [f for f in os.listdir(tmp) if f.startswith('a.')] if r.returncode == 0 else []
+    if not src:
         shutil.rmtree(tmp, ignore_errors=True)
         raise RuntimeError((r.stderr or r.stdout).strip().splitlines()[-1] if (r.stderr or r.stdout).strip() else 'yt-dlp 실패')
-    files = [f for f in os.listdir(tmp) if f.lower().endswith('.mp3')]
-    if not files:
+    name = (safe or vid) + '.mp3'
+    ff = ['ffmpeg', '-y', '-hide_banner', '-loglevel', 'error']
+    if start > 0:
+        ff += ['-ss', str(start)]   # 시작 시각부터 끝까지
+    ff += ['-i', os.path.join(tmp, src[0]), '-vn', '-codec:a', 'libmp3lame', '-b:a', '128k', os.path.join(tmp, name)]
+    r = subprocess.run(ff, capture_output=True, text=True, encoding='utf-8', errors='replace')
+    if r.returncode != 0 or not os.path.exists(os.path.join(tmp, name)):
         shutil.rmtree(tmp, ignore_errors=True)
-        raise RuntimeError('mp3 파일이 만들어지지 않았습니다 (ffmpeg 확인)')
-    return tmp, files[0]
+        raise RuntimeError('mp3 변환 실패 (ffmpeg): ' + r.stderr.strip()[-200:])
+    return tmp, name
 
 class H(BaseHTTPRequestHandler):
     def cors(self):
