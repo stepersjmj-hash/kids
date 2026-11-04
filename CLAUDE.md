@@ -7,10 +7,12 @@
 - `logo.png` — 페이지 로고·favicon (ic_launcher 에서 크림 여백을 잘라 집만 남긴 투명 PNG — 런처 PNG 를 그대로 쓰면 여백 때문에 집이 작아 보임)
 - `ic_launcher.png` — 런처 아이콘 원본 (192px, 빨간 집 + 재생 삼각형. android-tv 의 mipmap-*(48~192px)·drawable(-xhdpi)/banner.png(320×180·640×360)과 같은 그림, 2026-10-10 교체)
 - `icons/icon-{180,192,512}.png` + `manifest.webmanifest` — 홈 화면·앱 바로가기(아이폰, 네이버 앱)용 정사각 아이콘(크림 배경, ic_launcher 에서 생성). 투명 favicon 만 있으면 네이버 바로가기가 글자 아이콘으로 떨어짐(2026-10-28). head 에 apple-touch-icon·manifest·og:image
-- `mp3-server.py` + `mp3.bat` — PC 전용 mp3 도우미(127.0.0.1:8770, ThreadingHTTPServer). 목록 제목 아래 "mp3 다운로드"(`.item .t .dl`, `downloadMp3`) 가
-  `/mp3?id=&start=` 를 fetch → yt-dlp `-x --audio-format mp3` (+ start 가 있으면 `--download-sections "*start-inf" --force-keyframes-at-cuts`) → 파일로 응답 → blob 을 a[download].
-  CORS `*` + `Expose-Headers: Content-Disposition`(파일명). github.io(https) 에서 http://127.0.0.1 fetch 는 크롬이 허용(localhost 는 mixed content 예외). 도우미 없으면 토스트 안내.
-  yt-dlp·ffmpeg 는 PATH 필요(이 PC 는 winget 으로 설치돼 있음). 폰은 `.dl` display:none
+- mp3 다운로드(`.item .t .dl`, `downloadMp3`, PC·폰): `AUDIO_SERVERS` 순서로 `/audio?url=ID&start=초&fn=제목` 을 fetch → mp3(128k) blob 을 a[download].
+  1순위 **NAS Reelsnap** `https://stepersjmj.synology.me:8443`(mjdownloader 저장소 `server.js` 의 `handleAudio`, 2026-11-04 추가 — NAS 반영은 server.js 를 `\NAS\dockereelsnap\` 에 덮어쓰고
+  Container Manager 에서 빌드), 2순위 이 PC 의 `mp3-server.py`(`mp3.bat`, 127.0.0.1:8770, 같은 API + 예전 `/mp3?id=`). 연결 실패·404 는 다음 서버로, 그 밖의 오류는 토스트.
+  서버 쪽: yt-dlp `-f bestaudio[ext=m4a]/bestaudio -x --audio-format mp3 --audio-quality 128K` (+ start 면 `--download-sections "*start-inf" --force-keyframes-at-cuts`), temp 경유.
+  유튜브 오디오는 low(~50k)/medium(~130k) 두 단계뿐(256k 는 프리미엄 쿠키 필요 → 계정 위험·서버에 두지 말 것, 안 함). CORS `*` + `Expose-Headers: Content-Disposition`(파일명 `filename*=UTF-8''`).
+  github.io(https) 에서 http://127.0.0.1 fetch 는 크롬이 허용(localhost 는 mixed content 예외). TV(body.app) 엔 목록 행이 없어 버튼 없음
 - `tv.html` — TV 앱 APK 로 넘어가는 짧은 주소(`/kids/tv`, meta refresh + location.replace). Downloader 에 치기 쉽게
 - `privacy.html` — 개인정보처리방침 (OAuth 동의 화면 프로덕션 게시에 필요. 브랜딩 페이지의 개인정보처리방침 URL = https://stepersjmj-hash.github.io/kids/privacy.html)
 - `design_handoff_kids_1b/` — "아이 손" 리디자인 시안·핸드오프(README 에 토큰·치수 확정값, `CHANGES-v2.md` 가 2026-10-28 수정분). git 에는 안 올림. 화면을 고칠 땐 이 문서 기준.

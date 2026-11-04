@@ -399,7 +399,8 @@
     .item .n { width:30px; height:30px; border-radius:15px; font-size:15px; }
     .item img { width:72px; height:44px; border-radius:12px; }
     .item .t em { font-size:14px; white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-    .item .t small, .item .t .dl { display:none; }
+    .item .t small { display:none; }
+    .item .t .dl { font-size:12px; padding:2px 0; }
     .item .del { display:none; }
     .item .st { height:32px; min-width:32px; background:var(--bg); }
     .item .st svg { width:16px; height:16px; }
@@ -926,7 +927,7 @@ function render(){
       <div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <span class="n">${i+1}</span>
       <img src="${thumb(it.id)}" alt="" draggable="false">
-      <div class="t"><em>${esc(it.title||it.id)}</em>${it.bad ? '<small>재생 불가 · 건너뜀</small>' : `<button class="dl" title="소리만 mp3 로 내려받기 (PC 에서 mp3.bat 실행 필요${startOf(it) ? `, ${fmt(startOf(it))} 부터` : ''})">mp3 다운로드</button>`}</div>
+      <div class="t"><em>${esc(it.title||it.id)}</em>${it.bad ? '<small>재생 불가 · 건너뜀</small>' : `<button class="dl" title="소리만 mp3(128k) 로 내려받기${startOf(it) ? ` — ${fmt(startOf(it))} 부터` : ''}">mp3 다운로드</button>`}</div>
       <button class="st${startOf(it) ? ' set' : ''}" title="시작 시각: 이 영상을 여기서부터 재생">${ICON.clock}${startOf(it) ? `<span>${fmt(startOf(it))}</span>` : ''}</button>
       <button class="del" title="삭제">${ICON.x}</button>
       <div class="swipeBg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg><span>삭제</span></div>`;
@@ -1295,17 +1296,23 @@ function openStart(i){
   dlg.onclick = e => { if (e.target === dlg) close(); };
   setTimeout(() => inp.focus(), 50);
 }
-// mp3 다운로드 (PC): 같은 PC 에서 도는 mp3-server.py(mp3.bat) 에 부탁해 소리만 mp3 로 받는다. 시작 시각이 있으면 그 지점부터
-const MP3_HELPER = 'http://127.0.0.1:8770';
+// mp3 다운로드: 변환 서버의 /audio?url=ID&start=초&fn=제목 → mp3(128k) 파일. 시작 시각이 있으면 그 지점부터.
+// 1순위 NAS 의 Reelsnap(mjdownloader 저장소 server.js /audio — PC·맥·폰 어디서나), 2순위 같은 PC 의 mp3-server.py(mp3.bat).
+// 연결이 안 되거나 404(아직 /audio 가 없는 서버)면 다음 서버로, 그 밖의 오류는 그 자리에서 알림
+const AUDIO_SERVERS = ['https://stepersjmj.synology.me:8443', 'http://127.0.0.1:8770'];
 async function downloadMp3(i, btn){
   const it = items[i]; if (!it || btn.classList.contains('busy')) return;
   const start = startOf(it);
   btn.classList.add('busy'); btn.textContent = '변환 중…';
   try {
-    let r;
-    try { r = await fetch(`${MP3_HELPER}/mp3?id=${it.id}&start=${start}`); }
-    catch { toast('PC 에서 mp3.bat 을 먼저 실행하세요 (mp3 도우미가 꺼져 있음)', 4000); return; }
-    if (!r.ok) { let m = ''; try { m = (await r.json()).error; } catch {} toast('mp3 변환 실패: ' + (m || r.status), 5000); return; }
+    let r = null;
+    for (const base of AUDIO_SERVERS) {
+      try { r = await fetch(`${base}/audio?url=${it.id}&start=${start}&fn=${encodeURIComponent(it.title || it.id)}`); }
+      catch { r = null; continue; }
+      if (r.status !== 404) break;
+    }
+    if (!r || r.status === 404) { toast('변환 서버(NAS)에 연결할 수 없습니다. PC 라면 mp3.bat 을 실행해 보세요', 4500); return; }
+    if (!r.ok) { let m = ''; try { m = await r.text(); } catch {} toast('mp3 변환 실패: ' + (m.slice(0, 80) || r.status), 5000); return; }
     const blob = await r.blob();
     const m = /filename\*=UTF-8''([^;]+)/.exec(r.headers.get('Content-Disposition') || '');
     const name = m ? decodeURIComponent(m[1]) : `${(it.title || it.id).replace(/[\\/:*?"<>|]+/g, ' ').trim()}.mp3`;

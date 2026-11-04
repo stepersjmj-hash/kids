@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-mp3 도우미 — PC 에서 하이쮸 플레이어의 "mp3 다운로드" 버튼이 부르는 작은 로컬 서버.
-  GET /ping                 → {"ok": true}
-  GET /mp3?id=영상ID&start=초 → yt-dlp + ffmpeg 로 소리만 mp3 로 뽑아 파일로 응답 (start 초부터 끝까지, 0 이면 전체)
+mp3 도우미 — PC 에서 하이쮸 플레이어의 "mp3 다운로드" 버튼이 부르는 작은 로컬 서버 (NAS 의 Reelsnap /audio 와 같은 API, NAS 가 안 될 때의 예비).
+  GET /ping                                  → {"ok": true}
+  GET /audio?url=영상ID또는URL&start=초&fn=이름 → yt-dlp + ffmpeg 로 소리만 mp3(128k) 로 뽑아 파일로 응답 (start 초부터 끝까지, 0 이면 전체)
+  GET /mp3?id=영상ID&start=초                 → 같은 동작 (예전 주소)
 127.0.0.1 에만 묶여 있어 이 PC 의 브라우저만 접근할 수 있다. 실행: mp3.bat (또는 python mp3-server.py)
 필요: yt-dlp, ffmpeg 가 PATH 에 있어야 함 (winget install yt-dlp.yt-dlp / Gyan.FFmpeg)
 """
@@ -12,6 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = 8770
 ID_RE = re.compile(r'^[A-Za-z0-9_-]{11}$')
+URL_ID_RE = re.compile(r'(?:v=|youtu\.be/|shorts/|embed/)([A-Za-z0-9_-]{11})')
 
 def find(exe):
     p = shutil.which(exe)
@@ -19,12 +21,13 @@ def find(exe):
         raise RuntimeError(f'{exe} 를 찾을 수 없습니다. 설치 후 PATH 에 넣어 주세요 (winget install {"yt-dlp.yt-dlp" if exe == "yt-dlp" else "Gyan.FFmpeg"})')
     return p
 
-def extract(vid, start):
+def extract(vid, start, fn=''):
     """yt-dlp 로 mp3 를 만들어 (경로, 파일명) 을 돌려준다. 임시 폴더는 호출한 쪽이 지운다."""
     ytdlp = find('yt-dlp'); find('ffmpeg')
     tmp = tempfile.mkdtemp(prefix='kids-mp3-')
-    cmd = [ytdlp, '--no-playlist', '-x', '--audio-format', 'mp3', '--audio-quality', '0',
-           '-o', os.path.join(tmp, '%(title)s.%(ext)s'), '--no-mtime']
+    safe = re.sub(r'[\\/:*?"<>|\r\n]+', ' ', fn).strip()[:120]
+    cmd = [ytdlp, '--no-playlist', '-f', 'bestaudio[ext=m4a]/bestaudio', '-x', '--audio-format', 'mp3', '--audio-quality', '128K',
+           '-o', os.path.join(tmp, (safe or '%(title)s') + '.%(ext)s'), '--no-mtime']
     if start > 0:
         # 시작 시각부터 끝까지만. 키프레임을 자르는 위치에 강제해 앞부분이 남지 않게
         cmd += ['--download-sections', f'*{start}-inf', '--force-keyframes-at-cuts']
@@ -58,15 +61,18 @@ class H(BaseHTTPRequestHandler):
         u = urllib.parse.urlsplit(self.path); q = urllib.parse.parse_qs(u.query)
         if u.path == '/ping':
             return self.send_json(200, {'ok': True})
-        if u.path != '/mp3':
+        if u.path not in ('/mp3', '/audio'):
             return self.send_json(404, {'error': 'not found'})
-        vid = (q.get('id') or [''])[0]
+        vid = (q.get('id') or q.get('url') or [''])[0].strip()
+        m = URL_ID_RE.search(vid)
+        if m: vid = m.group(1)
+        fn = (q.get('fn') or [''])[0]
         try: start = max(0, int(float((q.get('start') or ['0'])[0])))
         except ValueError: start = 0
         if not ID_RE.match(vid):
             return self.send_json(400, {'error': '영상 ID 형식이 아닙니다'})
         try:
-            tmp, name = extract(vid, start)
+            tmp, name = extract(vid, start, fn)
         except Exception as e:
             print('!', e, flush=True)
             return self.send_json(500, {'error': str(e)})
