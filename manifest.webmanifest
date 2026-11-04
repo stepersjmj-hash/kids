@@ -1,5 +1,5 @@
 {
-  "name": "하이쮸 재생목록",
+  "name": "하이쮸 플레이어",
   "short_name": "하이쮸",
   "start_url": "./",
   "display": "standalone",

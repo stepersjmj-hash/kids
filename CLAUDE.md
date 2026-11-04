@@ -1,4 +1,4 @@
-# kids — 아이용 유튜브 개인 재생목록 (웹 이름 "하이쮸 재생목록", TV 런처 이름은 "하이쮸". 2026-10-10 "우리집 재생목록"에서 변경. 드라이브 동기화 파일 이름은 예전 그대로)
+# kids — 아이용 유튜브 개인 재생목록 (웹 이름 "하이쮸 플레이어"(2026-11-04, 전엔 "하이쮸 재생목록"), TV 런처 이름은 "하이쮸". 2026-10-10 "우리집 재생목록"에서 변경. 드라이브 동기화 파일 이름은 예전 그대로)
 
 내가 고른 유튜브 영상만 연속 재생하는 정적 웹페이지. GitHub Pages(main 브랜치 루트)로 배포.
 
@@ -7,6 +7,10 @@
 - `logo.png` — 페이지 로고·favicon (ic_launcher 에서 크림 여백을 잘라 집만 남긴 투명 PNG — 런처 PNG 를 그대로 쓰면 여백 때문에 집이 작아 보임)
 - `ic_launcher.png` — 런처 아이콘 원본 (192px, 빨간 집 + 재생 삼각형. android-tv 의 mipmap-*(48~192px)·drawable(-xhdpi)/banner.png(320×180·640×360)과 같은 그림, 2026-10-10 교체)
 - `icons/icon-{180,192,512}.png` + `manifest.webmanifest` — 홈 화면·앱 바로가기(아이폰, 네이버 앱)용 정사각 아이콘(크림 배경, ic_launcher 에서 생성). 투명 favicon 만 있으면 네이버 바로가기가 글자 아이콘으로 떨어짐(2026-10-28). head 에 apple-touch-icon·manifest·og:image
+- `mp3-server.py` + `mp3.bat` — PC 전용 mp3 도우미(127.0.0.1:8770, ThreadingHTTPServer). 목록 제목 아래 "mp3 다운로드"(`.item .t .dl`, `downloadMp3`) 가
+  `/mp3?id=&start=` 를 fetch → yt-dlp `-x --audio-format mp3` (+ start 가 있으면 `--download-sections "*start-inf" --force-keyframes-at-cuts`) → 파일로 응답 → blob 을 a[download].
+  CORS `*` + `Expose-Headers: Content-Disposition`(파일명). github.io(https) 에서 http://127.0.0.1 fetch 는 크롬이 허용(localhost 는 mixed content 예외). 도우미 없으면 토스트 안내.
+  yt-dlp·ffmpeg 는 PATH 필요(이 PC 는 winget 으로 설치돼 있음). 폰은 `.dl` display:none
 - `tv.html` — TV 앱 APK 로 넘어가는 짧은 주소(`/kids/tv`, meta refresh + location.replace). Downloader 에 치기 쉽게
 - `privacy.html` — 개인정보처리방침 (OAuth 동의 화면 프로덕션 게시에 필요. 브랜딩 페이지의 개인정보처리방침 URL = https://stepersjmj-hash.github.io/kids/privacy.html)
 - `design_handoff_kids_1b/` — "아이 손" 리디자인 시안·핸드오프(README 에 토큰·치수 확정값, `CHANGES-v2.md` 가 2026-10-28 수정분). git 에는 안 올림. 화면을 고칠 땐 이 문서 기준.
@@ -109,7 +113,7 @@
   목록이 안 바뀜** → 매번 destroy 후 새로 생성. 실패(비공개·잘못된 ID)는 15초 타임아웃으로 처리.
   129개 재생목록까지 확인됨(상한은 미확인, 예전 기준 200개 내외로 알려짐)
 - localStorage 키: `home-playlist-v1`, `home-playlist-settings-v1` — 형식 바꾸면 키 버전 올릴 것. 항목은 `{id,title,bad?,start?}` — `start`(초)는 영상별 시작 시각(2026-10-27).
-  PC·폰 목록 행의 ⏱(SVG `ICON.clock` 알약 `.st`, 설정되면 `.set` 노란 알약+시간. `openStart` → #startDlg "여기서부터 보기", '지금 위치 1:12' 라벨은 재생 중이면 0.5초마다 갱신,
+  PC·폰 목록 행의 ⏱(SVG `ICON.clock` 알약 `.st`, PC 제목 아래 줄은 '지금 보는 중'/ID 대신 'mp3 다운로드' 버튼(재생 불가면 그 문구), 설정되면 `.set` 노란 알약+시간. `openStart` → #startDlg "여기서부터 보기", '지금 위치 1:12' 라벨은 재생 중이면 0.5초마다 갱신,
   '처음부터로' = 지우기. 폰은 화면 가운데 카드. ⏱·✕ 위 mousedown 은 행 draggable 을 잠시 꺼 DnD 가 안 시작되게) 로 설정, `loadVideoById({videoId,startSeconds})` 로 재생, 미리 받기도 그 지점에서 대기.
   동기화 서명 `listSig` 에 `@start` 가 들어가 시작 시각만 바꿔도 드라이브로 밀림(드라이브 파일·JSON 내보내기에도 start 포함). TV 골라 보기 썸네일에 ⏱ 배지
 - 폰 입력란(#urlInput)은 글자 16px — iOS 사파리는 16px 미만 input 에 포커스하면 화면을 확대함
@@ -123,8 +127,9 @@
   토스트는 #btnLoop/#btnShuffle onclick 에서 한 번만. 랜덤은 기기별 localStorage 에 저장, 반복은 `load()` 에서 시작할 때 항상 켬(2026-10-28, 끄면 그 세션만)
 - PC·폰 전체화면 = `#frame.requestFullscreen()`(영상 틀만). 거부되거나 800ms 안에 응답 없거나 API 없음(아이폰 사파리) → `setFull(true)`(body.full CSS 전체화면) + #fsExit ✕ / Esc.
   Claude 앱 내장 브라우저는 요소 전체화면을 안 받아 항상 fallback 으로 떨어짐(실제 크롬·TV·폰에서는 정상 동작 확인됨, 2026-10-09)
-- 목록 순서 변경: PC 는 HTML5 DnD(`.item[draggable]`, `moveItem`), 폰(`pointer:coarse`)은 손잡이 Pointer Events — **끄는 동안 DOM 을 옮기면(insertBefore) 포인터 캡처가 풀려
-  pointerup 이 안 옴** → 행은 transform 으로만 띄우고 표시선(.drop-before/after)으로 자리 표시, 손 뗄 때 `moveItem` 한 번. 리스너는 document 에 걸어 캡처와 무관하게 받음,
+- 목록 순서 변경: PC 는 HTML5 DnD(`.item[draggable]`, `moveItem`) — **dragover/drop 은 행이 아니라 `#list` 가 받고 `dropTarget(y, from)` 으로 자리를 계산**(행마다 받으면 행 사이 8px 틈·목록 여백에 놓았을 때
+  아무 일도 안 일어남 → "순서 바꾸기가 안 된다"는 보고의 원인, 2026-11-04). 손잡이(≡) Pointer Events 끌기(`attachGrip`)는 PC·폰 공통(터치 노트북 대비), 왼쪽 스와이프 삭제(`attachSwipe`)는 폰만.
+  **끄는 동안 DOM 을 옮기면(insertBefore) 포인터 캡처가 풀려 pointerup 이 안 옴** → 행은 transform 으로만 띄우고 표시선(.drop-before/after)으로 자리 표시, 손 뗄 때 `moveItem` 한 번. 리스너는 document 에 걸어 캡처와 무관하게 받음,
   행 왼쪽 스와이프 = 삭제(`attachTouch`, `.item { touch-action:pan-y }`): 행 오른쪽 바깥에 붙은 `.swipeBg`(left:100%, z-index:-1, #list overflow-x:hidden)가 드러나고
   80px 넘으면 `.willDelete`, 놓으면 `askDelete()` 확인 레이어(#confirm) → 삭제/취소. ▲▼ 버튼은 없앰
 - 진행 막대 `tickProgress` 500ms + 클릭·드래그 이동(`scrubbing` 중엔 tick 멈춤, 놓을 때 seekTo), 제목 옆 점 `renderDots`(order 기준, 25개 넘으면 숫자), TV 이전·다음 썸네일 `renderDeck`, ⏯ 아이콘은 PLAYING/BUFFERING 때 정지 모양
@@ -146,5 +151,6 @@
 - 끝화면 추천은 `rel=0`으로 못 막음 → ENDED 시 덮개(#cover)로 가리고 바로 다음 영상
 - onError 100/101/150 = 비공개/임베드 금지 → `bad` 표시 후 건너뜀
 - file:// 로 열면 플레이어 오류가 날 수 있음 → http(s)에서 테스트
+- 폰 h1 은 "하이쮸 플레이어", PC 의 "우리 영상" 제목은 뺌(2026-11-04, h1 은 빈 채로 남아 자리만 차지)
 - `.bat` 파일은 꼭 **CRLF** 로 저장 (스크립트로 고쳐 쓸 때 LF 로 쓰면 cmd 가 한글 줄을 엉뚱하게 잘라 '맂'은(는) 내부 명령이 아닙니다 같은 오류). 저장소는 `.gitattributes` 로 CRLF 체크아웃
 - 커밋 메시지: 한국어 한 줄 요약

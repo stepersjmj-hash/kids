@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>하이쮸 재생목록</title>
+<title>하이쮸 플레이어</title>
 <meta name="description" content="가족이 고른 유튜브 영상만 이어서 재생하는 아이용 재생목록">
 <meta name="theme-color" content="#fbf3e4">
 <link rel="icon" href="logo.png">
@@ -12,7 +12,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta property="og:title" content="하이쮸 재생목록">
+<meta property="og:title" content="하이쮸 플레이어">
 <meta property="og:description" content="가족이 고른 유튜브 영상만 이어서 재생하는 아이용 재생목록">
 <meta property="og:image" content="https://stepersjmj-hash.github.io/kids/icons/icon-512.png">
 <meta property="og:url" content="https://stepersjmj-hash.github.io/kids/">
@@ -227,6 +227,10 @@
   .item .t { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
   .item .t em { font:400 13px/1.35 var(--gowun); font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .item .t small { font:400 11px/1 var(--gowun); color:var(--sub2); }
+  /* 제목 아래 'mp3 다운로드' (PC 전용, mp3-server.py 가 떠 있어야 함) */
+  .item .t .dl { align-self:flex-start; font:400 11px/1 var(--gowun); color:var(--sub2); text-decoration:underline dotted; text-underline-offset:2px; }
+  .item .t .dl:hover { color:var(--accent); }
+  .item .t .dl.busy { color:var(--sub); text-decoration:none; pointer-events:none; }
   .item.current .t small, .item.bad .t small { color:var(--danger); }
   /* 시작 시각: 비어 있으면 26px 원(투명), 설정되면 노란 알약 + 시간 */
   .item .st { height:26px; min-width:26px; padding:0; border-radius:999px; display:flex; align-items:center; justify-content:center; gap:4px; color:var(--sub2); flex:none; white-space:nowrap; }
@@ -395,7 +399,7 @@
     .item .n { width:30px; height:30px; border-radius:15px; font-size:15px; }
     .item img { width:72px; height:44px; border-radius:12px; }
     .item .t em { font-size:14px; white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-    .item .t small { display:none; }
+    .item .t small, .item .t .dl { display:none; }
     .item .del { display:none; }
     .item .st { height:32px; min-width:32px; background:var(--bg); }
     .item .st svg { width:16px; height:16px; }
@@ -414,7 +418,7 @@
 <body>
 
 <div id="stage">
-  <div id="logo"><img src="logo.png" alt=""><span>하이쮸 <br>재생목록</span><i class="sp"></i>
+  <div id="logo"><img src="logo.png" alt=""><span>하이쮸 <br>플레이어</span><i class="sp"></i>
     <button id="btnTv" class="chip" title="TV 모드: 목록 숨김 (T)"><span>TV 모드</span></button>
     <button id="btnApp" class="chip" title="TV 앱 화면 미리보기 (?app=1)"><span>앱 모드</span></button>
   </div>
@@ -448,7 +452,7 @@
 <aside id="side">
   <header>
     <div id="titleRow">
-      <h1><span class="pc">우리 영상</span><span class="ph">하이쮸 재생목록</span></h1>
+      <h1><span class="ph">하이쮸 플레이어</span></h1>
       <div id="syncStatus"><i></i><span id="syncText">로그인하면 구글 드라이브로 폰·TV와 목록이 맞춰집니다</span><b id="syncShort">로그인 안 함</b></div>
       <button id="btnGoogle" title="로그인: 드라이브 동기화 + 좋아요·재생목록 가져오기"><svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.2-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg><img id="gAvatar" alt="" hidden referrerpolicy="no-referrer"><span id="gLabel">Google 로그인</span></button>
     </div>
@@ -922,7 +926,7 @@ function render(){
       <div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <span class="n">${i+1}</span>
       <img src="${thumb(it.id)}" alt="" draggable="false">
-      <div class="t"><em>${esc(it.title||it.id)}</em><small>${it.bad ? '재생 불가 · 건너뜀' : i===idx ? '지금 보는 중' : esc(it.id)}</small></div>
+      <div class="t"><em>${esc(it.title||it.id)}</em>${it.bad ? '<small>재생 불가 · 건너뜀</small>' : `<button class="dl" title="소리만 mp3 로 내려받기 (PC 에서 mp3.bat 실행 필요${startOf(it) ? `, ${fmt(startOf(it))} 부터` : ''})">mp3 다운로드</button>`}</div>
       <button class="st${startOf(it) ? ' set' : ''}" title="시작 시각: 이 영상을 여기서부터 재생">${ICON.clock}${startOf(it) ? `<span>${fmt(startOf(it))}</span>` : ''}</button>
       <button class="del" title="삭제">${ICON.x}</button>
       <div class="swipeBg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg><span>삭제</span></div>`;
@@ -930,18 +934,17 @@ function render(){
       if (d._swiped) return;
       if (e.target.closest('.del')) { removeItem(i); return; }
       if (e.target.closest('.st')) { d.draggable = !TOUCH; openStart(i); return; }
+      if (e.target.closest('.dl')) { d.draggable = !TOUCH; downloadMp3(i, e.target.closest('.dl')); return; }
       playIndex(i);
     });
     // ⏱·✕ 위에서 누르기 시작하면 행 드래그가 시작되지 않게 (draggable 행 안의 버튼)
-    d.addEventListener('mousedown', e => { if (e.target.closest('.st, .del')) d.draggable = false; });
+    d.addEventListener('mousedown', e => { if (e.target.closest('.st, .del, .dl')) d.draggable = false; });
     d.addEventListener('mouseup', () => { d.draggable = !TOUCH; });
-    // PC: HTML5 Drag & Drop 으로 순서 바꾸기 (▲▼ 대신)
-    d.addEventListener('dragstart', e => { dragFrom = i; e.dataTransfer.effectAllowed = 'move'; d.classList.add('dragging'); });
-    d.addEventListener('dragover', e => { e.preventDefault(); if (dragFrom < 0 || dragFrom === i) return; clearDrop(); d.classList.add(dragFrom < i ? 'drop-after' : 'drop-before'); });
-    d.addEventListener('dragleave', () => d.classList.remove('drop-after', 'drop-before'));
-    d.addEventListener('drop', e => { e.preventDefault(); moveItem(dragFrom, i); });
-    d.addEventListener('dragend', () => { dragFrom = -1; clearDrop(); d.classList.remove('dragging'); });
-    if (TOUCH) attachTouch(d, i);
+    // PC: 행 아무 데나 잡고 끌기 (HTML5 Drag & Drop). 놓을 자리 계산·drop 은 #list 가 받는다 (아래)
+    d.addEventListener('dragstart', e => { dragFrom = i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch {} d.classList.add('dragging'); });
+    d.addEventListener('dragend', () => { dragFrom = -1; dropTo = -1; clearDrop(); d.classList.remove('dragging'); });
+    attachGrip(d, i);               // 손잡이(≡) 끌기는 PC·폰 공통 (터치 화면 노트북에서도 됨)
+    if (TOUCH) attachSwipe(d, i);   // 왼쪽으로 밀어 삭제는 폰만
     el.appendChild(d);
   });
   $('#nowTitle').textContent = idx>=0 && items[idx] ? (items[idx].title||items[idx].id) : '—';
@@ -955,6 +958,19 @@ function render(){
   renderDots(); renderDeck();
 }
 function clearDrop(){ document.querySelectorAll('.item.drop-after, .item.drop-before').forEach(x => x.classList.remove('drop-after', 'drop-before')); }
+// 마우스/손가락 y 로 들어갈 인덱스를 정하고 표시선을 그린다. from = 끌고 있는 행 (행마다 drop 을 받으면 행 사이 8px 틈이나 목록 여백에 놓았을 때 아무 일도 안 일어남)
+function dropTarget(y, from){
+  const kids = [...$('#list').children], sibs = kids.filter((_, k) => k !== from);
+  clearDrop();
+  const before = sibs.find(x => { const r = x.getBoundingClientRect(); return y < r.top + r.height / 2; });
+  if (before) { before.classList.add('drop-before'); const bi = kids.indexOf(before); return bi > from ? bi - 1 : bi; }
+  if (sibs.length) sibs[sibs.length - 1].classList.add('drop-after');
+  return kids.length - 1;
+}
+let dropTo = -1;
+$('#list').addEventListener('dragover', e => { if (dragFrom < 0) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; dropTo = dropTarget(e.clientY, dragFrom); });
+$('#list').addEventListener('dragleave', e => { if (dragFrom >= 0 && !$('#list').contains(e.relatedTarget)) { clearDrop(); dropTo = -1; } });
+$('#list').addEventListener('drop', e => { if (dragFrom < 0) return; e.preventDefault(); const f = dragFrom, t = dropTo; dragFrom = -1; dropTo = -1; clearDrop(); if (t >= 0) moveItem(f, t); });
 function moveItem(from, to){
   if (from < 0 || to < 0 || from === to || from >= items.length) return;
   const curId = idx >= 0 ? items[idx].id : null;
@@ -966,8 +982,8 @@ function removeItem(i){
   items.splice(i, 1); if (idx === i) idx = -1; else if (idx > i) idx--;
   save(); rebuildOrder(); render(); preloadNext();
 }
-// 폰: 손잡이(≡)를 눌러 끌면 순서 바꾸기, 행을 왼쪽으로 밀면 삭제
-function attachTouch(d, i){
+// 손잡이(≡)를 눌러 끌면 순서 바꾸기 (Pointer Events — 마우스·터치 공통)
+function attachGrip(d, i){
   const grip = d.querySelector('.grip'), list = $('#list');
   // 주의: 끄는 동안 행을 DOM 에서 옮기면(insertBefore) 포인터 캡처가 풀려 pointerup 이 안 온다 → 드래그 중엔 행을 transform 으로만 띄우고
   // 놓일 자리는 표시선(.drop-before/.drop-after)으로, 실제 순서는 손을 뗄 때 moveItem 한 번
@@ -979,11 +995,7 @@ function attachTouch(d, i){
     const move = ev => {
       const y = ev.clientY;
       d.style.transform = `translateY(${y - y0 + (scroller.scrollTop - s0)}px)`;
-      const kids = [...list.children], sibs = kids.filter(x => x !== d);
-      const before = sibs.find(x => { const r = x.getBoundingClientRect(); return y < r.top + r.height / 2; });
-      clearDrop();
-      if (before) { before.classList.add('drop-before'); const bi = kids.indexOf(before); to = bi > i ? bi - 1 : bi; }
-      else if (sibs.length) { sibs[sibs.length - 1].classList.add('drop-after'); to = kids.length - 1; }
+      to = dropTarget(y, i);
       const lr = scroller.getBoundingClientRect();
       if (y < lr.top + 40) scroller.scrollTop -= 8; else if (y > lr.bottom - 40) scroller.scrollTop += 8;
     };
@@ -996,6 +1008,9 @@ function attachTouch(d, i){
     // 캡처가 풀려도 끝까지 받도록 document 에 건다
     document.addEventListener('pointermove', move); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
   });
+}
+// 폰: 행을 왼쪽으로 밀면 삭제
+function attachSwipe(d, i){
   d.addEventListener('pointerdown', e => {
     if (e.target.closest('.grip')) return;
     const x0 = e.clientX, y0 = e.clientY; let dx = 0, swiping = false;
@@ -1279,6 +1294,25 @@ function openStart(i){
   inp.onkeydown = e => { if (e.key === 'Enter') $('#startSave').click(); if (e.key === 'Escape') close(); };
   dlg.onclick = e => { if (e.target === dlg) close(); };
   setTimeout(() => inp.focus(), 50);
+}
+// mp3 다운로드 (PC): 같은 PC 에서 도는 mp3-server.py(mp3.bat) 에 부탁해 소리만 mp3 로 받는다. 시작 시각이 있으면 그 지점부터
+const MP3_HELPER = 'http://127.0.0.1:8770';
+async function downloadMp3(i, btn){
+  const it = items[i]; if (!it || btn.classList.contains('busy')) return;
+  const start = startOf(it);
+  btn.classList.add('busy'); btn.textContent = '변환 중…';
+  try {
+    let r;
+    try { r = await fetch(`${MP3_HELPER}/mp3?id=${it.id}&start=${start}`); }
+    catch { toast('PC 에서 mp3.bat 을 먼저 실행하세요 (mp3 도우미가 꺼져 있음)', 4000); return; }
+    if (!r.ok) { let m = ''; try { m = (await r.json()).error; } catch {} toast('mp3 변환 실패: ' + (m || r.status), 5000); return; }
+    const blob = await r.blob();
+    const m = /filename\*=UTF-8''([^;]+)/.exec(r.headers.get('Content-Disposition') || '');
+    const name = m ? decodeURIComponent(m[1]) : `${(it.title || it.id).replace(/[\\/:*?"<>|]+/g, ' ').trim()}.mp3`;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    toast(`mp3 저장: ${name}` + (start ? ` (${fmt(start)} 부터)` : ''), 3000);
+  } finally { btn.classList.remove('busy'); btn.textContent = 'mp3 다운로드'; }
 }
 // TV: 리모컨으로 쓰는 삭제 확인 (←/→ 취소·삭제, 가운데 실행, 뒤로 취소). 지금 보는 영상을 지우면 다음 영상으로 넘어간다
 const confirmOpen = () => !$('#confirm').hidden;
