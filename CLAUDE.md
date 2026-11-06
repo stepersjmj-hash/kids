@@ -8,7 +8,8 @@
 - `ic_launcher.png` — 런처 아이콘 원본 (192px, 빨간 집 + 재생 삼각형. android-tv 의 mipmap-*(48~192px)·drawable(-xhdpi)/banner.png(320×180·640×360)과 같은 그림, 2026-10-10 교체)
 - `icons/icon-{180,192,512}.png` + `manifest.webmanifest` — 홈 화면·앱 바로가기(아이폰, 네이버 앱)용 정사각 아이콘(크림 배경, ic_launcher 에서 생성). 투명 favicon 만 있으면 네이버 바로가기가 글자 아이콘으로 떨어짐(2026-10-28). head 에 apple-touch-icon·manifest·og:image
 - mp3 다운로드(`.item .t .dl`, `downloadMp3`, PC·폰): `AUDIO_SERVERS` 순서로 `/audio?url=ID&start=초&fn=제목` 을 fetch → mp3(128k) blob 을 a[download].
-  1순위 **NAS Reelsnap** `https://stepersjmj.synology.me:8443`(mjdownloader 저장소 `server.js` 의 `handleAudio`, 2026-11-04 추가 — NAS 반영은 server.js 를 `\NAS\dockereelsnap\` 에 덮어쓰고
+  1순위 **NAS Reelsnap** `https://stepersjmj.synology.me:8443`(mjdownloader 저장소 `server.js` 의 `handleAudio`, 2026-11-04 추가 — NAS 반영은 server.js 를 `\NAS\docker
+eelsnap\` 에 덮어쓰고
   Container Manager 에서 빌드), 2순위 이 PC 의 `mp3-server.py`(`mp3.bat`, 127.0.0.1:8770, 같은 API + 예전 `/mp3?id=`). 연결 실패·404 는 다음 서버로, 그 밖의 오류는 토스트.
   서버 쪽: yt-dlp `-f bestaudio[ext=m4a]/bestaudio -x --audio-format mp3 --audio-quality 128K` (+ start 면 `--download-sections "*start-inf" --force-keyframes-at-cuts`), temp 경유.
   유튜브 오디오는 low(~50k)/medium(~130k) 두 단계뿐(256k 는 프리미엄 쿠키 필요 → 계정 위험·서버에 두지 말 것, 안 함). CORS `*` + `Expose-Headers: Content-Disposition`(파일명 `filename*=UTF-8''`).
@@ -129,6 +130,8 @@
   토스트는 #btnLoop/#btnShuffle onclick 에서 한 번만. 랜덤은 기기별 localStorage 에 저장, 반복은 `load()` 에서 시작할 때 항상 켬(2026-10-28, 끄면 그 세션만)
 - PC·폰 전체화면 = `#frame.requestFullscreen()`(영상 틀만). 거부되거나 800ms 안에 응답 없거나 API 없음(아이폰 사파리) → `setFull(true)`(body.full CSS 전체화면) + #fsExit ✕ / Esc.
   Claude 앱 내장 브라우저는 요소 전체화면을 안 받아 항상 fallback 으로 떨어짐(실제 크롬·TV·폰에서는 정상 동작 확인됨, 2026-10-09)
+- PC 오른쪽 목록 폭(2026-11-06): `body` grid 두 번째 열이 `clamp(380px, var(--side-w), 60vw)`, `#sideGrip`(#side 왼쪽 가장자리 10px 띠, Pointer Events 캡처, 폰·body.app 은 display:none)을 끌면 `--side-w` 갱신,
+  놓을 때 `settings.sideW`(px, 기본 380 이면 키 삭제)로 저장 → `applySideW()` 가 시작 때 적용. 두 번 누르면 기본 폭. 끄는 동안 `body.resizing` 이 iframe 의 pointer-events 를 끔(유튜브 iframe 이 마우스를 먹어 pointermove 가 끊기는 것 방지)
 - 목록 순서 변경: PC 는 HTML5 DnD(`.item[draggable]`, `moveItem`) — **dragover/drop 은 행이 아니라 `#list` 가 받고 `dropTarget(y, from)` 으로 자리를 계산**(행마다 받으면 행 사이 8px 틈·목록 여백에 놓았을 때
   아무 일도 안 일어남 → "순서 바꾸기가 안 된다"는 보고의 원인, 2026-11-04). 손잡이(≡) Pointer Events 끌기(`attachGrip`)는 PC·폰 공통(터치 노트북 대비), 왼쪽 스와이프 삭제(`attachSwipe`)는 폰만.
   **끄는 동안 DOM 을 옮기면(insertBefore) 포인터 캡처가 풀려 pointerup 이 안 옴** → 행은 transform 으로만 띄우고 표시선(.drop-before/after)으로 자리 표시, 손 뗄 때 `moveItem` 한 번. 리스너는 document 에 걸어 캡처와 무관하게 받음,

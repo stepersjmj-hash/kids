@@ -30,7 +30,8 @@
   }
   * { box-sizing:border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:var(--gowun); }
-  body { display:grid; grid-template-columns:minmax(0,1fr) 380px; grid-template-rows:100vh; grid-template-rows:100dvh; }
+  /* 오른쪽 목록 폭: --side-w (설정 sideW, 손잡이 #sideGrip 로 조절). 380px 이 최소, 창의 60% 가 최대 */
+  body { display:grid; grid-template-columns:minmax(0,1fr) clamp(380px, var(--side-w, 380px), 60vw); grid-template-rows:100vh; grid-template-rows:100dvh; }
   body.tv { grid-template-columns:minmax(0,1fr); }
   body.tv #side { display:none; }
   button { font:inherit; color:inherit; background:none; border:0; padding:0; margin:0; cursor:pointer; }
@@ -178,7 +179,14 @@
   #frame:-webkit-full-screen #player-wrap { border-radius:0; }
 
   /* ---------- 사이드 (PC 목록) ---------- */
-  #side { background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column; min-height:0; }
+  #side { position:relative; background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column; min-height:0; }
+  /* 폭 조절 손잡이: 목록 왼쪽 가장자리(테두리 위) 10px 띠. 끌면 넓어지고 두 번 누르면 기본 폭 */
+  #sideGrip { position:absolute; left:-5px; top:0; bottom:0; width:10px; cursor:col-resize; z-index:5; touch-action:none; }
+  #sideGrip::before { content:''; position:absolute; left:4px; top:0; bottom:0; width:2px; background:var(--focus); opacity:0; transition:opacity .15s; }
+  #sideGrip:hover::before, body.resizing #sideGrip::before { opacity:1; }
+  body.resizing { cursor:col-resize; user-select:none; }
+  body.resizing iframe { pointer-events:none; }   /* 끄는 동안 유튜브 iframe 이 마우스 이벤트를 먹지 않게 */
+  body.app #sideGrip { display:none; }
   #side header { padding:24px 22px 16px; display:flex; flex-direction:column; gap:14px; border-bottom:1px solid var(--line); flex:none; }
   #titleRow { display:flex; flex-wrap:wrap; align-items:center; gap:14px 8px; }
   #side h1 { flex:1; min-width:0; margin:0; font:400 24px/30px var(--jua); padding-top:3px; white-space:nowrap; }
@@ -370,6 +378,7 @@
     #btnPlay { width:46px; height:46px; padding-bottom:0; box-shadow:inset 0 2px 0 rgba(255,255,255,.35), inset 0 -4px 0 var(--accent-dark); } #btnPlay svg { width:21px; height:21px; }
     #frame { width:100%; max-width:none; border-width:8px; border-radius:22px; margin-top:0; }
     #player-wrap { border-radius:14px; }
+    #sideGrip { display:none; }
     #side, body.tv #side { display:flex; flex:1; min-height:0; border-left:0; padding-bottom:env(safe-area-inset-bottom); overflow-y:auto; overflow-x:hidden; }   /* 폰은 TV 모드여도 목록을 보여 준다. 머리(제목·카드)와 목록이 함께 스크롤 */
     #side header { padding:18px 20px 12px; border-bottom:0; }
     #titleRow { flex-wrap:nowrap; }
@@ -451,6 +460,7 @@
 </div>
 
 <aside id="side">
+  <div id="sideGrip" title="끌어서 목록 폭 조절 · 두 번 누르면 기본 폭"></div>
   <header>
     <div id="titleRow">
       <h1><span class="ph">하이쮸 플레이어</span></h1>
@@ -534,7 +544,7 @@ const KEY = 'home-playlist-v1';
 const SETTINGS_KEY = 'home-playlist-settings-v1';
 let items = [];               // [{id, title, bad}]
 let idx = -1;                 // 현재 인덱스
-let settings = { loop:true, shuffle:false, tv:false, pl:'' };  // pl: 연결된 유튜브 재생목록 ID
+let settings = { loop:true, shuffle:false, tv:false, pl:'' };  // pl: 연결된 유튜브 재생목록 ID, sideW: PC 오른쪽 목록 폭(px, 없으면 기본 380)
 let player = null, ready = false;
 let ytReady = false, pendingSync = false, syncing = false;   // IFrame API 로드 여부, 로드 전 요청된 동기화
 let order = [];               // 셔플 순서(인덱스 배열)
@@ -569,6 +579,33 @@ async function loadRemote(url){
     save(); rebuildOrder(); render(); toast(`원격 목록 ${items.length}개 불러옴`);
     fillTitles();
   } catch(e){ toast('원격 목록을 읽지 못했습니다'); console.error(e); }
+}
+
+/* ---------- PC 오른쪽 목록 폭 조절 (#sideGrip) ---------- */
+const SIDE_MIN = 380;                                          // 기본 폭 = 최소 폭
+const sideMax = () => Math.floor(window.innerWidth * 0.6);
+function applySideW(){ document.body.style.setProperty('--side-w', (settings.sideW > SIDE_MIN ? settings.sideW : SIDE_MIN) + 'px'); }
+{
+  const grip = $('#sideGrip');
+  let w = 0;
+  grip.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault(); grip.setPointerCapture(e.pointerId); document.body.classList.add('resizing');
+    w = $('#side').getBoundingClientRect().width;
+  });
+  grip.addEventListener('pointermove', e => {
+    if (!grip.hasPointerCapture(e.pointerId)) return;
+    w = Math.min(sideMax(), Math.max(SIDE_MIN, Math.round(window.innerWidth - e.clientX)));
+    document.body.style.setProperty('--side-w', w + 'px');
+  });
+  const done = e => {
+    if (!grip.hasPointerCapture(e.pointerId)) return;
+    grip.releasePointerCapture(e.pointerId); document.body.classList.remove('resizing');
+    if (w > SIDE_MIN) settings.sideW = w; else delete settings.sideW;
+    saveSettings();
+  };
+  grip.addEventListener('pointerup', done); grip.addEventListener('pointercancel', done);
+  grip.addEventListener('dblclick', () => { delete settings.sideW; applySideW(); saveSettings(); toast('목록 폭을 기본으로'); });
 }
 
 /* ---------- URL → ID ---------- */
@@ -1637,6 +1674,7 @@ function handleAddParam(raw){
 
 /* ---------- 시작 ---------- */
 load();
+applySideW();
 simTvWas = !!settings.tv;
 save._sig = listSig(items);
 const hadToken = restoreToken();
