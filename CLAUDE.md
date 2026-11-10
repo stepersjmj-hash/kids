@@ -85,6 +85,8 @@ eelsnap\` 에 덮어쓰고
   실제 TV(1920×1080, 밀도 2 → CSS 960×540)와 남는 차이는 글꼴 렌더링뿐(adb screencap 으로 비교 확인). 흉내 모드는 `saveSettings()` 가 tv 값을 원래대로 저장해 PC 화면을 오염시키지 않음
 - ←/→ 연속 누름(`ARROW_WAIT` 200ms 안): 2번 10초 · 3번 30초 · 이후 +10초 (`seekTotal`/`seekByTotal`), 한 번 누름은 200ms 지연 후 실행. 연속 seek 는
   `seekBase + seekSum` 으로 계산 (seekTo 직후 getCurrentTime 이 안 바뀌어 누적이 안 됐던 문제)
+- ◀▶ 길게(앱 v1.5+, `dispatchKeyEvent` 의 DPAD_LEFT/RIGHT 분기 — 그 전엔 반복 입력을 버렸음): 처음 누름은 그대로 `ArrowLeft/Right`, 1초 `ArrowLeftHold`(안내 토스트 + `arrowUndo` 로 첫 누름의 포커스 이동 되돌림),
+  3초 `ArrowLeftLong`(= `step(∓1)`), 1~3초에 떼면 `ArrowCancel`. handleKey 맨 앞에서 처리, 창·골라 보기·전체화면이면 무시. 흉내 모드는 키보드 ◀▶ 누르고 있기(반복 keydown 은 삼킴)
 - 가운데 버튼 길게(앱 v1.4+, `dispatchKeyEvent`): 떼는 순간 `Enter`, 0.5초 넘게 누르면 `EnterHold`(안내 토스트), 2초 넘으면 `EnterLong`(골라 보기 순서 바꾸기 `tvMoveStart`), 0.5~2초에 떼면 `EnterCancel`.
   순서 바꾸기 모드(`tvMove`): ◀▶ ±1, ▲▼ ±3 → `moveItem` 즉시 반영, ● 확정, ↩ `tvMoveCancel`(시작 때 스냅샷 `tvMoveSnap` 으로 복원). 흉내 모드는 키보드 Enter 길게 누르기로 같은 신호 생성
 - 가운데 버튼 연타(`ENTER_WAIT` 320ms, `enterPress`): 3번 = 삭제 확인(`askDeleteTv` — 재생 화면은 idx, 골라 보기는 tvSel). 한두 번 누름은 320ms 뒤 그 횟수만큼 실행.

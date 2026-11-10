@@ -573,6 +573,7 @@
   <h2>리모컨 사용법</h2>
   <div class="rows">
     <div><b>◀ ▶</b><span>아래 버튼 고르기 (이전 · 재생 · 다음 · 전체화면). 빠르게 두 번 = 10초, 세 번 = 30초 이동</span></div>
+    <div><b>◀ ▶ 3초</b><span>누르고 있으면 이전 · 다음 영상 (1초 지나면 안내가 떠요)</span></div>
     <div><b>오른쪽 목록</b><span>전체화면 버튼에서 ▶ 또는 ▲ 로 들어가 ▲▼ 고르고 ● 재생, ◀ · ↩ 로 돌아오기</span></div>
     <div><b>●</b><span>고른 버튼 누르기. 세 번 연타 = 지금 영상 삭제</span></div>
     <div><b>▲ ▼</b><span>골라 보기 열기. 안에서 ◀▶▲▼ 로 고르고 ● 로 재생 (영상 위에서 세 번 연타 = 삭제)</span></div>
@@ -1715,10 +1716,12 @@ function barMark(){
 const ARROW_WAIT = 200;
 const seekTotal = n => n < 2 ? 0 : n === 2 ? 10 : 30 + 10 * (n - 3);   // n번 연속 누름 → 총 이동 초
 let arrowTimer = null, arrowKey = null, arrowCount = 0, seekSum = 0, seekBase = 0;
+let arrowUndo = null;   // 방금 한 번 누름으로 옮긴 포커스를 되돌리는 함수 — ◀▶ 길게 누르기(Hold)가 오면 실행해 포커스는 제자리
 function arrowSingle(k){
+  arrowUndo = null;
   if (isFull()) step(k === 'ArrowRight' ? 1 : -1);
-  else if (k === 'ArrowRight' && barIdx >= barButtons().length - 1 && sideEnter()) {}   // 맨 오른쪽(전체화면)에서 ▶ = 오른쪽 목록으로
-  else { barIdx += k === 'ArrowRight' ? 1 : -1; barMark(); }
+  else if (k === 'ArrowRight' && barIdx >= barButtons().length - 1 && sideEnter()) { arrowUndo = sideExit; }   // 맨 오른쪽(전체화면)에서 ▶ = 오른쪽 목록으로
+  else { const was = barIdx; barIdx += k === 'ArrowRight' ? 1 : -1; barMark(); arrowUndo = () => { barIdx = was; barMark(); }; }
 }
 function seekByTotal(total){
   if (!ready || idx < 0) return;
@@ -1756,6 +1759,16 @@ function enterPress(single, triple){
   enterTimer = setTimeout(() => { const n = enterCount; enterTimer = null; enterCount = 0; for (let i = 0; i < n; i++) single(); }, ENTER_WAIT);
 }
 function handleKey(k){
+  // 리모컨 ◀/▶ 길게 누르기 (앱 v1.5+ 가 보냄): 1초 = Hold(안내, 처음 누름으로 옮긴 포커스 되돌림), 3초 = Long(이전/다음 영상), 1~3초에 떼면 ArrowCancel.
+  // 창·골라 보기가 열려 있거나 전체화면(한 번 누름이 이미 이전/다음)이면 무시
+  if (/^Arrow(Left|Right)(Hold|Long)$/.test(k) || k === 'ArrowCancel') {
+    const prev = k.startsWith('ArrowLeft'), free = !confirmOpen() && !helpOpen() && !tvOpen() && !isFull();
+    if (k.endsWith('Hold')) { if (free) { if (arrowUndo) { arrowUndo(); arrowUndo = null; } toast(`계속 누르고 있으면 ${prev ? '이전' : '다음'} 영상`, 2500); } }
+    else if (k.endsWith('Long')) { if (free) { $('#toast').classList.remove('show'); step(prev ? -1 : 1); } }
+    else $('#toast').classList.remove('show');
+    return true;
+  }
+  arrowUndo = null;   // 다른 키(새로 누름 포함)가 오면 예전 되돌리기는 버림 — 새 ◀▶ 한 번 누름은 0.2초 뒤 arrowSingle 이 다시 채움
   if (confirmOpen()) { confirmKey(k); return true; }
   // 가운데 버튼 길게 누르기 (앱이 보냄): 0.5초 = 안내, 2초 = 골라 보기에서 고른 영상 순서 바꾸기, 2초 전에 떼면 취소
   if (k === 'EnterHold') { if (tvOpen() && tvSel >= 0 && tvMove < 0) toast('계속 누르고 있으면 이 영상의 순서를 바꿀 수 있어요', 2500); return true; }
@@ -1790,13 +1803,24 @@ function handleKey(k){
 }
 // ?app=1 흉내 모드: 키보드 Enter 를 누르고 있으면 앱과 같은 EnterHold(0.5초)/EnterLong(2초), 떼면 Enter/EnterCancel
 let simDownAt = 0, simHold = false, simLong = false;
+// ◀▶ 도 같은 방식: 누르고 있으면 1초 Hold · 3초 Long (반복 keydown 은 삼킴 — 안 그러면 연타로 보여 앞뒤로 이동해 버림), 1~3초에 떼면 ArrowCancel
+let simArrowAt = 0, simArrowHold = false, simArrowLong = false;
 document.addEventListener('keyup', e => {
+  if (SIM && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { if (simArrowHold && !simArrowLong) handleKey('ArrowCancel'); simArrowHold = simArrowLong = false; return; }
   if (!SIM || e.key !== 'Enter' || e.target.tagName === 'INPUT') return;
   if (!simLong) handleKey(simHold ? 'EnterCancel' : 'Enter');
   simHold = simLong = false;
 });
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
+  if (SIM && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && e.repeat) {
+    e.preventDefault();
+    const held = Date.now() - simArrowAt;
+    if (!simArrowLong && held >= 3000) { simArrowLong = true; handleKey(e.key + 'Long'); }
+    else if (!simArrowHold && held >= 1000) { simArrowHold = true; handleKey(e.key + 'Hold'); }
+    return;
+  }
+  if (SIM && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { simArrowAt = Date.now(); simArrowHold = simArrowLong = false; }
   if (SIM && e.key === 'Enter') {
     e.preventDefault();
     if (!e.repeat) { simDownAt = Date.now(); simHold = simLong = false; return; }

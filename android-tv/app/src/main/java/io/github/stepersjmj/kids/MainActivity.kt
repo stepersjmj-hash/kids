@@ -53,6 +53,8 @@ class MainActivity : Activity() {
     private var lastBack = 0L
     private var enterHold = false     // 가운데 버튼을 0.5초 넘게 누르고 있음 (페이지에 EnterHold 보냄)
     private var enterLong = false     // 2초 넘게 눌러 EnterLong 을 보냈음 (떼어도 Enter 안 보냄)
+    private var arrowHold = false     // ◀/▶ 를 1초 넘게 누르고 있음 (페이지에 ArrowLeftHold 등 보냄 → 안내)
+    private var arrowLong = false     // ◀/▶ 를 3초 넘게 눌러 ArrowLeftLong 등을 보냈음 (페이지가 이전/다음 영상 재생)
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -159,6 +161,19 @@ class MainActivity : Activity() {
                         else sendKey("Enter")
                         enterHold = false; enterLong = false
                     }
+                }
+                return true
+            }
+            if (jsKey == "ArrowLeft" || jsKey == "ArrowRight") {
+                // ◀/▶ 길게: 처음 누름은 그대로 보내고(버튼 이동·연타 이동), 1초 = Hold(안내), 3초 = Long(이전/다음 영상), 1~3초에 떼면 ArrowCancel
+                val held = event.eventTime - event.downTime
+                when (event.action) {
+                    KeyEvent.ACTION_DOWN -> {
+                        if (event.repeatCount == 0) { arrowHold = false; arrowLong = false; sendKey(jsKey) }
+                        else if (!arrowLong && held >= 3000) { arrowLong = true; sendKey(jsKey + "Long") }
+                        else if (!arrowHold && held >= 1000) { arrowHold = true; sendKey(jsKey + "Hold") }
+                    }
+                    KeyEvent.ACTION_UP -> { if (arrowHold && !arrowLong) sendKey("ArrowCancel"); arrowHold = false; arrowLong = false }
                 }
                 return true
             }
