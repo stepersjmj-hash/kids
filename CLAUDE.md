@@ -116,7 +116,7 @@ eelsnap\` 에 덮어쓰고
   목록이 안 바뀜** → 매번 destroy 후 새로 생성. 실패(비공개·잘못된 ID)는 15초 타임아웃으로 처리.
   129개 재생목록까지 확인됨(상한은 미확인, 예전 기준 200개 내외로 알려짐)
 - localStorage 키: `home-playlist-v1`, `home-playlist-settings-v1` — 형식 바꾸면 키 버전 올릴 것. 항목은 `{id,title,bad?,start?}` — `start`(초)는 영상별 시작 시각(2026-10-27).
-  PC·폰 목록 행의 ⏱(SVG `ICON.clock` 알약 `.st`, PC 제목 아래 줄은 '지금 보는 중'/ID 대신 'mp3 다운로드' 버튼(재생 불가면 그 문구), 설정되면 `.set` 노란 알약+시간. `openStart` → #startDlg "여기서부터 보기", '지금 위치 1:12' 라벨은 재생 중이면 0.5초마다 갱신,
+  PC·폰 목록 행의 ⏱(SVG `ICON.clock` 알약 `.st`, PC 제목 아래 줄은 '지금 보는 중'/ID 대신 'mp3 다운' 버튼(재생 불가면 그 문구), 설정되면 `.set` 노란 알약+시간. `openStart` → #startDlg "여기서부터 보기", '지금 위치 1:12' 라벨은 재생 중이면 0.5초마다 갱신,
   '처음부터로' = 지우기. 폰은 화면 가운데 카드. ⏱·✕ 위 mousedown 은 행 draggable 을 잠시 꺼 DnD 가 안 시작되게) 로 설정, `loadVideoById({videoId,startSeconds})` 로 재생, 미리 받기도 그 지점에서 대기.
   동기화 서명 `listSig` 에 `@start` 가 들어가 시작 시각만 바꿔도 드라이브로 밀림(드라이브 파일·JSON 내보내기에도 start 포함). TV 골라 보기 썸네일에 ⏱ 배지
 - 카테고리(2026-11-10): `cats`(이름 배열, 순서 = 탭 순서, localStorage `home-playlist-cats`) + 항목 `cat`(이름 하나, 없으면 '전체'에만) + 기기별 `settings.cat`('' = 전체, `curCat()` 은 없는 이름이면 '').

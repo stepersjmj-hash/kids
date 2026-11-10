@@ -249,7 +249,7 @@
   .item .t { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
   .item .t em { font:400 13px/1.35 var(--gowun); font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .item .t small { font:400 11px/1 var(--gowun); color:var(--sub2); }
-  /* 제목 아래 'mp3 다운로드' (PC 전용, mp3-server.py 가 떠 있어야 함) */
+  /* 제목 아래 'mp3 다운' (PC 전용, mp3-server.py 가 떠 있어야 함) */
   .item .t .dl { align-self:flex-start; font:400 11px/1 var(--gowun); color:var(--sub2); text-decoration:underline dotted; text-underline-offset:2px; }
   .item .t .dl:hover { color:var(--accent); }
   .item .t .dl.busy { color:var(--sub); text-decoration:none; pointer-events:none; }
@@ -1125,7 +1125,7 @@ function render(){
       <div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <span class="n">${p+1}</span>
       <span class="thw"><img src="${thumb(it.id)}" alt="" draggable="false">${rateOf(it) !== 1 ? `<b class="rt" title="재생 속도">${rateOf(it)}x</b>` : ''}</span>
-      <div class="t"><em>${esc(it.title||it.id)}</em><div class="sub">${cg}${it.bad ? '<small>재생 불가 · 건너뜀</small>' : `<button class="dl" title="소리만 mp3(128k) 로 내려받기${startOf(it) ? ` — ${fmt(startOf(it))} 부터` : ''}">mp3 다운로드</button>`}</div></div>
+      <div class="t"><em>${esc(it.title||it.id)}</em><div class="sub">${cg}${it.bad ? '<small>재생 불가 · 건너뜀</small>' : `<button class="dl" title="소리만 mp3(128k) 로 내려받기${startOf(it) ? ` — ${fmt(startOf(it))} 부터` : ''}">mp3 다운</button>`}</div></div>
       <button class="st${startOf(it) ? ' set' : ''}" title="시작 시각: 이 영상을 여기서부터 재생">${ICON.clock}${startOf(it) ? `<span>${fmt(startOf(it))}</span>` : ''}</button>
       <button class="del" title="삭제">${ICON.x}</button>
       <div class="swipeBg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg><span>삭제</span></div>`;
@@ -1625,7 +1625,7 @@ async function downloadMp3(i, btn){
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
     toast(`mp3 저장: ${name}` + (start ? ` (${fmt(start)} 부터)` : ''), 3000);
-  } finally { btn.classList.remove('busy'); btn.textContent = 'mp3 다운로드'; }
+  } finally { btn.classList.remove('busy'); btn.textContent = 'mp3 다운'; }
 }
 // TV: 리모컨으로 쓰는 삭제 확인 (←/→ 취소·삭제, 가운데 실행, 뒤로 취소). 지금 보는 영상을 지우면 다음 영상으로 넘어간다
 const confirmOpen = () => !$('#confirm').hidden;
