@@ -61,23 +61,27 @@ object Updater {
                 val latest = parse(tag)
                 if (!tag.startsWith("tv-v") || !newer(latest, parse(BuildConfig.VERSION_NAME))) return@thread
                 val notes = j.optString("body").trim().take(300)
-                main.post { if (!act.isFinishing) ask(act, latest.joinToString("."), notes) }
+                // 그 릴리스의 kids-tv.apk 정확한 주소 (고정 주소 latest/download 는 릴리스 직후 몇 분간 예전 버전으로 캐시됨)
+                val assets = j.optJSONArray("assets")
+                val url = (0 until (assets?.length() ?: 0)).map { assets!!.getJSONObject(it) }
+                    .firstOrNull { it.optString("name") == "kids-tv.apk" }?.optString("browser_download_url")?.takeIf { it.startsWith("https://") } ?: APK
+                main.post { if (!act.isFinishing) ask(act, latest.joinToString("."), notes, url) }
             } catch (_: Exception) { /* 네트워크 오류는 조용히 넘김 — 다음에 다시 확인 */ }
         }
     }
 
-    private fun ask(act: Activity, ver: String, notes: String) {
+    private fun ask(act: Activity, ver: String, notes: String, url: String) {
         AlertDialog.Builder(act, android.R.style.Theme_DeviceDefault_Dialog_Alert)
             .setTitle("새 버전 v$ver 이 있어요")
             .setMessage("지금 버전: v${BuildConfig.VERSION_NAME}" + (if (notes.isNotEmpty()) "\n\n$notes" else "") +
                 "\n\n[업데이트] 를 누르면 받아서 설치합니다. 설치 확인 화면이 나오면 '설치' 를 눌러 주세요. 끝나면 하이쮸를 다시 열면 됩니다.")
-            .setPositiveButton("업데이트") { _, _ -> start(act) }
+            .setPositiveButton("업데이트") { _, _ -> start(act, url) }
             .setNegativeButton("나중에", null)
             .show()
             .getButton(AlertDialog.BUTTON_POSITIVE).requestFocus()
     }
 
-    private fun start(act: Activity) {
+    private fun start(act: Activity, url: String) {
         // 이 앱이 다른 앱(자기 새 버전)을 설치해도 되는지 — 처음 한 번은 설정에서 허용해야 함
         if (Build.VERSION.SDK_INT >= 26 && !act.packageManager.canRequestPackageInstalls()) {
             AlertDialog.Builder(act, android.R.style.Theme_DeviceDefault_Dialog_Alert)
@@ -101,7 +105,7 @@ object Updater {
             .setTitle("새 버전 받는 중…").setMessage("0%").setCancelable(false).show()
         thread {
             try {
-                val c = URL(APK).openConnection() as HttpURLConnection   // github.com → objects.githubusercontent.com 리다이렉트(https→https 는 자동)
+                val c = URL(url).openConnection() as HttpURLConnection   // github.com → objects.githubusercontent.com 리다이렉트(https→https 는 자동)
                 c.setRequestProperty("User-Agent", "kids-tv-app")
                 c.connectTimeout = 15000; c.readTimeout = 30000
                 if (c.responseCode != 200) throw Exception("HTTP ${c.responseCode}")
