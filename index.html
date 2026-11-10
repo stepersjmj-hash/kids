@@ -57,6 +57,10 @@
   #player-wrap { --crop:72px; }
   #player-wrap .yt iframe { position:absolute; left:0; top:calc(-1 * var(--crop)); width:100%; height:calc(100% + 2 * var(--crop)); display:block; }
   #player-wrap .yt.standby { visibility:hidden; pointer-events:none; }
+  /* NAS 파일(nas: 항목)은 유튜브 대신 <video> 로 재생 — 그동안 유튜브 플레이어 둘은 가림 */
+  #nasVideo { position:absolute; inset:0; width:100%; height:100%; background:#000; object-fit:contain; display:none; }
+  #player-wrap.nas #nasVideo { display:block; }
+  #player-wrap.nas .yt { visibility:hidden; pointer-events:none; }
   /* 끝화면/추천 가리기용 덮개: 재생 중엔 투명, 전환 중엔 불투명 */
   #cover { position:absolute; inset:0; background:var(--video); display:flex; align-items:center; justify-content:center; color:#aab3c4; font:400 20px/1.4 var(--jua); padding:0 24px; text-align:center; transition:opacity .25s; pointer-events:none; overflow:hidden; }
   #cover img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; }
@@ -336,6 +340,11 @@
   .src .n { flex:1; font-size:14px; }
   .src .n small { display:block; color:var(--sub); font-size:11px; margin-top:2px; }
   /* ---------- 카테고리 (음악·영상처럼 나눠 보기) ---------- */
+  #nasRow { display:flex; }
+  #btnNas { height:34px; display:inline-flex; align-items:center; gap:6px; padding:2px 14px 0 12px; border-radius:999px; background:#fff; border:1px solid var(--line2); font:400 14px/1 var(--jua); color:var(--text); }
+  #btnNas svg { width:16px; height:16px; margin-top:-2px; color:var(--accent); }
+  #btnNas:hover { background:#fff3dc; }
+  #btnNas:disabled { opacity:.6; pointer-events:none; }
   #cats { display:flex; flex-wrap:wrap; gap:6px; }
   #cats:empty { display:none; }
   .tab { height:34px; display:inline-flex; align-items:center; gap:6px; padding:2px 14px 0; border-radius:999px; background:#fff; border:1px solid var(--line); font:400 15px/1 var(--jua); white-space:nowrap; flex:none; }
@@ -506,6 +515,7 @@
   <div id="frame"><button id="fsExit" title="전체화면 해제 (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div id="player-wrap">
     <div class="yt" id="wrapA"><div id="playerA"></div></div>
     <div class="yt standby" id="wrapB"><div id="playerB"></div></div>
+    <video id="nasVideo" playsinline preload="auto"></video>
     <div id="cover"><img alt=""><span>재생목록에서 영상을 선택하세요</span></div>
   </div></div>
   <div id="titleRow2"><div id="nowTitle">—</div><div id="dots"></div></div>
@@ -553,6 +563,7 @@
       <input type="file" id="fileInput" accept="application/json" hidden>
     </div>
     <div id="link"><span id="linkText">유튜브 재생목록 URL을 붙여넣으면 연결됩니다</span><button id="btnSync" hidden>동기화</button><button id="btnUnlink" hidden>연결 해제</button></div>
+    <div id="nasRow"><button id="btnNas" title="NAS 의 kids 폴더 영상을 폴더별 카테고리로 가져오기 (이미 있는 건 건너뜀)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2.5h6.5A2.5 2.5 0 0 1 21 10v6.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/><path d="M12 10.5v5M9.5 13l2.5 2.5 2.5-2.5"/></svg><span>NAS에서 가져오기</span></button></div>
     <div id="cats"></div>
   </header>
   <div id="list"></div>
@@ -1093,6 +1104,7 @@ async function importSource(src, mode){
 
 /* ---------- 제목 가져오기 (oEmbed) ---------- */
 async function fetchTitle(id){
+  if (isNas({ id })) return nasRel(id).split('/').pop().replace(/\.[^.]+$/, '');
   try {
     const r = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`);
     if (!r.ok) throw 0;
@@ -1113,7 +1125,10 @@ const ICON = {
   clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 10v3.5l2.2 1.6M10 3h4"/></svg>',
 };
 const TOUCH = matchMedia('(pointer:coarse)').matches;   // 폰: HTML5 DnD 대신 Pointer Events
-const thumb = id => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+const thumb = id => isNas({ id }) ? `${NAS_API}/kids/thumb?path=${encodeURIComponent(nasRel(id))}` : `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+// NAS 썸네일이 없으면(음악 파일·서버 꺼짐) 기본 그림
+const NAS_NOTHUMB = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90"><rect width="160" height="90" fill="#2a3140"/><path d="M68 30v30l26-15z" fill="#aab3c4"/></svg>');
+document.addEventListener('error', e => { const t = e.target; if (t.tagName === 'IMG' && t.src.includes('/kids/thumb?')) t.src = NAS_NOTHUMB; }, true);
 let dragFrom = -1;
 function render(){
   const el = $('#list'); el.innerHTML = '';
@@ -1129,7 +1144,7 @@ function render(){
       <div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <span class="n">${p+1}</span>
       <span class="thw"><img src="${thumb(it.id)}" alt="" draggable="false">${rateOf(it) !== 1 ? `<b class="rt" title="재생 속도">${rateOf(it)}x</b>` : ''}</span>
-      <div class="t"><em>${esc(it.title||it.id)}</em><div class="sub">${cg}${it.bad ? '<small>재생 불가 · 건너뜀</small>' : `<button class="dl" title="소리만 mp3(128k) 로 내려받기${startOf(it) ? ` — ${fmt(startOf(it))} 부터` : ''}">mp3 다운</button>`}</div></div>
+      <div class="t"><em>${esc(it.title||it.id)}</em><div class="sub">${cg}${it.bad ? '<small>재생 불가 · 건너뜀</small>' : isNas(it) ? '<small>NAS</small>' : `<button class="dl" title="소리만 mp3(128k) 로 내려받기${startOf(it) ? ` — ${fmt(startOf(it))} 부터` : ''}">mp3 다운</button>`}</div></div>
       <button class="st${startOf(it) ? ' set' : ''}" title="시작 시각: 이 영상을 여기서부터 재생">${ICON.clock}${startOf(it) ? `<span>${fmt(startOf(it))}</span>` : ''}</button>
       <button class="del" title="삭제">${ICON.x}</button>
       <div class="swipeBg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg><span>삭제</span></div>`;
@@ -1384,7 +1399,7 @@ const fmt = x => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2,
 function tickProgress(){
   if (scrubbing) return;
   let cur = 0, dur = 0;
-  if (ready && idx >= 0) { try { cur = player.getCurrentTime() || 0; dur = player.getDuration() || 0; } catch {} }
+  if (ready && idx >= 0) { try { cur = ctl().getCurrentTime() || 0; dur = ctl().getDuration() || 0; } catch {} }
   const pct = dur ? Math.min(100, cur / dur * 100) : 0;
   $('#prog .fill').style.width = pct + '%'; $('#prog .knob').style.left = pct + '%';
   $('#tCur').textContent = fmt(cur); $('#tDur').textContent = fmt(dur);
@@ -1395,10 +1410,10 @@ let scrubbing = false;
 {
   const track = $('#prog .track');
   const ratioAt = e => { const r = track.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); };
-  const paint = r => { let dur = 0; try { dur = player.getDuration() || 0; } catch {} $('#prog .fill').style.width = r * 100 + '%'; $('#prog .knob').style.left = r * 100 + '%'; $('#tCur').textContent = fmt(r * dur); };
+  const paint = r => { let dur = 0; try { dur = ctl().getDuration() || 0; } catch {} $('#prog .fill').style.width = r * 100 + '%'; $('#prog .knob').style.left = r * 100 + '%'; $('#tCur').textContent = fmt(r * dur); };
   track.addEventListener('pointerdown', e => { if (!ready || idx < 0) return; scrubbing = true; try { track.setPointerCapture(e.pointerId); } catch {} paint(ratioAt(e)); e.preventDefault(); });
   track.addEventListener('pointermove', e => { if (scrubbing) paint(ratioAt(e)); });
-  track.addEventListener('pointerup', e => { if (!scrubbing) return; scrubbing = false; let dur = 0; try { dur = player.getDuration() || 0; } catch {} if (dur) { try { player.seekTo(ratioAt(e) * dur, true); } catch {} } tickProgress(); });
+  track.addEventListener('pointerup', e => { if (!scrubbing) return; scrubbing = false; let dur = 0; try { dur = ctl().getDuration() || 0; } catch {} if (dur) { try { ctl().seekTo(ratioAt(e) * dur, true); } catch {} } tickProgress(); });
   track.addEventListener('pointercancel', () => { scrubbing = false; });
 }
 const setPlayIcon = on => $('#btnPlay').classList.toggle('playing', on);
@@ -1429,6 +1444,76 @@ function step(dir){
   playIndex(order[orderPos], true);
 }
 
+/* ---------- NAS 파일 (하이쮸 kids 폴더) ----------
+   항목 id 가 'nas:폴더/파일.mp4' 이면 NAS Web Station 의 파일을 <video id="nasVideo"> 로 재생한다(Range 지원이라 탐색 가능).
+   목록·썸네일은 Reelsnap 서버(mjdownloader server.js 의 /kids/list·/kids/thumb). ?nas=http://127.0.0.1:3199 로 서버 바꿔 테스트 */
+const NAS_MEDIA = 'https://stepersjmj.synology.me/site/mjimage/kids/';
+const NAS_API = new URLSearchParams(location.search).get('nas') || 'https://stepersjmj.synology.me:8443';
+const isNas = it => !!it && typeof it.id === 'string' && it.id.startsWith('nas:');
+const nasRel = id => id.slice(4);
+const nasUrl = id => NAS_MEDIA + nasRel(id).split('/').map(encodeURIComponent).join('/');
+const nv = $('#nasVideo');
+let nasOn = false;   // 지금 활성 재생기가 <video> 인가
+// 유튜브 플레이어와 같은 이름의 함수 → 진행 막대·속도·건너뛰기·시작 시각 코드가 ctl() 하나로 둘 다 다룸
+const VID = {
+  getCurrentTime: () => nv.currentTime || 0,
+  getDuration: () => isFinite(nv.duration) ? nv.duration : 0,
+  seekTo: t => { nv.currentTime = t; },
+  playVideo: () => { nv.play().catch(() => {}); },
+  pauseVideo: () => nv.pause(),
+  stopVideo: () => nv.pause(),
+  getPlayerState: () => nv.ended ? 0 : nv.paused ? 2 : 1,   // YT.PlayerState: ENDED 0 · PLAYING 1 · PAUSED 2
+  getPlaybackRate: () => nv.playbackRate,
+  setPlaybackRate: r => { nv.playbackRate = r; },
+};
+const ctl = () => nasOn ? VID : player;
+function playNas(it){
+  try { player.stopVideo(); } catch {}            // 유튜브는 멈춤 (stopVideo 는 PAUSED 를 안 내서 일시정지 덮개가 안 뜸)
+  nasOn = true; $('#player-wrap').classList.add('nas');
+  nv.src = nasUrl(it.id) + (startOf(it) ? '#t=' + startOf(it) : '');   // 시작 시각은 미디어 조각(#t=초)
+  nv.play().catch(() => {});
+}
+function nasStop(){
+  nasOn = false; $('#player-wrap').classList.remove('nas');
+  nv.pause(); nv.removeAttribute('src'); nv.load();
+}
+nv.addEventListener('playing', () => { if (!nasOn) return; hideCover(); setPlayIcon(true); applyRate(); if (!mainStarted) { mainStarted = true; preloadNext(); } });
+nv.addEventListener('pause', () => { if (nasOn && !nv.ended) setPlayIcon(false); });
+nv.addEventListener('ended', () => { if (!nasOn) return; setPlayIcon(false); showCover('다음 영상…'); setTimeout(() => step(1), 150); });
+nv.addEventListener('error', () => {
+  if (!nasOn || !nv.getAttribute('src') || idx < 0 || !items[idx]) return;
+  items[idx].bad = true; save(); toast('NAS 파일을 재생할 수 없음 → 건너뜀'); rebuildOrder(); render();
+  setTimeout(() => step(1), 300);
+});
+// 'NAS에서 가져오기': 폴더마다 카테고리(폴더 이름), 그 안의 파일을 영상으로. 이미 있는 건 건너뛰고 새 파일만 추가
+async function importNas(){
+  const btn = $('#btnNas'), label = btn.querySelector('span');
+  btn.disabled = true; label.textContent = 'NAS 확인 중…';
+  try {
+    const r = await fetch(NAS_API + '/kids/list', { cache: 'no-store' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !Array.isArray(j.folders)) throw new Error(j.error || ('HTTP ' + r.status));
+    let added = 0, total = 0; const per = [];
+    for (const f of j.folders) {
+      if (f.name && !cats.includes(f.name)) cats.push(f.name);
+      let n = 0;
+      for (const x of f.files) {
+        total++;
+        const id = 'nas:' + (f.name ? f.name + '/' : '') + x.name;
+        if (items.some(y => y.id === id)) continue;
+        items.push({ id, title: x.name.replace(/\.[^.]+$/, ''), ...(f.name ? { cat: f.name } : {}) }); n++;
+      }
+      added += n; if (n) per.push(`${f.name || '폴더 밖'} ${n}`);
+    }
+    catsChanged();
+    toast(added ? `NAS 에서 ${added}개 가져옴 — ${per.join(' · ')}` : `새 파일이 없어요 (NAS 의 ${total}개 모두 목록에 있음)`, 3500);
+  } catch (e) {
+    console.error(e);
+    toast('NAS 목록을 받지 못했습니다: ' + e.message, 4500);
+  } finally { btn.disabled = false; label.textContent = 'NAS에서 가져오기'; }
+}
+$('#btnNas').onclick = importNas;
+
 /* ---------- 플레이어 ---------- */
 // 플레이어는 A/B 두 개. `player` = 보이는 쪽(활성), `spare` = 숨긴 쪽(대기).
 // 대기 플레이어에 다음 영상을 음소거로 미리 '재생'해 앞 광고를 소진시킨 뒤 0초에 멈춰 두고, 활성 영상이 끝나면 둘을 맞바꿔
@@ -1450,6 +1535,7 @@ function onYouTubeIframeAPIReady(){
 }
 function onPlayerState(e){
   if (e.target !== player) { onSpareState(e); return; }
+  if (nasOn) return;
   setPlayIcon(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
   if (e.data === YT.PlayerState.PAUSED && idx >= 0 && items[idx]) showCover('일시정지', items[idx].id);   // 유튜브 일시정지 화면(제목·추천) 가리기
   if (e.data === YT.PlayerState.ENDED) { showCover('다음 영상…'); setTimeout(()=>step(1), 150); }
@@ -1458,6 +1544,7 @@ function onPlayerState(e){
 function onPlayerError(e){
   // 100: 없음/비공개, 101/150: 임베드 금지, 2: 잘못된 ID
   if (e.target !== player) { onSpareError(e); return; }
+  if (nasOn) return;
   if (idx>=0 && items[idx]) { items[idx].bad = true; save(); toast(`재생 불가(코드 ${e.data}) → 건너뜀`); rebuildOrder(); render(); }
   setTimeout(()=>step(1), 300);
 }
@@ -1471,6 +1558,8 @@ function playIndex(i, viaOrder){
   if (!ready) return;
   showCover(items[i].title || items[i].id);
   tickProgress();
+  if (isNas(items[i])) { playNas(items[i]); return; }                               // NAS 파일은 <video> 로
+  if (nasOn) nasStop();
   if (spareState !== 'idle' && spareId === items[i].id) { swapToSpare(); return; }   // 미리 받아 둔 영상이면 플레이어 교대
   adMute();
   player.loadVideoById(startOf(items[i]) ? { videoId: items[i].id, startSeconds: startOf(items[i]) } : items[i].id);
@@ -1491,7 +1580,7 @@ function peekNext(){
 function preloadNext(){
   if (!PRELOAD || !spareReady || !mainStarted) return;
   const n = peekNext();
-  if (n < 0) { if (spareState !== 'idle') { try { spare.stopVideo(); } catch {} spareId = null; spareState = 'idle'; } return; }
+  if (n < 0 || isNas(items[n])) { if (spareState !== 'idle') { try { spare.stopVideo(); } catch {} spareId = null; spareState = 'idle'; } return; }
   if (spareId === items[n].id) return;          // 이미 그 영상
   spareId = items[n].id; spareState = 'loading';
   try { spare.mute(); spare.loadVideoById(startOf(items[n]) ? { videoId: spareId, startSeconds: startOf(items[n]) } : spareId); } catch {}
@@ -1539,7 +1628,7 @@ function hideCover(){ $('#cover').classList.add('hidden'); }
 function applyRate(){
   if (!ready || idx < 0 || !items[idx]) return;
   const r = rateOf(items[idx]);
-  try { if (player.getPlaybackRate() !== r) player.setPlaybackRate(r); } catch {}
+  try { if (ctl().getPlaybackRate() !== r) ctl().setPlaybackRate(r); } catch {}
 }
 function cycleRate(){
   const it = items[idx]; if (idx < 0 || !it) { toast('재생 중인 영상이 없습니다'); return; }
@@ -1551,8 +1640,8 @@ function cycleRate(){
 function togglePlay(){
   if (!ready) return;
   if (idx<0) { step(1); return; }
-  const s = player.getPlayerState();
-  s === YT.PlayerState.PLAYING ? player.pauseVideo() : player.playVideo();
+  const s = ctl().getPlayerState();
+  s === YT.PlayerState.PLAYING ? ctl().pauseVideo() : ctl().playVideo();
 }
 
 /* ---------- 추가/도구 ---------- */
@@ -1618,7 +1707,7 @@ function openStart(i){
   const playingThis = ready && i === idx;
   const now = $('#startNow'); now.disabled = !playingThis;
   // '지금 위치 1:12' — 재생 중이면 현재 위치를 라벨에 보여 주고 0.5초마다 갱신
-  const nowAt = () => { let c = 0; try { c = player.getCurrentTime() || 0; } catch {} return c; };
+  const nowAt = () => { let c = 0; try { c = ctl().getCurrentTime() || 0; } catch {} return c; };
   const tickNow = () => { now.querySelector('span').textContent = playingThis ? `지금 위치 ${fmt(nowAt())}` : '지금 위치'; };
   tickNow(); clearInterval(openStart._t); if (playingThis) openStart._t = setInterval(tickNow, 500);
   const close = () => { dlg.hidden = true; dlg.onclick = null; clearInterval(openStart._t); };
@@ -1681,7 +1770,7 @@ function deleteAndContinue(i){
   removeItem(i);
   if (!wasCur) return;
   const j = nextId ? items.findIndex(x => x.id === nextId) : -1;
-  if (j >= 0) playIndex(j); else { try { player.stopVideo(); } catch {} showCover(items.length ? '재생목록에서 영상을 선택하세요' : '목록이 비어 있습니다'); }
+  if (j >= 0) playIndex(j); else { if (nasOn) nasStop(); else { try { player.stopVideo(); } catch {} } showCover(items.length ? '재생목록에서 영상을 선택하세요' : '목록이 비어 있습니다'); }
 }
 $('#btnTools').onclick = () => { const on = document.body.classList.toggle('tools-open'); $('#btnTools').textContent = on ? '도구 닫기' : '도구 보기'; };
 $('#btnClearBad').onclick = () => { items = items.filter(x=>!x.bad); idx = -1; save(); rebuildOrder(); render(); };
@@ -1732,13 +1821,13 @@ function arrowSingle(k){
 }
 function seekByTotal(total){
   if (!ready || idx < 0) return;
-  const st = player.getPlayerState();
+  const st = ctl().getPlayerState();
   if (st !== YT.PlayerState.PLAYING && st !== YT.PlayerState.PAUSED && st !== YT.PlayerState.BUFFERING) return;
   // seekTo 직후엔 getCurrentTime 이 아직 안 바뀌므로 연속 누름은 처음 위치 + 누적값으로 계산
-  if (seekSum === 0) seekBase = player.getCurrentTime();
+  if (seekSum === 0) seekBase = ctl().getCurrentTime();
   seekSum = total;
-  const dur = player.getDuration() || 0, t = Math.max(0, Math.min(dur - 1, seekBase + seekSum));
-  player.seekTo(t, true);
+  const dur = ctl().getDuration() || 0, t = Math.max(0, Math.min(dur - 1, seekBase + seekSum));
+  ctl().seekTo(t, true);
   toast(`${seekSum > 0 ? '⏩ +' : '⏪ '}${seekSum}초 · ${fmt(t)} / ${fmt(dur)}`, 1200);
   tickProgress();
 }

@@ -136,6 +136,12 @@ eelsnap\` 에 덮어쓰고
 - 영상별 재생 속도(2026-11-10): 항목 `rate`(1 이면 키 없음, `rateOf()`/`rateField()`). PC·폰 바의 `#btnRate` 칩(반복·랜덤 옆)이 **지금 영상**의 값을 `RATES` 1 → 1.25 → 1.5 → 0.75 순으로 돌림(`cycleRate`), 앱(body.app)은 칩 숨김·재생만.
   적용은 `applyRate()` 를 활성 플레이어 **PLAYING 때마다** 호출 — loadVideoById 후 1배로 돌아가고, 미리 받기 교대 후에도 새 활성의 PLAYING 에서 맞춰짐(앞 광고는 PLAYING 을 안 내서 정상 속도).
   동기화: listSig 에 `~rate`, 드라이브·JSON 에 rate, mergeLists 필드에 rate. 표시: 목록 행 썸네일 오른쪽 아래 `.thw .rt` 배지(폰 행 폭이 좁아 .sub 줄에 넣으면 mp3 버튼이 밀림), TV 격자 배지 '⏱ 0:10 · 1.5x'
+- NAS 영상(2026-11-10): 항목 id `nas:폴더/파일.mp4`(`isNas`/`nasRel`/`nasUrl`) = NAS Web Station `https://stepersjmj.synology.me/site/mjimage/kids/…`(Range 지원·폴더 목록 403, CORS 없음 → 재생은 `<video id="nasVideo">` 라 상관없음) 를 재생.
+  목록·썸네일은 Reelsnap(mjdownloader `server.js` 의 `/kids/list`·`/kids/thumb`, docker-compose 볼륨 `/volume1/web/site/mjimage/kids:/kids:ro`, `NAS_API` = :8443, `?nas=http://127.0.0.1:3199` 로 바꿔 테스트 — 로컬 서버는
+  `$env:PORT=3199; $env:KIDS_DIR='\mjj\web\site\mjimage\kids'; node server.js`). `importNas()`(#btnNas, 목록 위) = 폴더 → 카테고리, 새 파일만 추가.
+  재생: `playIndex` 가 nas 면 `playNas`(유튜브 stopVideo + `#player-wrap.nas` 로 yt 숨김, 시작 시각은 `#t=초`), 아니면 `nasStop` 후 기존 경로. **플레이어 조작은 `ctl()`**(nasOn 이면 `VID` = 유튜브와 같은 이름의 video 래퍼) —
+  진행 막대·스크럽·seekByTotal·togglePlay·applyRate·openStart 가 이걸 씀. 활성 유튜브의 onStateChange/onError 는 nasOn 이면 무시, 미리 받기는 다음이 nas 면 대기 플레이어 비움.
+  video 이벤트: playing(덮개 숨김·속도·미리 받기)·ended(다음)·error(bad 표시 후 건너뜀). 썸네일 404 는 document error 캡처로 기본 그림(NAS_NOTHUMB). 목록 행은 mp3 다운 대신 'NAS'
 - 폰 입력란(#urlInput)은 글자 16px — iOS 사파리는 16px 미만 input 에 포커스하면 화면을 확대함
 - 높이는 `100dvh` (iOS 사파리 100vh 는 툴바 뒤까지 포함돼 목록 마지막 줄이 가려짐). 스크롤 영역(#list, #tvItems)은 flex 자식이라 `min-height:0` 필수
 - 디자인: `:root` 토큰(크림 배경 `--bg`, 빨강 `--accent`, 포커스 `--focus`…)과 글꼴 Jua(제목·칩·번호, `padding-top:2px` 로 세로 보정)·Gowun Dodum(본문).
