@@ -319,6 +319,45 @@
   .src:hover { background:#fff3dc; }
   .src .n { flex:1; font-size:14px; }
   .src .n small { display:block; color:var(--sub); font-size:11px; margin-top:2px; }
+  /* ---------- 카테고리 (음악·영상처럼 나눠 보기) ---------- */
+  #cats { display:flex; flex-wrap:wrap; gap:6px; }
+  #cats:empty { display:none; }
+  .tab { height:34px; display:inline-flex; align-items:center; gap:6px; padding:2px 14px 0; border-radius:999px; background:#fff; border:1px solid var(--line); font:400 15px/1 var(--jua); white-space:nowrap; flex:none; }
+  .tab b { font:600 11px/1 var(--num); color:var(--sub); margin-top:-2px; }
+  .tab:hover { background:#fff3dc; }
+  .tab.on { background:var(--text); border-color:var(--text); color:#fff; }
+  .tab.on b { color:#e3d2b4; }
+  .tab.drop { box-shadow:0 0 0 3px var(--focus); }
+  #cats .edit { background:none; border-style:dashed; border-color:#d9c3a0; color:var(--sub); font-size:14px; }
+  .item .t .sub { display:flex; align-items:center; gap:10px; min-width:0; overflow:hidden; }
+  .item .t .sub .dl { white-space:nowrap; flex:none; }
+  .item .t .cg { height:20px; padding:2px 8px 0; border-radius:999px; background:var(--bg); color:var(--sub2); font:400 12px/1 var(--jua); white-space:nowrap; flex:none; }
+  .item .t .cg.set { background:#e5f7ec; color:var(--ok-text); }
+  .item .t .cg:hover { background:#ffe9c2; color:var(--text); }
+  .listEmpty { padding:24px 8px; text-align:center; font:400 15px/1.5 var(--jua); color:var(--sub); }
+  .dlg { position:fixed; inset:0; background:rgba(43,33,24,.45); display:flex; align-items:center; justify-content:center; z-index:12; padding:20px; }
+  .dlg[hidden] { display:none; }
+  .dlg .box { background:var(--panel); border-radius:24px; width:min(400px, 100%); max-height:86vh; overflow:auto; padding:22px 20px 18px; display:flex; flex-direction:column; gap:12px; box-shadow:0 24px 60px rgba(60,40,10,.25); }
+  .dlg .box > b { font:400 20px/26px var(--jua); padding-top:2px; }
+  .dlg .box > p { margin:-6px 0 0; font:400 13px/18px var(--gowun); color:var(--sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dlg .box > small { font:400 12px/1.55 var(--gowun); color:var(--sub); margin-top:-6px; }
+  .dlg .btns { display:flex; gap:8px; align-items:center; }
+  .dlg .btns .sp { flex:1; }
+  .dlg .btns button { height:38px; padding:2px 16px 0; border-radius:999px; font:400 15px/24px var(--jua); background:#fff; border:1px solid var(--line2); }
+  #catPickList { display:flex; flex-wrap:wrap; gap:8px; }
+  #catPickList .tab { height:40px; font-size:16px; padding:2px 16px 0; }
+  #catPickList .none { color:var(--sub); border-style:dashed; }
+  #catRows { display:flex; flex-direction:column; gap:8px; }
+  #catRows .r, #catDlg .add { display:flex; gap:6px; align-items:center; }
+  #catDlg input { flex:1; min-width:0; height:40px; border:1px solid var(--line2); border-radius:12px; padding:0 12px; background:#fff; font:400 15px/1 var(--gowun); color:var(--text); }
+  #catRows .r b { font:600 12px/1 var(--num); color:var(--sub); min-width:26px; text-align:right; }
+  #catRows .r button { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--sub2); flex:none; }
+  #catRows .r button:hover { background:#fff3dc; color:var(--text); }
+  #catRows .r button:disabled { opacity:.3; pointer-events:none; }
+  #catRows .r button.x:hover { background:#fde4e0; color:var(--danger); }
+  #catRows .r svg { width:14px; height:14px; }
+  #catAdd { height:40px; padding:2px 16px 0; border-radius:12px; background:var(--text); color:#fff; font:400 15px/24px var(--jua); flex:none; }
+  #catDlg .btns #catDlgClose { background:var(--accent); border-color:var(--accent); color:#fff; }
 
   /* ---------- TV 골라 보기 (↓) ---------- */
   #tvList { position:fixed; inset:0; background:var(--bg); z-index:20; display:flex; flex-direction:column; gap:calc(22 * var(--u)); padding:calc(32 * var(--u)) calc(40 * var(--u)); }
@@ -326,6 +365,12 @@
   #tvHead { display:flex; align-items:center; gap:calc(10 * var(--u)); flex:none; }
   #tvHead h2 { flex:1; min-width:0; margin:0; font:400 calc(36 * var(--u)) / calc(40 * var(--u)) var(--jua); padding-top:calc(4 * var(--u)); white-space:nowrap; }
   #tvChips { display:flex; gap:calc(10 * var(--u)); flex:none; }
+  /* 카테고리 탭 (카테고리가 있으면 '뭐 볼까?' 대신). 칩 줄과 같은 ←/→ 이동 */
+  #tvCats { flex:1; min-width:0; display:flex; gap:calc(8 * var(--u)); overflow:hidden; padding:calc(8 * var(--u)); margin:calc(-8 * var(--u)); }
+  #tvCats[hidden] { display:none; }
+  #tvCats .tab { height:calc(44 * var(--u)); padding:calc(3 * var(--u)) calc(18 * var(--u)) 0; gap:calc(6 * var(--u)); border-width:calc(1 * var(--u)); font-size:calc(22 * var(--u)); }
+  #tvCats .tab b { font-size:calc(13 * var(--u)); margin-top:calc(-2 * var(--u)); }
+  #tvCats .tab.sel { box-shadow:0 0 0 calc(3 * var(--u)) var(--bg), 0 0 0 calc(7 * var(--u)) var(--focus); }
   #tvChips .chip { height:calc(40 * var(--u)); padding:0 calc(16 * var(--u)); gap:calc(6 * var(--u)); }
   #tvChips .chip.on { padding-left:calc(12 * var(--u)); }
   #tvChips .chip span { font-size:calc(16 * var(--u)); line-height:calc(24 * var(--u)); padding-top:calc(2 * var(--u)); }
@@ -393,6 +438,9 @@
     #add input { font-size:16px; }   /* 아이폰 사파리: 16px 미만이면 포커스 때 화면이 확대됨 */
     #btnTools { display:inline-flex; align-self:flex-start; height:30px; align-items:center; padding:0 12px; border-radius:999px; background:#fff; border:1px solid var(--line); font:400 12px/1 var(--gowun); margin-top:-4px; }
     #tools, #link { display:none; }
+    #cats { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin:0 -20px; padding:0 20px; }   /* 폰: 가로로 밀어 보기 */
+    #cats::-webkit-scrollbar { display:none; }
+    .item .t .cg { height:24px; font-size:13px; }
     body.tools-open #tools, body.tools-open #link { display:flex; }
     #list { padding:2px 20px 20px; gap:10px; flex:none; overflow:visible; }   /* 스크롤은 #side 가 담당 */
     /* 왼쪽으로 밀면 행 오른쪽 바깥에 붙은 빨간 배경이 드러난다. 80px 넘으면 '놓으면 삭제' */
@@ -481,6 +529,7 @@
       <input type="file" id="fileInput" accept="application/json" hidden>
     </div>
     <div id="link"><span id="linkText">유튜브 재생목록 URL을 붙여넣으면 연결됩니다</span><button id="btnSync" hidden>동기화</button><button id="btnUnlink" hidden>연결 해제</button></div>
+    <div id="cats"></div>
   </header>
   <div id="list"></div>
   <div id="hint">
@@ -492,7 +541,7 @@
 
 <div id="toast"></div>
 <div id="tvList" hidden>
-  <div id="tvHead"><h2>뭐 볼까?</h2><div id="tvChips"></div></div>
+  <div id="tvHead"><h2>뭐 볼까?</h2><div id="tvCats" hidden></div><div id="tvChips"></div></div>
   <div id="tvItems"></div>
   <div id="tvPages"></div>
 </div>
@@ -502,6 +551,7 @@
     <div><b>◀ ▶</b><span>아래 버튼 고르기 (이전 · 재생 · 다음 · 전체화면). 빠르게 두 번 = 10초, 세 번 = 30초 이동</span></div>
     <div><b>●</b><span>고른 버튼 누르기. 세 번 연타 = 지금 영상 삭제</span></div>
     <div><b>▲ ▼</b><span>골라 보기 열기. 안에서 ◀▶▲▼ 로 고르고 ● 로 재생 (영상 위에서 세 번 연타 = 삭제)</span></div>
+    <div><b>목록</b><span>골라 보기 맨 위 왼쪽 (전체 · 음악 · 영상…): ◀▶ 로 고르고 ● — 그 목록만 이어서 재생</span></div>
     <div><b>● 2초</b><span>골라 보기에서 영상을 고른 채 2초 누르면 순서 바꾸기: ◀▶▲▼ 로 옮기고 ● 확정, ↩ 취소</span></div>
     <div><b>↩</b><span>골라 보기 닫기 → 전체화면 해제 → 한 번 더 누르면 종료</span></div>
     <div><b>⛶</b><span>오른쪽 아래 버튼: 영상만 화면 가득</span></div>
@@ -519,6 +569,19 @@
   <b>이 영상을 삭제할까요?</b>
   <p id="confirmTitle"></p>
   <div class="btns"><button id="confirmNo">취소</button><button id="confirmYes">삭제</button></div>
+</div></div>
+<div id="catPick" class="dlg" hidden><div class="box">
+  <b>어느 카테고리에 넣을까요?</b>
+  <p id="catPickTitle"></p>
+  <div id="catPickList"></div>
+  <div class="btns"><button id="catPickNew">+ 새 카테고리</button><span class="sp"></span><button id="catPickClose">닫기</button></div>
+</div></div>
+<div id="catDlg" class="dlg" hidden><div class="box">
+  <b>카테고리</b>
+  <small>음악 · 영상처럼 나눠 두면 목록 위 탭과 TV 골라 보기에서 골라 볼 수 있어요. 탭을 고른 채 링크를 넣으면 그 카테고리로 들어가요.</small>
+  <div id="catRows"></div>
+  <div class="add"><input id="catNew" placeholder="새 카테고리 이름 (예: 음악)" maxlength="20"><button id="catAdd">추가</button></div>
+  <div class="btns"><span class="sp"></span><button id="catDlgClose">완료</button></div>
 </div></div>
 <div id="gModal" hidden><div class="box">
   <div class="head"><b>Google에서 가져오기</b><button id="gClose">닫기</button></div>
@@ -555,12 +618,63 @@ const toast = (m, ms=1800) => { const t=$('#toast'); t.textContent=m; t.classLis
 
 /* ---------- 저장/불러오기 ---------- */
 // 목록 서명: 영상 구성·순서·시작 시각이 바뀌면 달라짐 → 드라이브 동기화 트리거 (제목·설정 변경은 제외)
-const listSig = arr => arr.map(x => x.id + (x.start > 0 ? '@' + x.start : '')).join(',');
+const listSig = arr => arr.map(x => x.id + (x.start > 0 ? '@' + x.start : '') + (x.cat ? '#' + x.cat : '')).join(',');
+const stateSig = (arr, cs) => listSig(arr) + '|' + (cs || []).join('\n');   // 목록 + 카테고리 이름들
 const startOf = it => it && it.start > 0 ? it.start : 0;
+
+/* ---------- 카테고리 ----------
+   cats = 카테고리 이름 배열(순서 = 탭 순서, 드라이브로 동기화), 영상마다 cat(이름 하나, 없으면 '전체'에만).
+   settings.cat = 이 기기에서 고른 카테고리('' = 전체). 목록 표시·재생 순서·TV 골라 보기가 모두 이걸 따른다 */
+const CATS_KEY = 'home-playlist-cats';
+let cats = [];
+const curCat = () => cats.includes(settings.cat) ? settings.cat : '';
+// 지금 카테고리에 보이는 영상들의 items 인덱스 (목록 행·골라 보기 칸의 '위치'는 이 배열의 위치)
+const view = () => { const c = curCat(), out = []; items.forEach((it, i) => { if (!c || it.cat === c) out.push(i); }); return out; };
+const catField = () => curCat() ? { cat: curCat() } : {};   // 새로 넣는 영상은 지금 고른 카테고리로
+const catCount = name => items.filter(x => x.cat === name).length;
+function normalizeCats(){
+  cats = [...new Set(cats.map(s => String(s).trim()).filter(Boolean))];
+  for (const it of items) { if (it.cat && !cats.includes(it.cat)) cats.push(it.cat); if (!it.cat) delete it.cat; }
+}
+function catsChanged(){ normalizeCats(); save(); rebuildOrder(); render(); preloadNext(); if (tvOpen()) tvRender(); if (!$('#catDlg').hidden) renderCatDlg(); }
+function setCat(name){
+  settings.cat = name; saveSettings(); rebuildOrder(); render(); preloadNext();
+  if (tvOpen()) { tvPage = 0; tvRender(); }
+}
+function addCat(name){
+  name = String(name || '').trim(); if (!name) return '';
+  if (cats.includes(name)) { toast('이미 있는 이름입니다'); return name; }
+  cats.push(name); catsChanged(); return name;
+}
+function renameCat(old, name){
+  name = String(name || '').trim();
+  if (!name || name === old) return false;
+  if (cats.includes(name)) { toast('이미 있는 이름입니다'); return false; }
+  cats[cats.indexOf(old)] = name;
+  items.forEach(it => { if (it.cat === old) it.cat = name; });
+  if (settings.cat === old) settings.cat = name;
+  catsChanged(); return true;
+}
+function deleteCat(name){
+  const n = catCount(name);
+  if (!confirm(`'${name}' 카테고리를 지울까요?` + (n ? `\n영상 ${n}개는 지워지지 않고 '전체'에만 남습니다.` : ''))) return;
+  cats = cats.filter(c => c !== name);
+  items.forEach(it => { if (it.cat === name) delete it.cat; });
+  if (settings.cat === name) settings.cat = '';
+  catsChanged();
+}
+function moveCat(k){ if (k < 1) return; [cats[k - 1], cats[k]] = [cats[k], cats[k - 1]]; catsChanged(); }
+function setItemCat(i, name){
+  const it = items[i]; if (!it || (it.cat || '') === (name || '')) return;
+  if (name) it.cat = name; else delete it.cat;
+  catsChanged();
+  toast(name ? `'${name}' 에 넣었습니다` : '카테고리를 뺐습니다 (전체에만)', 1500);
+}
+
 function save(){
-  localStorage.setItem(KEY, JSON.stringify(items)); saveSettings();
-  // 영상 구성/순서가 바뀐 경우에만 드라이브 동기화 (제목 채우기·설정 변경은 제외)
-  const sig = listSig(items);
+  localStorage.setItem(KEY, JSON.stringify(items)); localStorage.setItem(CATS_KEY, JSON.stringify(cats)); saveSettings();
+  // 영상 구성/순서·카테고리가 바뀐 경우에만 드라이브 동기화 (제목 채우기·설정 변경은 제외)
+  const sig = stateSig(items, cats);
   if (sig !== save._sig) { save._sig = sig; scheduleDriveSync(); }
 }
 let simTvWas = false;   // 흉내 모드 들어오기 전의 tv 설정 (그대로 돌려 둔다)
@@ -568,6 +682,8 @@ function saveSettings(){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(SIM ?
 function load(){
   try { items = JSON.parse(localStorage.getItem(KEY)) || []; } catch { items = []; }
   try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch {}
+  try { cats = JSON.parse(localStorage.getItem(CATS_KEY)) || []; } catch { cats = []; }
+  normalizeCats();
   settings.loop = true;   // 반복은 시작할 때 항상 켬 (끄면 그 세션에만 적용)
 }
 async function loadRemote(url){
@@ -575,8 +691,9 @@ async function loadRemote(url){
     const r = await fetch(url, {cache:'no-store'});
     const data = await r.json();
     const arr = Array.isArray(data) ? data : (data.items || []);
-    items = arr.map(x => typeof x === 'string' ? {id:extractId(x), title:''} : {id:x.id||extractId(x.url||''), title:x.title||''}).filter(x=>x.id);
-    save(); rebuildOrder(); render(); toast(`원격 목록 ${items.length}개 불러옴`);
+    items = arr.map(x => typeof x === 'string' ? {id:extractId(x), title:''} : {id:x.id||extractId(x.url||''), title:x.title||'', ...(x.cat ? { cat: String(x.cat) } : {})}).filter(x=>x.id);
+    if (!Array.isArray(data) && Array.isArray(data.cats)) cats = data.cats;
+    normalizeCats(); save(); rebuildOrder(); render(); toast(`원격 목록 ${items.length}개 불러옴`);
     fillTitles();
   } catch(e){ toast('원격 목록을 읽지 못했습니다'); console.error(e); }
 }
@@ -649,7 +766,7 @@ async function syncPlaylist(){
     const ids = await fetchPlaylistIds(settings.pl);
     const old = new Map(items.map(x => [x.id, x]));
     const curId = idx >= 0 && items[idx] ? items[idx].id : null;
-    items = [...new Set(ids)].map(id => old.get(id) || { id, title: '' });
+    items = [...new Set(ids)].map(id => old.get(id) || { id, title: '', ...catField() });
     idx = curId ? items.findIndex(x => x.id === curId) : -1;
     save(); rebuildOrder(); render(); fillTitles();
     toast(`재생목록 동기화: ${items.length}개`);
@@ -758,12 +875,24 @@ async function driveWrite(data){
     driveFileId = j.id;
   }
 }
-// local/remote/base: [{id,title}] 배열. base 가 null(처음 연결)이면 합집합
+// local/remote/base: [{id,title,start?,cat?}] 배열. base 가 null(처음 연결)이면 합집합
+// 양쪽에 다 있는 영상은 이 기기에서 안 바꾼 칸(시작 시각·카테고리)만 원격 값을 따른다
 function mergeLists(local, remote, base){
-  const L = new Set(local.map(x => x.id)), R = new Set(remote.map(x => x.id)), B = new Set((base || []).map(x => x.id));
-  const out = local.filter(x => !(B.has(x.id) && !R.has(x.id)));            // 원격에서 지운 것 제거
-  for (const x of remote) if (!L.has(x.id) && !B.has(x.id)) out.push(x);    // 원격에서 새로 생긴 것 추가
+  const Rm = new Map(remote.map(x => [x.id, x])), Bm = new Map((base || []).map(x => [x.id, x]));
+  const L = new Set(local.map(x => x.id));
+  const out = local.filter(x => !(Bm.has(x.id) && !Rm.has(x.id))).map(x => {   // 원격에서 지운 것 제거
+    const r = Rm.get(x.id), b = Bm.get(x.id); if (!r || !b) return x;
+    const y = { ...x };
+    for (const k of ['start', 'cat']) if ((x[k] || '') === (b[k] || '')) { if (r[k]) y[k] = r[k]; else delete y[k]; }
+    return y;
+  });
+  for (const x of remote) if (!L.has(x.id) && !Bm.has(x.id)) out.push(x);    // 원격에서 새로 생긴 것 추가
   return out;
+}
+// 카테고리 이름 목록도 같은 방식 (이 기기 순서 + 원격에서 새로 생긴 것 − 원격에서 지운 것)
+function mergeNames(local, remote, base){
+  const R = new Set(remote), B = new Set(base || []), L = new Set(local);
+  return [...local.filter(x => !(B.has(x) && !R.has(x))), ...remote.filter(x => !L.has(x) && !B.has(x))];
 }
 async function driveSync(){
   if (!loggedIn()) return;
@@ -773,33 +902,35 @@ async function driveSync(){
     try {
       let base = null; try { base = JSON.parse(localStorage.getItem(BASE_KEY)); } catch {}
       const remote = await driveRead();
-      const sig = listSig;
-      const local = items.map(({ id, title, start }) => start ? { id, title, start } : { id, title });
-      const localChanged = !base || sig(local) !== sig(base.items);
+      const sig = stateSig;
+      const local = items.map(({ id, title, start, cat }) => ({ id, title, ...(start ? { start } : {}), ...(cat ? { cat } : {}) }));
+      const localCats = cats.slice(), remoteCats = remote && Array.isArray(remote.cats) ? remote.cats : [];
+      const localChanged = !base || sig(local, localCats) !== sig(base.items, base.cats);
       const remoteChanged = remote && (!base || remote.updatedAt !== base.updatedAt);
-      let next = null, push = false;
+      let next = null, nextCats = null, push = false;
       // 원격 파일이 없을 때 빈 목록으로 새로 만들지 않는다 — TV가 먼저 로그인해 빈 파일을 만들면
       // 다른 기기가 그걸 '원격 변경'으로 받아 기존 목록을 지워 버리기 때문
       if (!remote && !local.length) { setSyncStatus('on', `☁ ${accountText() ? accountText() + ' · ' : ''}동기화 켜짐 · 아직 저장된 목록 없음`); return; }
-      if (!remote) { next = local; push = true; }
-      else if (remoteChanged && !localChanged) next = remote.items;
-      else if (localChanged && !remoteChanged) { next = local; push = true; }
-      else if (localChanged && remoteChanged) { next = mergeLists(local, remote.items, base && base.items); push = true; }
-      if (remote && remote._legacy) { push = true; next = next || remote.items; }   // 예전 위치 → 새 파일로 이전
+      if (!remote) { next = local; nextCats = localCats; push = true; }
+      else if (remoteChanged && !localChanged) { next = remote.items; nextCats = remoteCats; }
+      else if (localChanged && !remoteChanged) { next = local; nextCats = localCats; push = true; }
+      else if (localChanged && remoteChanged) { next = mergeLists(local, remote.items, base && base.items); nextCats = mergeNames(localCats, remoteCats, base && base.cats); push = true; }
+      if (remote && remote._legacy) { push = true; next = next || remote.items; nextCats = nextCats || remoteCats; }   // 예전 위치 → 새 파일로 이전
       let updatedAt = remote ? remote.updatedAt : 0;
-      if (push) { updatedAt = Date.now(); await driveWrite({ updatedAt, items: next }); }
-      if (next && sig(next) !== sig(local)) {
+      if (push) { updatedAt = Date.now(); await driveWrite({ updatedAt, items: next, cats: nextCats }); }
+      if (next && sig(next, nextCats) !== sig(local, localCats)) {
         const old = new Map(items.map(x => [x.id, x]));
         const curId = idx >= 0 && items[idx] ? items[idx].id : null;
-        items = next.map(x => ({ ...(old.get(x.id) || {}), id: x.id, title: x.title || old.get(x.id)?.title || '', start: x.start > 0 ? x.start : undefined }));
+        items = next.map(x => ({ ...(old.get(x.id) || {}), id: x.id, title: x.title || old.get(x.id)?.title || '', start: x.start > 0 ? x.start : undefined, cat: x.cat || undefined }));
+        cats = nextCats.slice(); normalizeCats();
         idx = curId ? items.findIndex(x => x.id === curId) : -1;
-        save._sig = sig(items); localStorage.setItem(KEY, JSON.stringify(items));
+        save._sig = sig(items, cats); localStorage.setItem(KEY, JSON.stringify(items)); localStorage.setItem(CATS_KEY, JSON.stringify(cats));
         rebuildOrder(); render(); fillTitles();
         toast(`드라이브와 동기화: ${items.length}개`);
         maybeAutoStart();
         if (tvOpen()) tvRender();
       }
-      localStorage.setItem(BASE_KEY, JSON.stringify({ updatedAt, items: next || local }));
+      localStorage.setItem(BASE_KEY, JSON.stringify({ updatedAt, items: next || local, cats: nextCats || localCats }));
       setSyncStatus('on', `☁ ${accountText() ? accountText() + ' · ' : ''}동기화 켜짐 · ${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 확인`);
     } catch (e) {
       console.error(e);
@@ -919,7 +1050,7 @@ async function importSource(src, mode){
     if (settings.pl) { settings.pl = ''; toast('재생목록 연결을 해제했습니다'); }
     if (mode === 'replace') { items = []; idx = -1; }
     let added = 0;
-    for (const v of vids) if (v.id && !items.some(x => x.id === v.id)) { items.push({ id: v.id, title: v.title }); added++; }
+    for (const v of vids) if (v.id && !items.some(x => x.id === v.id)) { items.push({ id: v.id, title: v.title, ...catField() }); added++; }
     save(); rebuildOrder(); render();
     $('#gModal').hidden = true;
     const dup = vids.length - added;
@@ -956,15 +1087,19 @@ const thumb = id => `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
 let dragFrom = -1;
 function render(){
   const el = $('#list'); el.innerHTML = '';
-  items.forEach((it, i) => {
+  const vis = view();
+  // p = 이 카테고리 안에서의 위치(번호·끌어서 순서 바꾸기), i = items 인덱스(재생·삭제·시작 시각)
+  vis.forEach((i, p) => {
+    const it = items[i];
     const d = document.createElement('div');
     d.className = 'item' + (i===idx?' current':'') + (it.bad?' bad':'');
     d.draggable = !TOUCH;
+    const cg = cats.length ? `<button class="cg${it.cat ? ' set' : ''}" title="카테고리 바꾸기">${esc(it.cat || '카테고리 없음')}</button>` : '';
     d.innerHTML = `
       <div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      <span class="n">${i+1}</span>
+      <span class="n">${p+1}</span>
       <img src="${thumb(it.id)}" alt="" draggable="false">
-      <div class="t"><em>${esc(it.title||it.id)}</em>${it.bad ? '<small>재생 불가 · 건너뜀</small>' : `<button class="dl" title="소리만 mp3(128k) 로 내려받기${startOf(it) ? ` — ${fmt(startOf(it))} 부터` : ''}">mp3 다운로드</button>`}</div>
+      <div class="t"><em>${esc(it.title||it.id)}</em><div class="sub">${cg}${it.bad ? '<small>재생 불가 · 건너뜀</small>' : `<button class="dl" title="소리만 mp3(128k) 로 내려받기${startOf(it) ? ` — ${fmt(startOf(it))} 부터` : ''}">mp3 다운로드</button>`}</div></div>
       <button class="st${startOf(it) ? ' set' : ''}" title="시작 시각: 이 영상을 여기서부터 재생">${ICON.clock}${startOf(it) ? `<span>${fmt(startOf(it))}</span>` : ''}</button>
       <button class="del" title="삭제">${ICON.x}</button>
       <div class="swipeBg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg><span>삭제</span></div>`;
@@ -973,18 +1108,22 @@ function render(){
       if (e.target.closest('.del')) { removeItem(i); return; }
       if (e.target.closest('.st')) { d.draggable = !TOUCH; openStart(i); return; }
       if (e.target.closest('.dl')) { d.draggable = !TOUCH; downloadMp3(i, e.target.closest('.dl')); return; }
+      if (e.target.closest('.cg')) { d.draggable = !TOUCH; openCatPick(i); return; }
       playIndex(i);
     });
     // ⏱·✕ 위에서 누르기 시작하면 행 드래그가 시작되지 않게 (draggable 행 안의 버튼)
-    d.addEventListener('mousedown', e => { if (e.target.closest('.st, .del, .dl')) d.draggable = false; });
+    d.addEventListener('mousedown', e => { if (e.target.closest('.st, .del, .dl, .cg')) d.draggable = false; });
     d.addEventListener('mouseup', () => { d.draggable = !TOUCH; });
-    // PC: 행 아무 데나 잡고 끌기 (HTML5 Drag & Drop). 놓을 자리 계산·drop 은 #list 가 받는다 (아래)
-    d.addEventListener('dragstart', e => { dragFrom = i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch {} d.classList.add('dragging'); });
-    d.addEventListener('dragend', () => { dragFrom = -1; dropTo = -1; clearDrop(); d.classList.remove('dragging'); });
-    attachGrip(d, i);               // 손잡이(≡) 끌기는 PC·폰 공통 (터치 화면 노트북에서도 됨)
+    // PC: 행 아무 데나 잡고 끌기 (HTML5 Drag & Drop). 놓을 자리 계산·drop 은 #list 가 받는다 (아래). 카테고리 탭 위에 놓으면 그 카테고리로
+    d.addEventListener('dragstart', e => { dragFrom = p; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(p)); } catch {} d.classList.add('dragging'); });
+    d.addEventListener('dragend', () => { dragFrom = -1; dropTo = -1; clearDrop(); d.classList.remove('dragging'); document.querySelectorAll('#cats .drop').forEach(x => x.classList.remove('drop')); });
+    attachGrip(d, p);               // 손잡이(≡) 끌기는 PC·폰 공통 (터치 화면 노트북에서도 됨)
     if (TOUCH) attachSwipe(d, i);   // 왼쪽으로 밀어 삭제는 폰만
     el.appendChild(d);
   });
+  if (!vis.length && items.length) el.innerHTML = `<div class="listEmpty">'${esc(curCat())}' 에 아직 영상이 없어요<br>이 탭을 고른 채 링크를 넣거나, 영상의 카테고리 버튼으로 옮기세요</div>`;
+  renderCats();
+  $('#pickHint span').textContent = curCat() ? `${curCat()} · 골라 보기` : '골라 보기';
   $('#nowTitle').textContent = idx>=0 && items[idx] ? (items[idx].title||items[idx].id) : '—';
   $('#btnLoop').classList.toggle('on', settings.loop);
   $('#btnShuffle').classList.toggle('on', settings.shuffle);
@@ -1009,12 +1148,88 @@ let dropTo = -1;
 $('#list').addEventListener('dragover', e => { if (dragFrom < 0) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; dropTo = dropTarget(e.clientY, dragFrom); });
 $('#list').addEventListener('dragleave', e => { if (dragFrom >= 0 && !$('#list').contains(e.relatedTarget)) { clearDrop(); dropTo = -1; } });
 $('#list').addEventListener('drop', e => { if (dragFrom < 0) return; e.preventDefault(); const f = dragFrom, t = dropTo; dragFrom = -1; dropTo = -1; clearDrop(); if (t >= 0) moveItem(f, t); });
+// from/to = 지금 카테고리(view) 안에서의 위치. 카테고리를 고른 상태면 다른 카테고리 영상들 사이의 자리는 그대로 두고
+// 옮길 영상을 to 번째 영상 바로 앞(위로 옮길 때)·뒤(아래로)에 끼운다 — 전체 보기에선 예전과 똑같이 동작
 function moveItem(from, to){
-  if (from < 0 || to < 0 || from === to || from >= items.length) return;
+  const vis = view();
+  if (from < 0 || to < 0 || from === to || from >= vis.length || to >= vis.length) return;
   const curId = idx >= 0 ? items[idx].id : null;
-  const [m] = items.splice(from, 1); items.splice(to, 0, m);
+  const m = items[vis[from]], anchor = items[vis[to]];
+  items.splice(vis[from], 1);
+  const a = items.indexOf(anchor);
+  items.splice(to > from ? a + 1 : a, 0, m);
   idx = curId ? items.findIndex(x => x.id === curId) : -1;
   save(); rebuildOrder(); render(); preloadNext();   // save() 의 id 서명이 바뀌어 드라이브 동기화도 예약됨
+}
+// 목록 위 카테고리 탭 (PC·폰). 카테고리가 하나도 없으면 '+ 카테고리' 버튼만
+function renderCats(){
+  const el = $('#cats'); el.innerHTML = '';
+  const c = curCat();
+  const tab = (name, label, n) => {
+    const b = document.createElement('button');
+    b.className = 'tab' + (c === name ? ' on' : '');
+    b.innerHTML = `<span>${esc(label)}</span><b>${n}</b>`;
+    b.title = name ? `'${name}' 만 보기·재생 (영상을 끌어다 놓으면 이 카테고리로)` : '모든 영상';
+    b.onclick = () => setCat(name);
+    // PC: 목록 행을 끌어다 탭 위에 놓으면 그 카테고리로 옮김 ('전체' 에 놓으면 카테고리 빼기)
+    b.addEventListener('dragover', e => { if (dragFrom < 0) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; b.classList.add('drop'); });
+    b.addEventListener('dragleave', () => b.classList.remove('drop'));
+    b.addEventListener('drop', e => { if (dragFrom < 0) return; e.preventDefault(); b.classList.remove('drop'); const i = view()[dragFrom]; dragFrom = -1; setItemCat(i, name); });
+    el.appendChild(b);
+  };
+  if (cats.length) { tab('', '전체', items.length); cats.forEach(n => tab(n, n, catCount(n))); }
+  const ed = document.createElement('button');
+  ed.className = 'tab edit'; ed.textContent = cats.length ? '편집' : '+ 카테고리 만들기';
+  ed.title = '카테고리 추가·이름 바꾸기·지우기';
+  ed.onclick = openCatDlg;
+  el.appendChild(ed);
+}
+// 영상 한 개의 카테고리 고르기
+function openCatPick(i){
+  const it = items[i]; if (!it) return;
+  const dlg = $('#catPick'); dlg.hidden = false;
+  $('#catPickTitle').textContent = it.title || it.id;
+  const list = $('#catPickList'); list.innerHTML = '';
+  const close = () => { dlg.hidden = true; dlg.onclick = null; };
+  for (const name of [...cats, '']) {
+    const b = document.createElement('button');
+    b.className = 'tab' + ((it.cat || '') === name ? ' on' : '') + (name ? '' : ' none');
+    b.textContent = name || '없음 (전체에만)';
+    b.onclick = () => { close(); setItemCat(i, name); };
+    list.appendChild(b);
+  }
+  $('#catPickNew').onclick = () => { const n = prompt('새 카테고리 이름 (예: 음악)'); if (!n || !n.trim()) return; close(); setItemCat(i, addCat(n)); };
+  $('#catPickClose').onclick = close;
+  dlg.onclick = e => { if (e.target === dlg) close(); };
+}
+// 카테고리 관리: 이름 바꾸기(입력칸에서 고치고 Enter·칸 벗어나기), ▲ 순서(= 탭·TV 순서), ✕ 지우기
+function renderCatDlg(){
+  const rows = $('#catRows'); rows.innerHTML = '';
+  if (!cats.length) rows.innerHTML = '<small style="color:var(--sub)">아직 카테고리가 없어요. 아래에 이름을 넣고 추가하세요.</small>';
+  cats.forEach((name, k) => {
+    const r = document.createElement('div'); r.className = 'r';
+    r.innerHTML = `<input maxlength="20"><b>${catCount(name)}개</b>
+      <button class="up" title="앞으로"${k ? '' : ' disabled'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14.5l6-6 6 6"/></svg></button>
+      <button class="x" title="지우기 (영상은 남음)">${ICON.x}</button>`;
+    const inp = r.querySelector('input'); inp.value = name;
+    const commit = () => { if (inp.value.trim() !== name && !renameCat(name, inp.value)) inp.value = name; };
+    inp.onchange = commit;
+    inp.onkeydown = e => { if (e.isComposing) return; if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') { inp.value = name; inp.blur(); } };
+    r.querySelector('.up').onclick = () => moveCat(k);
+    r.querySelector('.x').onclick = () => deleteCat(name);
+    rows.appendChild(r);
+  });
+}
+function openCatDlg(){
+  const dlg = $('#catDlg'); dlg.hidden = false; renderCatDlg();
+  const inp = $('#catNew'); inp.value = '';
+  const add = () => { if (!inp.value.trim()) return; addCat(inp.value); inp.value = ''; inp.focus(); };
+  $('#catAdd').onclick = add;
+  inp.onkeydown = e => { if (e.isComposing) return; if (e.key === 'Enter') add(); if (e.key === 'Escape') close(); };   // 한글 조합 중 Enter 는 무시 (남은 글자가 다시 들어가는 것 방지)
+  const close = () => { dlg.hidden = true; dlg.onclick = null; };
+  $('#catDlgClose').onclick = close;
+  dlg.onclick = e => { if (e.target === dlg) close(); };
+  if (!cats.length) setTimeout(() => inp.focus(), 50);
 }
 function removeItem(i){
   items.splice(i, 1); if (idx === i) idx = -1; else if (idx > i) idx--;
@@ -1123,13 +1338,13 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 /* ---------- 재생 순서 ---------- */
 let nextOrder = null;          // 랜덤 때 다음 바퀴 순서. 바퀴가 끝나기 전에 미리 섞어 두어 peekNext(미리 받기)와 step 이 같은 영상을 보게 함
 function shuffled(){
-  const o = items.map((_,i)=>i).filter(i=>!items[i].bad);
+  const o = view().filter(i=>!items[i].bad);
   for (let i=o.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [o[i],o[j]]=[o[j],o[i]]; }
   if (o.length > 1 && o[0] === idx) [o[0], o[1]] = [o[1], o[0]];   // 다음 바퀴 첫 영상이 지금 영상과 같지 않게
   return o;
 }
 function rebuildOrder(){
-  order = settings.shuffle ? shuffled() : items.map((_,i)=>i).filter(i=>!items[i].bad);
+  order = settings.shuffle ? shuffled() : view().filter(i=>!items[i].bad);   // 고른 카테고리 안에서만
   orderPos = order.indexOf(idx);
   nextOrder = null;
 }
@@ -1268,22 +1483,22 @@ function addFromInput(){
   const ids = raw.split(/[\s,]+/).map(extractId).filter(Boolean);
   if (!ids.length) { toast('유효한 유튜브 URL이 없습니다'); return; }
   let added = 0;
-  for (const id of ids) if (!items.some(x=>x.id===id)) { items.push({id, title:''}); added++; }
+  for (const id of ids) if (!items.some(x=>x.id===id)) { items.push({id, title:'', ...catField()}); added++; }
   $('#urlInput').value = '';
   save(); rebuildOrder(); render(); fillTitles();
-  toast(`${added}개 추가됨`);
-  if (idx<0 && items.length) playIndex(items.length-added);
+  toast(`${added}개 추가됨` + (added && curCat() ? ` → ${curCat()}` : ''));
+  if (idx<0 && added) playIndex(items.length-added);
 }
 $('#btnAdd').onclick = addFromInput;
 $('#urlInput').addEventListener('keydown', e => { if (e.key==='Enter') addFromInput(); });
 $('#btnExport').onclick = () => {
-  const blob = new Blob([JSON.stringify(items.map(({id,title,start})=>start ? {id,title,start} : {id,title}), null, 2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify(items.map(({id,title,start,cat})=>({id, title, ...(start ? {start} : {}), ...(cat ? {cat} : {})})), null, 2)], {type:'application/json'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'playlist.json'; a.click();
 };
 $('#btnImport').onclick = () => $('#fileInput').click();
 $('#fileInput').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
-  try { const arr = JSON.parse(await f.text()); for (const x of arr){ const id = typeof x==='string'?extractId(x):x.id; if (id && !items.some(y=>y.id===id)) items.push({id, title:x.title||'', ...(x.start > 0 ? { start: x.start } : {})}); } save(); rebuildOrder(); render(); fillTitles(); toast('가져오기 완료'); }
+  try { const arr = JSON.parse(await f.text()); for (const x of arr){ const id = typeof x==='string'?extractId(x):x.id; if (id && !items.some(y=>y.id===id)) items.push({id, title:x.title||'', ...(x.start > 0 ? { start: x.start } : {}), ...(x.cat ? { cat: String(x.cat) } : catField())}); } normalizeCats(); save(); rebuildOrder(); render(); fillTitles(); toast('가져오기 완료'); }
   catch { toast('JSON 형식이 올바르지 않습니다'); }
   e.target.value = '';
 };
@@ -1373,7 +1588,7 @@ function askDeleteTv(i){
   const m = $('#confirm'); m.hidden = false; confirmSel = 0; confirmMark();
   $('#confirmTitle').textContent = items[i].title || items[i].id;
   const close = () => { m.hidden = true; m.onclick = null; $('#confirmNo').classList.remove('sel'); $('#confirmYes').classList.remove('sel'); };
-  $('#confirmYes').onclick = () => { close(); deleteAndContinue(i); if (tvOpen()) { if (tvSel >= items.length) tvSel = items.length - 1; tvRender(); } toast('삭제했습니다', 1500); };
+  $('#confirmYes').onclick = () => { close(); deleteAndContinue(i); if (tvOpen()) { const n = view().length; if (tvSel >= n) tvSel = n - 1; tvRender(); } toast('삭제했습니다', 1500); };
   $('#confirmNo').onclick = () => { close(); };
   m.onclick = e => { if (e.target === m) close(); };
 }
@@ -1472,7 +1687,7 @@ function handleKey(k){
   if (helpOpen()) { if (k === 'Enter' || k === ' ' || k === 'Escape' || k === 'Backspace' || k === 'GoBack') hideHelp(); return true; }
   if (tvOpen()) {
     if (tvMove >= 0) { tvMoveKey(k); return true; }
-    if (TVAPP && (k === 'Enter' || k === ' ') && tvSel >= 0) { const i = tvSel; enterPress(() => tvKey('Enter'), () => askDeleteTv(i)); return true; }
+    if (TVAPP && (k === 'Enter' || k === ' ') && tvSel >= 0) { const i = view()[tvSel]; enterPress(() => tvKey('Enter'), () => askDeleteTv(i)); return true; }
     tvKey(k); return true;
   }
   if (TVAPP && (k === 'ArrowLeft' || k === 'ArrowRight')) { arrowPress(k); return true; }
@@ -1532,7 +1747,11 @@ const TV_PAGE = 6, TV_COLS = 3;
 const tvOpen = () => !$('#tvList').hidden;
 function tvChips(){
   // 셔플은 TV 에 없음(폰·PC 설정을 따름). 전체화면은 재생 화면 버튼. 새로고침은 시안에서 뺐다가 사용자 요청으로 다시 넣음
+  // 카테고리가 있으면 맨 앞에 카테고리 탭(전체·음악·영상…) — 칩과 같은 줄로 ←/→ 이동, ● 로 고르면 그 카테고리만 보이고 이어서 재생
+  const cs = cats.length ? ['', ...cats].map(name => ({ cat: true, label: name || '전체', count: name ? catCount(name) : items.length,
+    on: curCat() === name, keep: true, run: () => setCat(name) })) : [];
   const c = [
+    ...cs,
     { icon: ICON.repeat, label: '반복', title: '반복: 마지막 영상 다음에 처음부터 다시', on: settings.loop, keep: true,
       run: () => $('#btnLoop').click() },
     { icon: ICON.shuffle, label: '랜덤 재생', title: '랜덤 재생: 순서를 섞어서', on: settings.shuffle, keep: true,
@@ -1547,39 +1766,55 @@ function tvChips(){
 }
 function runChip(k){ const c = tvChips()[k]; if (!c) return; if (c.keep) { c.run(); tvRender(); } else { tvHide(); c.run(); } }
 function tvRender(){
-  $('#tvHead h2').textContent = tvMove >= 0 ? '어디로 옮길까요?' : '뭐 볼까?';
-  const chips = tvChips(), cb = $('#tvChips'); cb.innerHTML = '';
+  const h2 = $('#tvHead h2'), tc = $('#tvCats');
+  h2.textContent = tvMove >= 0 ? '어디로 옮길까요?' : '뭐 볼까?';
+  const chips = tvChips(), cb = $('#tvChips'); cb.innerHTML = ''; tc.innerHTML = '';
+  const showCats = chips.some(c => c.cat) && tvMove < 0;
+  h2.hidden = showCats; tc.hidden = !showCats;
   chips.forEach((c, k) => {
     const b = document.createElement('button');
-    b.className = 'chip' + (c.icon ? ' ico' : '') + (c.on ? ' on' : '') + (tvSel < 0 && k === tvChip ? ' sel' : '');
+    const sel = tvSel < 0 && k === tvChip ? ' sel' : '';
+    if (c.cat) {
+      b.className = 'tab' + (c.on ? ' on' : '') + sel;
+      b.innerHTML = `<span>${esc(c.label)}</span><b>${c.count}</b>`;
+      b.onclick = () => runChip(k);
+      tc.appendChild(b);
+      return;
+    }
+    b.className = 'chip' + (c.icon ? ' ico' : '') + (c.on ? ' on' : '') + sel;
     b.innerHTML = c.icon ? c.icon : ICON.check + (c.img ? `<img src="${esc(c.img)}" referrerpolicy="no-referrer" alt="">` : '') + `<span>${esc(c.label)}</span>`;
     b.title = c.title || c.label; b.setAttribute('aria-label', c.label);
     b.onclick = () => runChip(k);
     cb.appendChild(b);
   });
+  // 탭이 많아 넘치면 고른 탭이 보이게
+  const selTab = tc.querySelector('.sel') || tc.querySelector('.on');
+  if (selTab) { const l = selTab.offsetLeft - tc.offsetLeft; if (l + selTab.offsetWidth > tc.clientWidth + tc.scrollLeft || l < tc.scrollLeft) tc.scrollLeft = Math.max(0, l - 16); }
   const grid = $('#tvItems'); grid.innerHTML = '';
-  const pages = Math.max(1, Math.ceil(items.length / TV_PAGE));
+  const vis = view();   // tvSel·tvMove·번호는 이 카테고리 안에서의 위치
+  const pages = Math.max(1, Math.ceil(vis.length / TV_PAGE));
   if (tvSel >= 0) tvPage = Math.floor(tvSel / TV_PAGE);
   tvPage = Math.min(tvPage, pages - 1);
-  items.slice(tvPage * TV_PAGE, (tvPage + 1) * TV_PAGE).forEach((it, k) => {
-    const i = tvPage * TV_PAGE + k, d = document.createElement('div');
-    d.className = 'tvi' + (i === tvSel ? ' sel' : '') + (i === idx ? ' cur' : '') + (it.bad ? ' bad' : '') + (i === tvMove ? ' moving' : '');
-    d.innerHTML = `<div class="th"><img src="${thumb(it.id)}" alt=""><b class="n">${i + 1}</b>${startOf(it) ? `<i class="st">⏱ ${fmt(startOf(it))}</i>` : ''}</div><span>${esc(it.title || it.id)}</span>`;
+  vis.slice(tvPage * TV_PAGE, (tvPage + 1) * TV_PAGE).forEach((i, k) => {
+    const p = tvPage * TV_PAGE + k, it = items[i], d = document.createElement('div');
+    d.className = 'tvi' + (p === tvSel ? ' sel' : '') + (i === idx ? ' cur' : '') + (it.bad ? ' bad' : '') + (p === tvMove ? ' moving' : '');
+    d.innerHTML = `<div class="th"><img src="${thumb(it.id)}" alt=""><b class="n">${p + 1}</b>${startOf(it) ? `<i class="st">⏱ ${fmt(startOf(it))}</i>` : ''}</div><span>${esc(it.title || it.id)}</span>`;
     d.onclick = () => { tvHide(); playIndex(i); };
     grid.appendChild(d);
   });
   if (!items.length) grid.innerHTML = '<div class="tvEmpty">목록이 비어 있습니다 — 휴대폰에서 영상을 추가하세요</div>';
+  else if (!vis.length) grid.innerHTML = `<div class="tvEmpty">'${esc(curCat())}' 에는 아직 영상이 없어요 — 휴대폰에서 넣어 주세요</div>`;
   const pg = $('#tvPages'); pg.innerHTML = '';
   if (pages > 1) for (let p = 0; p < pages; p++) { const i = document.createElement('i'); if (p === tvPage) i.className = 'now'; pg.appendChild(i); }
 }
 // 골라 보기 순서 바꾸기: 가운데 2초 → 고른 영상을 들고(.moving) ◀▶▲▼ 로 한 칸·한 줄씩 옮김, ● 확정, ↩ 취소(원래 순서로)
 let tvMove = -1, tvMoveSnap = null, tvMoveId = null;
 function tvMoveStart(i){
-  tvMove = i; tvMoveSnap = items.map(x => x.id); tvMoveId = items[i].id;
+  tvMove = i; tvMoveSnap = items.map(x => x.id); tvMoveId = items[view()[i]].id;   // i = 카테고리 안 위치
   tvRender(); toast('◀▶▲▼ 로 옮기고 ● 로 확정, ↩ 는 취소', 3000);
 }
 function tvMoveKey(k){
-  const n = items.length; let to = tvMove;
+  const n = view().length; let to = tvMove;
   if (k === 'ArrowLeft') to = tvMove - 1; else if (k === 'ArrowRight') to = tvMove + 1;
   else if (k === 'ArrowUp') to = tvMove - TV_COLS; else if (k === 'ArrowDown') to = tvMove + TV_COLS;
   else if (k === 'Enter' || k === ' ') { tvMove = -1; tvMoveSnap = null; tvRender(); toast('순서를 저장했습니다', 1500); return; }
@@ -1594,14 +1829,19 @@ function tvMoveCancel(){
     items = tvMoveSnap.map(id => map.get(id)).filter(Boolean);
     idx = curId ? items.findIndex(x => x.id === curId) : -1;
     save(); rebuildOrder(); render(); preloadNext();
-    tvSel = Math.max(0, items.findIndex(x => x.id === tvMoveId));
+    tvSel = Math.max(0, view().findIndex(i => items[i].id === tvMoveId));
   }
   tvMove = -1; tvMoveSnap = null; tvRender(); toast('순서 바꾸기를 취소했습니다', 1500);
 }
-function tvShow(){ tvSel = idx >= 0 ? idx : (items.length ? 0 : -1); tvChip = 0; $('#tvList').hidden = false; tvRender(); }
+function tvShow(){
+  const vis = view(), p = vis.indexOf(idx);
+  tvSel = p >= 0 ? p : (vis.length ? 0 : -1);
+  tvChip = cats.length ? ['', ...cats].indexOf(curCat()) : 0;   // 칩 줄로 올라가면 지금 카테고리 탭부터
+  $('#tvList').hidden = false; tvRender();
+}
 function tvHide(){ if (tvMove >= 0) { tvMove = -1; tvMoveSnap = null; } $('#tvList').hidden = true; }
 function tvKey(k){
-  const n = items.length, C = tvChips().length;
+  const vis = view(), n = vis.length, C = tvChips().length;
   const row = i => Math.floor(i / TV_COLS);
   if (k === 'ArrowDown') {
     if (tvSel < 0) tvSel = n ? tvPage * TV_PAGE : -1;              // 칩 줄 → 이 페이지 첫 줄
@@ -1617,7 +1857,7 @@ function tvKey(k){
     if (tvSel < 0) tvChip = (tvChip + dir + C) % C;
     else if (n) tvSel = (tvSel + dir + n) % n;
   } else if (k === 'Enter' || k === ' ') {
-    if (tvSel < 0) runChip(tvChip); else { tvHide(); playIndex(tvSel); }
+    if (tvSel < 0) runChip(tvChip); else { tvHide(); playIndex(vis[tvSel]); }
     return;
   }
   else if (k === 'Escape' || k === 'Backspace' || k === 'GoBack') { tvHide(); return; }
@@ -1630,9 +1870,10 @@ const isFull = () => document.body.classList.contains('full');
 window.kidsTvBack = () => { if (confirmOpen()) { confirmCancel(); return true; } if (helpOpen()) { hideHelp(); return true; } if (tvMove >= 0) { tvMoveCancel(); return true; } if (tvOpen()) { tvHide(); return true; } if (isFull()) { setFull(false); return true; } return false; };
 // 앱에서는 켜자마자 재생
 function maybeAutoStart(){
-  if (!TVAPP || !ready || idx >= 0 || !items.some(x => !x.bad)) return;
-  const i = items.findIndex(x => x.id === settings.last && !x.bad);   // 마지막으로 보던 영상부터
-  i >= 0 ? playIndex(i) : step(1);
+  const vis = view().filter(i => !items[i].bad);   // 고른 카테고리 안에서
+  if (!TVAPP || !ready || idx >= 0 || !vis.length) return;
+  const i = vis.find(i => items[i].id === settings.last);   // 마지막으로 보던 영상부터
+  i !== undefined ? playIndex(i) : step(1);
 }
 
 /* ---------- ?add= : 유튜브 앱 공유(아이폰 단축어)·PC 북마클릿에서 넘어온 영상 추가 ---------- */
@@ -1640,7 +1881,7 @@ function maybeAutoStart(){
 const bc = 'BroadcastChannel' in window ? new BroadcastChannel('kids-playlist') : null;
 function addIds(ids){
   let added = 0;
-  for (const id of ids) if (!items.some(x => x.id === id)) { items.push({ id, title: '' }); added++; }
+  for (const id of ids) if (!items.some(x => x.id === id)) { items.push({ id, title: '', ...catField() }); added++; }
   if (added) { save(); rebuildOrder(); render(); fillTitles(); }
   return added;
 }

@@ -50,7 +50,7 @@ eelsnap\` 에 덮어쓰고
 - 로그아웃 = 로컬 토큰 삭제만 (revoke 안 함 → 재로그인 때 동의 화면 생략). drive base 는 유지
 
 ## 구글 드라이브 동기화
-- 범위 `drive.file` (Drive API 사용 설정 필요). 내 드라이브 루트의 `우리집 재생목록 (동기화).json` = `{updatedAt, items:[{id,title}]}`
+- 범위 `drive.file` (Drive API 사용 설정 필요). 내 드라이브 루트의 `우리집 재생목록 (동기화).json` = `{updatedAt, items:[{id,title,start?,cat?}], cats:[이름…]}`
   — 같은 Cloud 프로젝트의 웹·TV 클라이언트가 같이 접근. 예전 appDataFolder/playlist.json 은 첫 동기화 때 자동 이전(웹만 drive.appdata 유지)
 - 기기별 마지막 동기화 상태를 localStorage `home-playlist-drive-base` 에 두고 3-way 병합(`mergeLists`):
   한쪽만 바뀌면 그쪽을 채택, 둘 다 바뀌면 로컬 + 원격 추가분 − 원격 삭제분
@@ -119,6 +119,13 @@ eelsnap\` 에 덮어쓰고
   PC·폰 목록 행의 ⏱(SVG `ICON.clock` 알약 `.st`, PC 제목 아래 줄은 '지금 보는 중'/ID 대신 'mp3 다운로드' 버튼(재생 불가면 그 문구), 설정되면 `.set` 노란 알약+시간. `openStart` → #startDlg "여기서부터 보기", '지금 위치 1:12' 라벨은 재생 중이면 0.5초마다 갱신,
   '처음부터로' = 지우기. 폰은 화면 가운데 카드. ⏱·✕ 위 mousedown 은 행 draggable 을 잠시 꺼 DnD 가 안 시작되게) 로 설정, `loadVideoById({videoId,startSeconds})` 로 재생, 미리 받기도 그 지점에서 대기.
   동기화 서명 `listSig` 에 `@start` 가 들어가 시작 시각만 바꿔도 드라이브로 밀림(드라이브 파일·JSON 내보내기에도 start 포함). TV 골라 보기 썸네일에 ⏱ 배지
+- 카테고리(2026-11-10): `cats`(이름 배열, 순서 = 탭 순서, localStorage `home-playlist-cats`) + 항목 `cat`(이름 하나, 없으면 '전체'에만) + 기기별 `settings.cat`('' = 전체, `curCat()` 은 없는 이름이면 '').
+  `view()` = 지금 카테고리에 보이는 items 인덱스 배열 — **목록 행 번호·끌기(dragFrom/dropTarget)·`moveItem(from,to)`·TV `tvSel`/`tvMove` 는 전부 view 안의 위치**, 재생·삭제·⏱(`playIndex`/`removeItem`/`openStart`)은 items 인덱스.
+  `moveItem` 은 to 번째 영상 앞(위로)·뒤(아래로)에 끼워 다른 카테고리 영상의 자리는 안 건드림(전체 보기에선 예전과 동일). `rebuildOrder`/`shuffled` 도 view 기준 → 재생이 카테고리 안에서만 돎.
+  새로 넣는 영상은 `catField()` 로 지금 카테고리(입력칸·?add=·유튜브 가져오기·JSON·연결 재생목록의 새 영상). UI: PC·폰 `#cats` 탭(행을 탭에 끌어 놓으면 그 카테고리), 행의 `.cg` 알약 → `#catPick`, 편집 → `#catDlg`(이름 바꾸기·▲·✕).
+  TV: `tvChips()` 맨 앞에 `cat:true` 칩들 → `#tvCats` 탭으로 그림(있으면 h2 '뭐 볼까?' 숨김), ◀▶ 는 칩 줄 하나로 이어짐, ● = `setCat`(keep, 안 닫힘). `#pickHint` 에 '음악 · 골라 보기'.
+  동기화: 드라이브 파일 `{updatedAt, items:[{id,title,start?,cat?}], cats}`, 서명 `stateSig` = listSig(`#cat` 포함) + cats. 둘 다 바뀌면 `mergeLists`(공통 영상은 이 기기에서 안 바꾼 start/cat 만 원격 값) + `mergeNames`.
+  한글 입력칸 Enter 는 `e.isComposing` 이면 무시(조합 중 Enter 로 추가하면 남은 글자가 다시 들어감)
 - 폰 입력란(#urlInput)은 글자 16px — iOS 사파리는 16px 미만 input 에 포커스하면 화면을 확대함
 - 높이는 `100dvh` (iOS 사파리 100vh 는 툴바 뒤까지 포함돼 목록 마지막 줄이 가려짐). 스크롤 영역(#list, #tvItems)은 flex 자식이라 `min-height:0` 필수
 - 디자인: `:root` 토큰(크림 배경 `--bg`, 빨강 `--accent`, 포커스 `--focus`…)과 글꼴 Jua(제목·칩·번호, `padding-top:2px` 로 세로 보정)·Gowun Dodum(본문).
