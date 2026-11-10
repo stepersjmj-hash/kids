@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 앱 업데이트 알림: 새 버전 APK 를 받아 직접 설치 (처음 한 번 "알 수 없는 소스" 허용 필요) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- TV 전용: 터치스크린 불필요, 리모컨(leanback) 사용 -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -24,5 +26,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- PackageInstaller 결과 받기 (설치 확인 화면 띄우기) -->
+        <receiver android:name=".InstallReceiver" android:exported="false" />
     </application>
 </manifest>

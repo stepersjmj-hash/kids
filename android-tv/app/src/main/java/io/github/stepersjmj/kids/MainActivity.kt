@@ -87,6 +87,9 @@ class MainActivity : Activity() {
         loadPage()
         web.requestFocus()
 
+        // 새 버전 확인 (GitHub 최신 릴리스) — 페이지가 뜰 시간을 두고
+        main.postDelayed({ Updater.check(this) }, 5000)
+
         // 액세스 토큰(1시간)을 만료 전에 갱신
         main.postDelayed(object : Runnable {
             override fun run() {
@@ -343,6 +346,7 @@ class MainActivity : Activity() {
     private var pausedAt = 0L
     override fun onResume() {
         super.onResume(); web.onResume()
+        if (pausedAt > 0) Updater.check(this)   // 다시 돌아왔을 때 (6시간에 한 번, 설치 허용 설정에서 돌아오면 바로)
         if (pausedAt > 0 && System.currentTimeMillis() - pausedAt > 10 * 60_000) loadPage()
         else if (hasRefreshToken() && System.currentTimeMillis() > accessExp) refreshAndInject()
     }

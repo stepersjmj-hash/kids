@@ -102,6 +102,10 @@ eelsnap\` 에 덮어쓰고
   `https://github.com/stepersjmj-hash/kids/releases/latest/download/kids-tv.apk` 를 TV 의 Downloader 앱에 넣어 설치(README). 에셋 이름은 꼭 `kids-tv.apk` 로.
   Downloader 숫자 코드 **7491178**(aftv.news/7491178, AFTVnews 단축 서비스 → 위 고정 주소). 짧은 주소 /kids/tv 도 같은 곳
   앱 소스(`android-tv/`)가 바뀐 경우에만 새 릴리스 — 페이지 변경은 재배포 불필요. versionCode/versionName 은 `app/build.gradle.kts`
+- **앱 업데이트 알림(v1.5+, `Updater.kt`)**: 켤 때(5초 뒤)·화면 복귀 때(6시간에 한 번) `api.github.com/.../releases/latest` 의 `tag_name`(**`tv-v` 로 시작해야 함**)을 `BuildConfig.VERSION_NAME` 과 비교 →
+  새것이면 AlertDialog(릴리스 노트 `body` 앞 300자 표시 — 노트는 짧게 아이 부모가 읽을 말로) → [업데이트] = 고정 주소 kids-tv.apk 를 `PackageInstaller` 세션에 바로 써서 commit(`InstallReceiver` 가 STATUS_PENDING_USER_ACTION 이면 시스템 확인 화면 띄움).
+  `REQUEST_INSTALL_PACKAGES` 권한, 처음 한 번 `canRequestPackageInstalls()` 거짓이면 ACTION_MANAGE_UNKNOWN_APP_SOURCES 열기(안 되면 보안 설정·안내). API 31+ 는 `USER_ACTION_NOT_REQUIRED` 요청(자기가 설치한 뒤부터 확인 없이 될 수도, 미확인).
+  **서명 = 이 PC 의 `%USERPROFILE%\.android\debug.keystore`** — 다른 PC 에서 빌드하면 서명이 달라 덮어쓰기 설치가 실패하니 이 PC 에서 빌드하거나 이 키를 옮겨 쓸 것(백업 권장). versionName 을 올리고 태그를 `tv-vX.Y` 로 만들어야 알림이 뜸
 - 도구(이 PC): `C:\Users\stepe\Android\` 에 jdk17 · Sdk(platform-tools, build-tools 35, platforms 35) · gradle-8.10.2
   (`%LOCALAPPDATA%` 는 Claude 앱 샌드박스에서 가상화되므로 쓰지 말 것)
 - `local.properties` 의 `sdk.dir` 은 슬래시로: `sdk.dir=C:/Users/stepe/Android/Sdk` (역슬래시 이스케이프 실수 시 빌드 실패)
