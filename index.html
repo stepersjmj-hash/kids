@@ -109,29 +109,29 @@
   .thumbNav { display:none; }
 
   /* ---------- TV 앱 재생 화면 (body.app, 960×540 기준 → u 단위). 영상 틀을 최대한 크게, 나머지는 작게 ---------- */
-  body.app #stage { padding:calc(14 * var(--u)) 0 0; overflow:hidden; }
-  body.app #logo { position:absolute; left:calc(24 * var(--u)); top:calc(16 * var(--u)); width:auto; height:auto; gap:calc(8 * var(--u)); }
+  body.app #stage { padding:calc(20 * var(--u)) 0 0 calc(24 * var(--u)); align-items:flex-start; overflow:hidden; }   /* 왼쪽 열(600u) = 영상·조작, 오른쪽 열(648~936u) = 로고·지금 카테고리 목록(#tvSide) */
+  body.app #logo { position:absolute; left:calc(648 * var(--u)); top:calc(16 * var(--u)); width:auto; height:auto; gap:calc(8 * var(--u)); }
   body.app #logo img { width:calc(28 * var(--u)); height:calc(28 * var(--u)); border-radius:calc(8 * var(--u)); }
   body.app #logo span { font-size:calc(14 * var(--u)); line-height:calc(17 * var(--u)); padding-top:calc(2 * var(--u)); }
   body.app #logo br { display:inline; }
   body.app #pickHint { display:flex; position:absolute; right:calc(24 * var(--u)); top:calc(16 * var(--u)); height:calc(32 * var(--u)); align-items:center; gap:calc(4 * var(--u)); padding:0 calc(12 * var(--u)) 0 calc(8 * var(--u)); border-radius:999px; background:#fff; color:var(--sub); }
   body.app #pickHint svg { width:calc(16 * var(--u)); height:calc(16 * var(--u)); display:block; }
   body.app #pickHint span { font:400 calc(14 * var(--u)) / calc(24 * var(--u)) var(--jua); padding-top:calc(2 * var(--u)); }
-  body.app #frame { width:calc(660 * var(--u)); height:calc(380 * var(--u)); aspect-ratio:auto; margin-top:0; border-width:calc(10 * var(--u)); border-radius:calc(30 * var(--u)); box-shadow:0 calc(14 * var(--u)) calc(30 * var(--u)) rgba(120,80,30,.16); }
+  body.app #frame { width:calc(600 * var(--u)); height:calc(346 * var(--u)); aspect-ratio:auto; margin-top:0; border-width:calc(10 * var(--u)); border-radius:calc(30 * var(--u)); box-shadow:0 calc(14 * var(--u)) calc(30 * var(--u)) rgba(120,80,30,.16); }
   body.app #player-wrap { border-radius:calc(20 * var(--u)); }
   body.app #cover { font-size:calc(20 * var(--u)); }
-  body.app #titleRow2 { width:calc(660 * var(--u)); margin-top:calc(10 * var(--u)); gap:calc(16 * var(--u)); }
+  body.app #titleRow2 { width:calc(600 * var(--u)); margin-top:calc(10 * var(--u)); gap:calc(16 * var(--u)); }
   body.app #nowTitle { font-size:calc(17 * var(--u)); line-height:calc(22 * var(--u)); padding-top:calc(2 * var(--u)); }
   body.app #dots { gap:calc(6 * var(--u)); }
   body.app #dots i { width:calc(8 * var(--u)); height:calc(8 * var(--u)); border-radius:calc(4 * var(--u)); }
   body.app #dots i.now { width:calc(22 * var(--u)); }
   body.app #dots b { font-size:calc(12 * var(--u)); }
-  body.app #prog { width:calc(660 * var(--u)); margin-top:calc(8 * var(--u)); gap:calc(12 * var(--u)); }
+  body.app #prog { width:calc(600 * var(--u)); margin-top:calc(8 * var(--u)); gap:calc(12 * var(--u)); }
   body.app #prog time { font-size:calc(13 * var(--u)); line-height:calc(16 * var(--u)); min-width:calc(36 * var(--u)); }
   body.app #prog .track { height:calc(6 * var(--u)); border-radius:calc(3 * var(--u)); }
   body.app #prog .fill { border-radius:calc(3 * var(--u)); }
   body.app #prog .knob { width:calc(14 * var(--u)); height:calc(14 * var(--u)); margin:calc(-7 * var(--u)) 0 0 calc(-7 * var(--u)); box-shadow:0 0 0 calc(3 * var(--u)) var(--accent); }
-  body.app #bar { width:calc(660 * var(--u)); margin-top:calc(14 * var(--u)); }
+  body.app #bar { width:calc(600 * var(--u)); margin-top:calc(14 * var(--u)); }
   body.app #bar .chip { display:none; }
   body.app #bar .m { gap:calc(22 * var(--u)); }
   body.app .thumbNav { display:flex; align-items:center; gap:calc(8 * var(--u)); min-width:0; }
@@ -157,6 +157,22 @@
   body.app .rb.kfocus, body.app #bar #btnFull.kfocus { box-shadow:inset 0 calc(-4 * var(--u)) 0 var(--btn-depth), 0 calc(4 * var(--u)) calc(10 * var(--u)) rgba(120,80,30,.12), 0 0 0 calc(4 * var(--u)) var(--bg), 0 0 0 calc(8 * var(--u)) var(--focus); }
   body.app #btnPlay.kfocus { box-shadow:inset 0 calc(2 * var(--u)) 0 rgba(255,255,255,.35), inset 0 calc(-4 * var(--u)) 0 var(--accent-dark), 0 0 0 calc(4 * var(--u)) var(--bg), 0 0 0 calc(8 * var(--u)) var(--focus); }
   body.app #btnImportYt, body.app #bookmarkHint, body.app #btnTv { display:none; }
+  /* 앱 오른쪽: 지금 재생 중인 카테고리의 목록 (보기 전용, 지금 영상을 가운데로 자동 스크롤) */
+  #tvSide { display:none; }
+  body.app #tvSide { display:flex; flex-direction:column; position:absolute; left:calc(648 * var(--u)); right:calc(24 * var(--u)); top:calc(60 * var(--u)); bottom:calc(74 * var(--u)); gap:calc(8 * var(--u)); padding:calc(12 * var(--u)) calc(8 * var(--u)) calc(8 * var(--u)); border-radius:calc(20 * var(--u)); background:var(--panel); box-shadow:0 calc(8 * var(--u)) calc(20 * var(--u)) rgba(120,80,30,.10); }
+  #tvSide h3 { margin:0; padding:calc(2 * var(--u)) calc(6 * var(--u)) 0; display:flex; align-items:baseline; gap:calc(6 * var(--u)); font:400 calc(18 * var(--u)) / calc(24 * var(--u)) var(--jua); flex:none; white-space:nowrap; overflow:hidden; }
+  #tvSide h3 b { font:600 calc(12 * var(--u)) / 1 var(--num); color:var(--sub); }
+  #tvSideList { flex:1; min-height:0; position:relative; overflow-y:auto; scrollbar-width:none; display:flex; flex-direction:column; gap:calc(4 * var(--u)); }
+  #tvSideList::-webkit-scrollbar { display:none; }
+  .tsi { display:flex; align-items:center; gap:calc(8 * var(--u)); padding:calc(5 * var(--u)) calc(6 * var(--u)); border-radius:calc(12 * var(--u)); flex:none; cursor:pointer; }
+  .tsi .n { width:calc(22 * var(--u)); height:calc(22 * var(--u)); border-radius:50%; background:var(--bg); display:flex; align-items:center; justify-content:center; font:400 calc(12 * var(--u)) / 1 var(--jua); padding-top:calc(2 * var(--u)); flex:none; }
+  .tsi img { width:calc(64 * var(--u)); height:calc(36 * var(--u)); border-radius:calc(8 * var(--u)); object-fit:cover; background:var(--video); display:block; flex:none; }
+  .tsi span { flex:1; min-width:0; font:400 calc(13 * var(--u)) / 1.3 var(--gowun); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .tsi i { font:400 calc(11 * var(--u)) / 1 var(--jua); font-style:normal; color:var(--accent); flex:none; padding-top:calc(2 * var(--u)); }
+  .tsi.cur { background:var(--current); }
+  .tsi.cur .n { background:var(--accent); color:#fff; }
+  .tsi.bad { opacity:.5; }
+  .tsEmpty { padding:calc(16 * var(--u)) calc(6 * var(--u)); font:400 calc(14 * var(--u)) / 1.4 var(--jua); color:var(--sub); }
   /* ?app=1 흉내 모드: 창 비율과 상관없이 TV 와 같은 16:9(960×540u) 상자를 가운데 두고 그 안에 그린다 */
   html.sim { --u:min(calc(100vw / 960), calc(100vh / 540)); }
   html.sim body { display:flex; align-items:center; justify-content:center; background:#111; }
@@ -505,6 +521,7 @@
       <button id="btnReload" class="chip ico" title="새로고침: 최신 목록·버전 받기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5.5h-5.5"/></svg><span>새로고침</span></button>
     </div>
   </div>
+  <div id="tvSide"><h3><span id="tvSideTitle">전체</span><b id="tvSideCount"></b></h3><div id="tvSideList"></div></div>
 </div>
 
 <aside id="side">
@@ -1133,7 +1150,21 @@ function render(){
   $('#linkText').textContent = syncing ? '재생목록 불러오는 중…' : settings.pl ? `🔗 연결된 재생목록: ${settings.pl}` : '유튜브 재생목록 URL을 붙여넣으면 연결됩니다';
   $('#btnSync').hidden = $('#btnUnlink').hidden = !settings.pl;
   renderDots(); renderDeck();
+  if (TVAPP) renderTvSide();
 }
+// 앱 오른쪽 목록: 지금 카테고리(view) 순서, 지금 영상 강조 + 다음 영상에 '다음' 표시(랜덤이어도 실제 다음 것), 지금 영상을 가운데로 스크롤
+function renderTvSide(){
+  const vis = view(), list = $('#tvSideList'), nx = peekNext();
+  $('#tvSideTitle').textContent = curCat() || '전체';
+  $('#tvSideCount').textContent = `${vis.length}개`;
+  list.innerHTML = vis.length ? vis.map((i, p) => {
+    const it = items[i];
+    return `<div class="tsi${i === idx ? ' cur' : ''}${it.bad ? ' bad' : ''}" data-i="${i}"><b class="n">${p + 1}</b><img src="${thumb(it.id)}" alt="" loading="lazy"><span>${esc(it.title || it.id)}</span>${i === nx && i !== idx ? '<i>다음</i>' : ''}</div>`;
+  }).join('') : `<div class="tsEmpty">${items.length ? '이 카테고리에 영상이 없어요' : '목록이 비어 있어요'}</div>`;
+  const cur = list.querySelector('.cur');
+  if (cur) list.scrollTop = cur.offsetTop - (list.clientHeight - cur.offsetHeight) / 2;
+}
+$('#tvSideList').addEventListener('click', e => { const r = e.target.closest('.tsi'); if (r) playIndex(+r.dataset.i); });   // 흉내 모드 마우스용
 function clearDrop(){ document.querySelectorAll('.item.drop-after, .item.drop-before').forEach(x => x.classList.remove('drop-after', 'drop-before')); }
 // 마우스/손가락 y 로 들어갈 인덱스를 정하고 표시선을 그린다. from = 끌고 있는 행 (행마다 drop 을 받으면 행 사이 8px 틈이나 목록 여백에 놓았을 때 아무 일도 안 일어남)
 function dropTarget(y, from){
