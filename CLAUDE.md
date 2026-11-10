@@ -123,7 +123,7 @@ eelsnap\` 에 덮어쓰고
   `view()` = 지금 카테고리에 보이는 items 인덱스 배열 — **목록 행 번호·끌기(dragFrom/dropTarget)·`moveItem(from,to)`·TV `tvSel`/`tvMove` 는 전부 view 안의 위치**, 재생·삭제·⏱(`playIndex`/`removeItem`/`openStart`)은 items 인덱스.
   `moveItem` 은 to 번째 영상 앞(위로)·뒤(아래로)에 끼워 다른 카테고리 영상의 자리는 안 건드림(전체 보기에선 예전과 동일). `rebuildOrder`/`shuffled` 도 view 기준 → 재생이 카테고리 안에서만 돎.
   새로 넣는 영상은 `catField()` 로 지금 카테고리(입력칸·?add=·유튜브 가져오기·JSON·연결 재생목록의 새 영상). UI: PC·폰 `#cats` 탭(행을 탭에 끌어 놓으면 그 카테고리), 행의 `.cg` 알약 → `#catPick`, 편집 → `#catDlg`(이름 바꾸기·▲·✕).
-  TV: `tvChips()` 맨 앞에 `cat:true` 칩들 → `#tvCats` 탭으로 그림(있으면 h2 '뭐 볼까?' 숨김), ◀▶ 는 칩 줄 하나로 이어짐, ● = `setCat`(keep, 안 닫힘). `#pickHint` 에 '음악 · 골라 보기'.
+  TV: `tvChips()` 맨 앞에 `cat:true` 칩들 → `#tvCats` 탭으로 그림(있으면 h2 '뭐 볼까?' 숨김), ◀▶ 는 칩 줄 하나로 이어짐, ● = `setCat`(keep, 안 닫힘). (앱 오른쪽 위 '골라 보기' 안내 #pickHint 는 2026-11-10 사용자 요청으로 없앰 — 카테고리 이름은 #tvSide 머리에)
   동기화: 드라이브 파일 `{updatedAt, items:[{id,title,start?,cat?}], cats}`, 서명 `stateSig` = listSig(`#cat` 포함) + cats. 둘 다 바뀌면 `mergeLists`(공통 영상은 이 기기에서 안 바꾼 start/cat 만 원격 값) + `mergeNames`.
   한글 입력칸 Enter 는 `e.isComposing` 이면 무시(조합 중 Enter 로 추가하면 남은 글자가 다시 들어감)
 - 폰 입력란(#urlInput)은 글자 16px — iOS 사파리는 16px 미만 input 에 포커스하면 화면을 확대함

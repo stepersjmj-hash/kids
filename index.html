@@ -48,7 +48,6 @@
   #logo .chip { height:32px; padding:0 12px; }
   #logo .chip span { font-size:14px; }
   body.app #logo .chip, body.app #logo .sp { display:none; }
-  #pickHint { display:none; }
   #frame { position:relative; width:min(980px, 100%, calc((100dvh - 330px) * 16 / 9)); aspect-ratio:16/9; border:10px solid #fff; border-radius:34px; background:var(--video); box-shadow:0 14px 30px rgba(120,80,30,.16); margin-top:16px; flex:none; overflow:hidden; }
   #player-wrap { position:relative; width:100%; height:100%; overflow:hidden; border-radius:24px; background:var(--video); }
   /* 플레이어 두 개(A/B)를 겹쳐 두고 하나만 보임. 대기(standby) 쪽은 다음 영상을 미리 불러 둔다 — visibility 로 숨겨야 재생이 멈추지 않음 */
@@ -114,9 +113,6 @@
   body.app #logo img { width:calc(28 * var(--u)); height:calc(28 * var(--u)); border-radius:calc(8 * var(--u)); }
   body.app #logo span { font-size:calc(14 * var(--u)); line-height:calc(17 * var(--u)); padding-top:calc(2 * var(--u)); }
   body.app #logo br { display:inline; }
-  body.app #pickHint { display:flex; position:absolute; right:calc(24 * var(--u)); top:calc(16 * var(--u)); height:calc(32 * var(--u)); align-items:center; gap:calc(4 * var(--u)); padding:0 calc(12 * var(--u)) 0 calc(8 * var(--u)); border-radius:999px; background:#fff; color:var(--sub); }
-  body.app #pickHint svg { width:calc(16 * var(--u)); height:calc(16 * var(--u)); display:block; }
-  body.app #pickHint span { font:400 calc(14 * var(--u)) / calc(24 * var(--u)) var(--jua); padding-top:calc(2 * var(--u)); }
   body.app #frame { width:calc(600 * var(--u)); height:calc(346 * var(--u)); aspect-ratio:auto; margin-top:0; border-width:calc(10 * var(--u)); border-radius:calc(30 * var(--u)); box-shadow:0 calc(14 * var(--u)) calc(30 * var(--u)) rgba(120,80,30,.16); }
   body.app #player-wrap { border-radius:calc(20 * var(--u)); }
   body.app #cover { font-size:calc(20 * var(--u)); }
@@ -346,8 +342,8 @@
   .tab.drop { box-shadow:0 0 0 3px var(--focus); }
   #cats .edit { background:none; border-style:dashed; border-color:#d9c3a0; color:var(--sub); font-size:14px; }
   .item .t .sub { display:flex; align-items:center; gap:10px; min-width:0; overflow:hidden; }
-  .item .t .sub .dl { white-space:nowrap; flex:none; }
-  .item .t .cg { height:20px; padding:2px 8px 0; border-radius:999px; background:var(--bg); color:var(--sub2); font:400 12px/1 var(--jua); white-space:nowrap; flex:none; }
+  .item .t .sub .dl { white-space:nowrap; flex:none; height:20px; display:inline-flex; align-items:center; }   /* 카테고리 알약과 같은 높이로 세로 가운데 */
+  .item .t .cg { height:20px; display:inline-flex; align-items:center; padding:2px 8px 0; border-radius:999px; background:var(--bg); color:var(--sub2); font:400 12px/1 var(--jua); white-space:nowrap; flex:none; }
   .item .t .cg.set { background:#e5f7ec; color:var(--ok-text); }
   .item .t .cg:hover { background:#ffe9c2; color:var(--text); }
   .listEmpty { padding:24px 8px; text-align:center; font:400 15px/1.5 var(--jua); color:var(--sub); }
@@ -457,6 +453,7 @@
     #cats { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin:0 -20px; padding:0 20px; }   /* 폰: 가로로 밀어 보기 */
     #cats::-webkit-scrollbar { display:none; }
     .item .t .cg { height:24px; font-size:13px; }
+    .item .t .sub .dl { height:24px; padding:0; }
     body.tools-open #tools, body.tools-open #link { display:flex; }
     #list { padding:2px 20px 20px; gap:10px; flex:none; overflow:visible; }   /* 스크롤은 #side 가 담당 */
     /* 왼쪽으로 밀면 행 오른쪽 바깥에 붙은 빨간 배경이 드러난다. 80px 넘으면 '놓으면 삭제' */
@@ -496,7 +493,6 @@
     <button id="btnTv" class="chip" title="TV 모드: 목록 숨김 (T)"><span>TV 모드</span></button>
     <button id="btnApp" class="chip" title="TV 앱 화면 미리보기 (?app=1)"><span>앱 모드</span></button>
   </div>
-  <div id="pickHint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg><span>골라 보기</span></div>
   <div id="frame"><button id="fsExit" title="전체화면 해제 (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div id="player-wrap">
     <div class="yt" id="wrapA"><div id="playerA"></div></div>
     <div class="yt standby" id="wrapB"><div id="playerB"></div></div>
@@ -1140,7 +1136,6 @@ function render(){
   });
   if (!vis.length && items.length) el.innerHTML = `<div class="listEmpty">'${esc(curCat())}' 에 아직 영상이 없어요<br>이 탭을 고른 채 링크를 넣거나, 영상의 카테고리 버튼으로 옮기세요</div>`;
   renderCats();
-  $('#pickHint span').textContent = curCat() ? `${curCat()} · 골라 보기` : '골라 보기';
   $('#nowTitle').textContent = idx>=0 && items[idx] ? (items[idx].title||items[idx].id) : '—';
   $('#btnLoop').classList.toggle('on', settings.loop);
   $('#btnShuffle').classList.toggle('on', settings.shuffle);
