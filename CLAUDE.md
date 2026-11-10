@@ -50,7 +50,7 @@ eelsnap\` 에 덮어쓰고
 - 로그아웃 = 로컬 토큰 삭제만 (revoke 안 함 → 재로그인 때 동의 화면 생략). drive base 는 유지
 
 ## 구글 드라이브 동기화
-- 범위 `drive.file` (Drive API 사용 설정 필요). 내 드라이브 루트의 `우리집 재생목록 (동기화).json` = `{updatedAt, items:[{id,title,start?,cat?}], cats:[이름…]}`
+- 범위 `drive.file` (Drive API 사용 설정 필요). 내 드라이브 루트의 `우리집 재생목록 (동기화).json` = `{updatedAt, items:[{id,title,start?,rate?,cat?}], cats:[이름…]}`
   — 같은 Cloud 프로젝트의 웹·TV 클라이언트가 같이 접근. 예전 appDataFolder/playlist.json 은 첫 동기화 때 자동 이전(웹만 drive.appdata 유지)
 - 기기별 마지막 동기화 상태를 localStorage `home-playlist-drive-base` 에 두고 3-way 병합(`mergeLists`):
   한쪽만 바뀌면 그쪽을 채택, 둘 다 바뀌면 로컬 + 원격 추가분 − 원격 삭제분
@@ -126,6 +126,9 @@ eelsnap\` 에 덮어쓰고
   TV: `tvChips()` 맨 앞에 `cat:true` 칩들 → `#tvCats` 탭으로 그림(있으면 h2 '뭐 볼까?' 숨김), ◀▶ 는 칩 줄 하나로 이어짐, ● = `setCat`(keep, 안 닫힘). (앱 오른쪽 위 '골라 보기' 안내 #pickHint 는 2026-11-10 사용자 요청으로 없앰 — 카테고리 이름은 #tvSide 머리에)
   동기화: 드라이브 파일 `{updatedAt, items:[{id,title,start?,cat?}], cats}`, 서명 `stateSig` = listSig(`#cat` 포함) + cats. 둘 다 바뀌면 `mergeLists`(공통 영상은 이 기기에서 안 바꾼 start/cat 만 원격 값) + `mergeNames`.
   한글 입력칸 Enter 는 `e.isComposing` 이면 무시(조합 중 Enter 로 추가하면 남은 글자가 다시 들어감)
+- 영상별 재생 속도(2026-11-10): 항목 `rate`(1 이면 키 없음, `rateOf()`/`rateField()`). PC·폰 바의 `#btnRate` 칩(반복·랜덤 옆)이 **지금 영상**의 값을 `RATES` 1 → 1.25 → 1.5 → 0.75 순으로 돌림(`cycleRate`), 앱(body.app)은 칩 숨김·재생만.
+  적용은 `applyRate()` 를 활성 플레이어 **PLAYING 때마다** 호출 — loadVideoById 후 1배로 돌아가고, 미리 받기 교대 후에도 새 활성의 PLAYING 에서 맞춰짐(앞 광고는 PLAYING 을 안 내서 정상 속도).
+  동기화: listSig 에 `~rate`, 드라이브·JSON 에 rate, mergeLists 필드에 rate. 표시: 목록 행 썸네일 오른쪽 아래 `.thw .rt` 배지(폰 행 폭이 좁아 .sub 줄에 넣으면 mp3 버튼이 밀림), TV 격자 배지 '⏱ 0:10 · 1.5x'
 - 폰 입력란(#urlInput)은 글자 16px — iOS 사파리는 16px 미만 input 에 포커스하면 화면을 확대함
 - 높이는 `100dvh` (iOS 사파리 100vh 는 툴바 뒤까지 포함돼 목록 마지막 줄이 가려짐). 스크롤 영역(#list, #tvItems)은 flex 자식이라 `min-height:0` 필수
 - 디자인: `:root` 토큰(크림 배경 `--bg`, 빨강 `--accent`, 포커스 `--focus`…)과 글꼴 Jua(제목·칩·번호, `padding-top:2px` 로 세로 보정)·Gowun Dodum(본문).

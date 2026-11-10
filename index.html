@@ -93,6 +93,10 @@
   .chip.ico { padding-left:12px; }
   /* PC 전체화면·새로고침은 아이콘만 (40px 원) */
   #btnFull, #btnReload, #btnLoop, #btnShuffle, #btnLoop.on, #btnShuffle.on { width:40px; padding:0; justify-content:center; }
+  /* 재생 속도 칩: 기본 1x, 바꾼 영상이면 노란색 */
+  #btnRate { min-width:52px; padding:2px 10px 0; justify-content:center; }
+  #btnRate span { font:600 14px/1 var(--num); padding:0; font-variant-numeric:tabular-nums; }
+  #btnRate.set { background:var(--current); }
   #btnFull span, #btnReload span, #btnLoop span, #btnShuffle span { display:none; }
   #btnFull svg, #btnReload svg, #btnLoop svg, #btnShuffle svg { width:18px; height:18px; display:block; }
   /* 둥근 버튼: 이전 · 재생 · 다음 (두께 그림자는 꼭 inset) */
@@ -343,6 +347,9 @@
   .item .t .sub .dl { white-space:nowrap; flex:none; height:20px; display:inline-flex; align-items:center; }   /* 카테고리 알약과 같은 높이로 세로 가운데 */
   .item .t .cg { height:20px; display:inline-flex; align-items:center; padding:2px 8px 0; border-radius:999px; background:var(--bg); color:var(--sub2); font:400 12px/1 var(--jua); white-space:nowrap; flex:none; }
   .item .t .cg.set { background:#e5f7ec; color:var(--ok-text); }
+  /* 재생 속도 배지: 썸네일 오른쪽 아래 (TV 골라 보기 배지와 같은 모양) */
+  .item .thw { position:relative; flex:none; display:block; line-height:0; }
+  .item .rt { position:absolute; right:3px; bottom:3px; height:16px; padding:0 5px; border-radius:999px; background:rgba(43,33,24,.75); color:#fff; font:600 10px/16px var(--num); }
   .item .t .cg:hover { background:#ffe9c2; color:var(--text); }
   .listEmpty { padding:24px 8px; text-align:center; font:400 15px/1.5 var(--jua); color:var(--sub); }
   .dlg { position:fixed; inset:0; background:rgba(43,33,24,.45); display:flex; align-items:center; justify-content:center; z-index:12; padding:20px; }
@@ -425,6 +432,9 @@
     #bar .r { justify-content:flex-end; }
     #bar .l, #bar .r { gap:6px; }
     #btnFull, #btnReload, #btnLoop, #btnShuffle, #btnLoop.on, #btnShuffle.on { width:34px; height:34px; padding:0 0 3px; border-radius:50%; background:linear-gradient(#fff,#fff8ec); box-shadow:inset 0 -4px 0 var(--btn-depth), 0 4px 10px rgba(120,80,30,.12); justify-content:center; }
+    #btnRate { height:34px; min-width:46px; padding:0 8px 3px; border-radius:999px; background:linear-gradient(#fff,#fff8ec); box-shadow:inset 0 -4px 0 var(--btn-depth), 0 4px 10px rgba(120,80,30,.12); }
+    #btnRate span { font-size:12px; }
+    #btnRate.set { background:var(--current); }
     #btnLoop.on, #btnShuffle.on { background:var(--ok); color:var(--ok-ink); box-shadow:inset 0 -4px 0 #2bb86a, 0 4px 10px rgba(120,80,30,.12); }
     #btnFull span, #btnReload span { display:none; }
     #btnFull svg, #btnReload svg, #btnLoop svg, #btnShuffle svg { width:15px; height:15px; }
@@ -502,6 +512,7 @@
     <div class="l">
       <button id="btnLoop" class="chip ico on" title="반복: 끝나면 처음부터 다시 (L)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>반복</span></button>
       <button id="btnShuffle" class="chip ico" title="랜덤 재생 (S)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/></svg><span>랜덤 재생</span></button>
+      <button id="btnRate" class="chip" title="재생 속도: 지금 영상만 (1 → 1.25 → 1.5 → 0.75), 동기화돼 TV 에서도 이 속도"><span>1x</span></button>
       <div id="prevThumb" class="thumbNav empty"><img alt=""><span>이전</span></div>
     </div>
     <div class="m">
@@ -629,9 +640,13 @@ const toast = (m, ms=1800) => { const t=$('#toast'); t.textContent=m; t.classLis
 
 /* ---------- 저장/불러오기 ---------- */
 // 목록 서명: 영상 구성·순서·시작 시각이 바뀌면 달라짐 → 드라이브 동기화 트리거 (제목·설정 변경은 제외)
-const listSig = arr => arr.map(x => x.id + (x.start > 0 ? '@' + x.start : '') + (x.cat ? '#' + x.cat : '')).join(',');
+const listSig = arr => arr.map(x => x.id + (x.start > 0 ? '@' + x.start : '') + (rateOf(x) !== 1 ? '~' + rateOf(x) : '') + (x.cat ? '#' + x.cat : '')).join(',');
 const stateSig = (arr, cs) => listSig(arr) + '|' + (cs || []).join('\n');   // 목록 + 카테고리 이름들
 const startOf = it => it && it.start > 0 ? it.start : 0;
+// 영상별 재생 속도 (없거나 1 이면 기본). PC·폰 바의 속도 칩이 지금 영상 값을 1 → 1.25 → 1.5 → 0.75 → 1 로 돌림, 앱은 재생만
+const RATES = [1, 1.25, 1.5, 0.75];
+const rateOf = it => it && it.rate > 0 && it.rate !== 1 ? it.rate : 1;
+const rateField = x => rateOf(x) !== 1 ? { rate: rateOf(x) } : {};
 
 /* ---------- 카테고리 ----------
    cats = 카테고리 이름 배열(순서 = 탭 순서, 드라이브로 동기화), 영상마다 cat(이름 하나, 없으면 '전체'에만).
@@ -702,7 +717,7 @@ async function loadRemote(url){
     const r = await fetch(url, {cache:'no-store'});
     const data = await r.json();
     const arr = Array.isArray(data) ? data : (data.items || []);
-    items = arr.map(x => typeof x === 'string' ? {id:extractId(x), title:''} : {id:x.id||extractId(x.url||''), title:x.title||'', ...(x.cat ? { cat: String(x.cat) } : {})}).filter(x=>x.id);
+    items = arr.map(x => typeof x === 'string' ? {id:extractId(x), title:''} : {id:x.id||extractId(x.url||''), title:x.title||'', ...(x.start > 0 ? { start: x.start } : {}), ...rateField(x), ...(x.cat ? { cat: String(x.cat) } : {})}).filter(x=>x.id);
     if (!Array.isArray(data) && Array.isArray(data.cats)) cats = data.cats;
     normalizeCats(); save(); rebuildOrder(); render(); toast(`원격 목록 ${items.length}개 불러옴`);
     fillTitles();
@@ -894,7 +909,7 @@ function mergeLists(local, remote, base){
   const out = local.filter(x => !(Bm.has(x.id) && !Rm.has(x.id))).map(x => {   // 원격에서 지운 것 제거
     const r = Rm.get(x.id), b = Bm.get(x.id); if (!r || !b) return x;
     const y = { ...x };
-    for (const k of ['start', 'cat']) if ((x[k] || '') === (b[k] || '')) { if (r[k]) y[k] = r[k]; else delete y[k]; }
+    for (const k of ['start', 'rate', 'cat']) if ((x[k] || '') === (b[k] || '')) { if (r[k]) y[k] = r[k]; else delete y[k]; }
     return y;
   });
   for (const x of remote) if (!L.has(x.id) && !Bm.has(x.id)) out.push(x);    // 원격에서 새로 생긴 것 추가
@@ -914,7 +929,7 @@ async function driveSync(){
       let base = null; try { base = JSON.parse(localStorage.getItem(BASE_KEY)); } catch {}
       const remote = await driveRead();
       const sig = stateSig;
-      const local = items.map(({ id, title, start, cat }) => ({ id, title, ...(start ? { start } : {}), ...(cat ? { cat } : {}) }));
+      const local = items.map(({ id, title, start, rate, cat }) => ({ id, title, ...(start ? { start } : {}), ...rateField({ rate }), ...(cat ? { cat } : {}) }));
       const localCats = cats.slice(), remoteCats = remote && Array.isArray(remote.cats) ? remote.cats : [];
       const localChanged = !base || sig(local, localCats) !== sig(base.items, base.cats);
       const remoteChanged = remote && (!base || remote.updatedAt !== base.updatedAt);
@@ -932,7 +947,7 @@ async function driveSync(){
       if (next && sig(next, nextCats) !== sig(local, localCats)) {
         const old = new Map(items.map(x => [x.id, x]));
         const curId = idx >= 0 && items[idx] ? items[idx].id : null;
-        items = next.map(x => ({ ...(old.get(x.id) || {}), id: x.id, title: x.title || old.get(x.id)?.title || '', start: x.start > 0 ? x.start : undefined, cat: x.cat || undefined }));
+        items = next.map(x => ({ ...(old.get(x.id) || {}), id: x.id, title: x.title || old.get(x.id)?.title || '', start: x.start > 0 ? x.start : undefined, rate: rateOf(x) !== 1 ? rateOf(x) : undefined, cat: x.cat || undefined }));
         cats = nextCats.slice(); normalizeCats();
         idx = curId ? items.findIndex(x => x.id === curId) : -1;
         save._sig = sig(items, cats); localStorage.setItem(KEY, JSON.stringify(items)); localStorage.setItem(CATS_KEY, JSON.stringify(cats));
@@ -1109,7 +1124,7 @@ function render(){
     d.innerHTML = `
       <div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <span class="n">${p+1}</span>
-      <img src="${thumb(it.id)}" alt="" draggable="false">
+      <span class="thw"><img src="${thumb(it.id)}" alt="" draggable="false">${rateOf(it) !== 1 ? `<b class="rt" title="재생 속도">${rateOf(it)}x</b>` : ''}</span>
       <div class="t"><em>${esc(it.title||it.id)}</em><div class="sub">${cg}${it.bad ? '<small>재생 불가 · 건너뜀</small>' : `<button class="dl" title="소리만 mp3(128k) 로 내려받기${startOf(it) ? ` — ${fmt(startOf(it))} 부터` : ''}">mp3 다운로드</button>`}</div></div>
       <button class="st${startOf(it) ? ' set' : ''}" title="시작 시각: 이 영상을 여기서부터 재생">${ICON.clock}${startOf(it) ? `<span>${fmt(startOf(it))}</span>` : ''}</button>
       <button class="del" title="삭제">${ICON.x}</button>
@@ -1137,6 +1152,7 @@ function render(){
   $('#nowTitle').textContent = idx>=0 && items[idx] ? (items[idx].title||items[idx].id) : '—';
   $('#btnLoop').classList.toggle('on', settings.loop);
   $('#btnShuffle').classList.toggle('on', settings.shuffle);
+  { const r = idx >= 0 ? rateOf(items[idx]) : 1; $('#btnRate span').textContent = r + 'x'; $('#btnRate').classList.toggle('set', r !== 1); }
   $('#btnTv').classList.toggle('on', settings.tv);
   document.body.classList.toggle('tv', settings.tv);
   $('#link').classList.toggle('on', !!settings.pl);
@@ -1408,7 +1424,7 @@ function onPlayerState(e){
   setPlayIcon(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
   if (e.data === YT.PlayerState.PAUSED && idx >= 0 && items[idx]) showCover('일시정지', items[idx].id);   // 유튜브 일시정지 화면(제목·추천) 가리기
   if (e.data === YT.PlayerState.ENDED) { showCover('다음 영상…'); setTimeout(()=>step(1), 150); }
-  if (e.data === YT.PlayerState.PLAYING) { hideCover(); captionsOff(); adUnmute(); if (!mainStarted) { mainStarted = true; preloadNext(); } }
+  if (e.data === YT.PlayerState.PLAYING) { hideCover(); captionsOff(); adUnmute(); applyRate(); if (!mainStarted) { mainStarted = true; preloadNext(); } }
 }
 function onPlayerError(e){
   // 100: 없음/비공개, 101/150: 임베드 금지, 2: 잘못된 ID
@@ -1489,6 +1505,20 @@ function showCover(t, img){
   else im.removeAttribute('src');
 }
 function hideCover(){ $('#cover').classList.add('hidden'); }
+// 지금 영상의 속도를 활성 플레이어에 맞춤. 새 영상을 불러오면 1배로 돌아가므로 PLAYING 때마다 부른다
+// (미리 받기 교대 후에도 새 활성 플레이어의 PLAYING 에서 맞춰짐, 앞 광고는 PLAYING 을 안 내서 정상 속도)
+function applyRate(){
+  if (!ready || idx < 0 || !items[idx]) return;
+  const r = rateOf(items[idx]);
+  try { if (player.getPlaybackRate() !== r) player.setPlaybackRate(r); } catch {}
+}
+function cycleRate(){
+  const it = items[idx]; if (idx < 0 || !it) { toast('재생 중인 영상이 없습니다'); return; }
+  const next = RATES[(RATES.indexOf(rateOf(it)) + 1) % RATES.length];
+  if (next === 1) delete it.rate; else it.rate = next;
+  save(); render(); applyRate();   // save() 서명에 속도가 들어 있어 드라이브로 동기화됨
+  toast(next === 1 ? '이 영상 보통 속도(1x)' : `이 영상 ${next}x 속도로 — TV 에서도 이 속도`, 1800);
+}
 function togglePlay(){
   if (!ready) return;
   if (idx<0) { step(1); return; }
@@ -1516,13 +1546,13 @@ function addFromInput(){
 $('#btnAdd').onclick = addFromInput;
 $('#urlInput').addEventListener('keydown', e => { if (e.key==='Enter') addFromInput(); });
 $('#btnExport').onclick = () => {
-  const blob = new Blob([JSON.stringify(items.map(({id,title,start,cat})=>({id, title, ...(start ? {start} : {}), ...(cat ? {cat} : {})})), null, 2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify(items.map(({id,title,start,rate,cat})=>({id, title, ...(start ? {start} : {}), ...rateField({rate}), ...(cat ? {cat} : {})})), null, 2)], {type:'application/json'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'playlist.json'; a.click();
 };
 $('#btnImport').onclick = () => $('#fileInput').click();
 $('#fileInput').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
-  try { const arr = JSON.parse(await f.text()); for (const x of arr){ const id = typeof x==='string'?extractId(x):x.id; if (id && !items.some(y=>y.id===id)) items.push({id, title:x.title||'', ...(x.start > 0 ? { start: x.start } : {}), ...(x.cat ? { cat: String(x.cat) } : catField())}); } normalizeCats(); save(); rebuildOrder(); render(); fillTitles(); toast('가져오기 완료'); }
+  try { const arr = JSON.parse(await f.text()); for (const x of arr){ const id = typeof x==='string'?extractId(x):x.id; if (id && !items.some(y=>y.id===id)) items.push({id, title:x.title||'', ...(x.start > 0 ? { start: x.start } : {}), ...rateField(x), ...(x.cat ? { cat: String(x.cat) } : catField())}); } normalizeCats(); save(); rebuildOrder(); render(); fillTitles(); toast('가져오기 완료'); }
   catch { toast('JSON 형식이 올바르지 않습니다'); }
   e.target.value = '';
 };
@@ -1633,6 +1663,7 @@ $('#btnPrev').onclick = () => step(-1);
 $('#btnNext').onclick = () => step(1);
 $('#btnPlay').onclick = togglePlay;
 $('#btnLoop').onclick = () => { settings.loop=!settings.loop; save(); render(); preloadNext(); toast(settings.loop ? '반복 켜짐 — 끝나면 처음부터 다시' : '반복 꺼짐 — 마지막 영상에서 멈춤', 1800); };
+$('#btnRate').onclick = cycleRate;
 $('#btnShuffle').onclick = () => { settings.shuffle=!settings.shuffle; save(); rebuildOrder(); render(); preloadNext(); toast(settings.shuffle ? '랜덤 재생 켜짐' : '랜덤 재생 꺼짐 — 순서대로', 1800); };
 $('#btnReload').onclick = () => TVAPP && KidsTV.reload ? KidsTV.reload() : location.reload();
 $('#btnTv').onclick = () => { settings.tv=!settings.tv; save(); render(); };
@@ -1822,7 +1853,7 @@ function tvRender(){
   vis.slice(tvPage * TV_PAGE, (tvPage + 1) * TV_PAGE).forEach((i, k) => {
     const p = tvPage * TV_PAGE + k, it = items[i], d = document.createElement('div');
     d.className = 'tvi' + (p === tvSel ? ' sel' : '') + (i === idx ? ' cur' : '') + (it.bad ? ' bad' : '') + (p === tvMove ? ' moving' : '');
-    d.innerHTML = `<div class="th"><img src="${thumb(it.id)}" alt=""><b class="n">${p + 1}</b>${startOf(it) ? `<i class="st">⏱ ${fmt(startOf(it))}</i>` : ''}</div><span>${esc(it.title || it.id)}</span>`;
+    d.innerHTML = `<div class="th"><img src="${thumb(it.id)}" alt=""><b class="n">${p + 1}</b>${startOf(it) || rateOf(it) !== 1 ? `<i class="st">${[startOf(it) ? '⏱ ' + fmt(startOf(it)) : '', rateOf(it) !== 1 ? rateOf(it) + 'x' : ''].filter(Boolean).join(' · ')}</i>` : ''}</div><span>${esc(it.title || it.id)}</span>`;
     d.onclick = () => { tvHide(); playIndex(i); };
     grid.appendChild(d);
   });
