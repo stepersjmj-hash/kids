@@ -138,7 +138,7 @@ eelsnap\` 에 덮어쓰고
   동기화: listSig 에 `~rate`, 드라이브·JSON 에 rate, mergeLists 필드에 rate. 표시: 목록 행 썸네일 오른쪽 아래 `.thw .rt` 배지(폰 행 폭이 좁아 .sub 줄에 넣으면 mp3 버튼이 밀림), TV 격자 배지 '⏱ 0:10 · 1.5x'
 - NAS 영상(2026-11-10): 항목 id `nas:폴더/파일.mp4`(`isNas`/`nasRel`/`nasUrl`) = NAS Web Station `https://stepersjmj.synology.me/site/mjimage/kids/…`(Range 지원·폴더 목록 403, CORS 없음 → 재생은 `<video id="nasVideo">` 라 상관없음) 를 재생.
   목록·썸네일은 Reelsnap(mjdownloader `server.js` 의 `/kids/list`·`/kids/thumb`, docker-compose 볼륨 `/volume1/web/site/mjimage/kids:/kids:ro`, `NAS_API` = :8443, `?nas=http://127.0.0.1:3199` 로 바꿔 테스트 — 로컬 서버는
-  `$env:PORT=3199; $env:KIDS_DIR='\mjj\web\site\mjimage\kids'; node server.js`). `importNas()`(#btnNas, 목록 위) = 폴더 → 카테고리, 새 파일만 추가. **함정**: 컨테이너는 `reelsnap` 사용자로 돌아 `/kids/list` 가 EACCES → DSM File Station 에서 kids 폴더 속성 → 권한 → Everyone 읽기(하위 폴더·파일에 적용)로 해결(2026-11-11, 재빌드 불필요).
+  `$env:PORT=3199; $env:KIDS_DIR='\mjj\web\site\mjimage\kids'; node server.js`). `importNas()`(#btnNas, 목록 위) = 폴더 → 카테고리, 새 파일 추가 + **NAS 에 없는 nas: 항목은 목록에서 뺌**(2026-11-11, NAS 영상만 있던 카테고리가 비면 그것도, 보던 영상이 빠지면 멈춤, 목록이 통째로 비면 confirm — 취소 시 그대로). **함정**: 컨테이너는 `reelsnap` 사용자로 돌아 `/kids/list` 가 EACCES → DSM File Station 에서 kids 폴더 속성 → 권한 → Everyone 읽기(하위 폴더·파일에 적용)로 해결(2026-11-11, 재빌드 불필요).
   재생: `playIndex` 가 nas 면 `playNas`(유튜브 stopVideo + `#player-wrap.nas` 로 yt 숨김, 시작 시각은 `#t=초`), 아니면 `nasStop` 후 기존 경로. **플레이어 조작은 `ctl()`**(nasOn 이면 `VID` = 유튜브와 같은 이름의 video 래퍼) —
   진행 막대·스크럽·seekByTotal·togglePlay·applyRate·openStart 가 이걸 씀. 활성 유튜브의 onStateChange/onError 는 nasOn 이면 무시, 미리 받기는 다음이 nas 면 대기 플레이어 비움.
   video 이벤트: playing(덮개 숨김·속도·미리 받기)·ended(다음)·error(bad 표시 후 건너뜀). 썸네일 404 는 document error 캡처로 기본 그림(NAS_NOTHUMB). 목록 행은 mp3 다운 대신 'NAS'
