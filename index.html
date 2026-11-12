@@ -748,6 +748,7 @@ let simTvWas = false;   // 흉내 모드 들어오기 전의 tv 설정 (그대�
 function saveSettings(){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(SIM ? { ...settings, tv: simTvWas } : settings)); }
 function load(){
   try { items = JSON.parse(localStorage.getItem(KEY)) || []; } catch { items = []; }
+  items.forEach(it => { delete it.bad; });   // '재생 불가' 표시는 이번 세션만 — 새로고침하면 다시 시도 (일시 오류로 잘못 찍힌 표시가 남지 않게)
   try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch {}
   try { cats = JSON.parse(localStorage.getItem(CATS_KEY)) || []; } catch { cats = []; }
   try { catCol = JSON.parse(localStorage.getItem(CATCOL_KEY)) || {}; } catch { catCol = {}; }
@@ -1609,18 +1610,28 @@ function onPlayerState(e){
   setPlayIcon(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
   if (e.data === YT.PlayerState.PAUSED && idx >= 0 && items[idx]) showCover('일시정지', items[idx].id);   // 유튜브 일시정지 화면(제목·추천) 가리기
   if (e.data === YT.PlayerState.ENDED) { showCover('다음 영상…'); setTimeout(()=>step(1), 150); }
-  if (e.data === YT.PlayerState.PLAYING) { hideCover(); captionsOff(); adUnmute(); applyRate(); if (!mainStarted) { mainStarted = true; preloadNext(); } }
+  if (e.data === YT.PlayerState.PLAYING) { errRetryId = null; hideCover(); captionsOff(); adUnmute(); applyRate(); if (!mainStarted) { mainStarted = true; preloadNext(); } }
 }
 function onPlayerError(e){
   // 100: 없음/비공개, 101/150: 임베드 금지, 2: 잘못된 ID
   if (e.target !== player) { onSpareError(e); return; }
   if (nasOn) return;
-  if (idx>=0 && items[idx]) { items[idx].bad = true; save(); toast(`재생 불가(코드 ${e.data}) → 건너뜀`); rebuildOrder(); render(); }
+  const it = idx >= 0 ? items[idx] : null;
+  // 오류는 일시적인 경우가 있음(자동 시작·네트워크·다른 PC 의 브라우저 정책 등 — 눌러 보면 재생되는데 '재생 불가'로 찍히던 문제, 2026-11-12)
+  // → 같은 영상에서 처음 난 오류는 1초 뒤 한 번 다시 시도하고, 또 나면 그때 재생 불가로 표시하고 건너뜀
+  if (it && errRetryId !== it.id) {
+    errRetryId = it.id;
+    console.warn('재생 오류 → 다시 시도', it.id, e.data);
+    setTimeout(() => { if (items[idx] !== it || nasOn) return; adMute(); try { player.loadVideoById(startOf(it) ? { videoId: it.id, startSeconds: startOf(it) } : it.id); } catch {} }, 1000);
+    return;
+  }
+  if (it) { it.bad = true; save(); toast(`재생 불가(코드 ${e.data}) → 건너뜀`); rebuildOrder(); render(); }
   setTimeout(()=>step(1), 300);
 }
+let errRetryId = null;   // 오류 뒤 한 번 다시 시도한 영상 (재생되면·다른 영상을 고르면 비움)
 function playIndex(i, viaOrder){
   if (i<0 || i>=items.length) return;
-  idx = i;
+  idx = i; errRetryId = null;
   if (settings.last !== items[i].id) { settings.last = items[i].id; saveSettings(); }  // 새로 고쳐도 이어 보기
   mainStarted = false;
   if (!viaOrder) { if (items[i].bad) { items[i].bad = false; } rebuildOrder(); }
@@ -1661,9 +1672,8 @@ function onSpareState(e){
 }
 function onSpareError(e){
   const id = spareId; spareId = null; spareState = 'idle';
-  const it = items.find(x => x.id === id);
-  if (it && !it.bad) { it.bad = true; save(); rebuildOrder(); render(); }
-  preloadNext();                                // 그 다음 영상으로 다시 시도
+  // 미리 받기 실패만으로는 '재생 불가'로 찍지 않음(일시 오류일 수 있음) — 차례가 오면 활성 플레이어가 다시 시도해 판단
+  console.warn('미리 받기 오류', id, e.data);
 }
 // 대기 플레이어를 활성으로 올리고, 쓰던 활성 플레이어는 비워서 대기로 내린다
 function swapToSpare(){
