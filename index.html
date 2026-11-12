@@ -1727,11 +1727,10 @@ function togglePlay(){
 /* ---------- 추가/도구 ---------- */
 function addFromInput(){
   const raw = $('#urlInput').value;
-  const pl = extractPlaylistId(raw);
-  if (pl) {
-    if (settings.pl !== pl && items.length && !confirm('이 재생목록을 연결할까요? 현재 목록은 재생목록 내용으로 바뀝니다.')) return;
-    $('#urlInput').value = ''; linkPlaylist(pl); return;
-  }
+  // 재생목록 주소(list=…, 영상 주소에 붙어 있어도)면 그 재생목록 영상을 모두 지금 카테고리에 추가할지 물음 (2026-11-12)
+  // 예전엔 list 만 있는 주소는 목록 전체를 그 재생목록으로 '교체(연결)' 했는데 카테고리가 생긴 뒤로는 덮어쓰기가 위험해 추가로 바꿈. 연결은 ?pl= 로만
+  const listId = (raw.match(/[?&]list=([\w-]+)/) || [])[1] || extractPlaylistId(raw);
+  if (listId && raw.trim().split(/\s+/).length === 1) { addPlaylistAll(listId, extractId(raw)); return; }
   const ids = raw.split(/[\s,]+/).map(extractId).filter(Boolean);
   if (!ids.length) { toast('유효한 유튜브 URL이 없습니다'); return; }
   let added = 0;
@@ -1740,6 +1739,36 @@ function addFromInput(){
   save(); rebuildOrder(); render(); fillTitles();
   toast(`${added}개 추가됨` + (added && curCat() ? ` → ${curCat()}` : ''));
   if (idx<0 && added) playIndex(items.length-added);
+}
+// 재생목록의 영상을 모두(순서대로) 지금 카테고리에 추가. 이미 있는 영상은 건너뜀. 취소하면 영상 주소였던 경우 그 영상 하나만
+async function addPlaylistAll(listId, oneId){
+  if (!ytReady) { toast('플레이어 준비 중… 잠시 뒤 다시 눌러 주세요'); return; }
+  const btn = $('#btnAdd'); btn.disabled = true; toast('재생목록 불러오는 중…', 15000);
+  let ids;
+  try { ids = [...new Set(await fetchPlaylistIds(listId))]; }
+  catch (e) { console.error(e); ids = null; }
+  btn.disabled = false;
+  const add = list => {
+    let added = 0;
+    for (const id of list) if (!items.some(x => x.id === id)) { items.push({ id, title: '', ...catField() }); added++; }
+    $('#urlInput').value = '';
+    save(); rebuildOrder(); render(); fillTitles();
+    return added;
+  };
+  if (!ids || !ids.length) {
+    toast('재생목록을 불러오지 못했습니다 (비공개이거나 잘못된 주소)' + (oneId ? ' — 영상 하나만 추가합니다' : ''), 3500);
+    if (oneId) { const n = add([oneId]); if (idx < 0 && n) playIndex(items.length - 1); }
+    return;
+  }
+  const where = curCat() ? `'${curCat()}' 카테고리에` : '목록에';
+  const fresh = ids.filter(id => !items.some(x => x.id === id)).length;
+  if (!confirm(`재생목록 영상 ${ids.length}개를 ${where} 모두 추가할까요?` + (fresh < ids.length ? `\n(이미 있는 ${ids.length - fresh}개는 건너뜀)` : '') + (oneId ? '\n\n취소 = 이 영상 하나만 추가' : ''))) {
+    if (oneId) { const n = add([oneId]); toast(n ? '1개 추가됨' : '이미 목록에 있는 영상입니다'); if (idx < 0 && n) playIndex(items.length - 1); }
+    return;
+  }
+  const n = add(ids);
+  toast(n ? `재생목록에서 ${n}개 추가됨` + (curCat() ? ` → ${curCat()}` : '') : '모두 이미 목록에 있는 영상입니다', 3000);
+  if (idx < 0 && n) playIndex(items.length - n);
 }
 $('#btnAdd').onclick = addFromInput;
 $('#urlInput').addEventListener('keydown', e => { if (e.key==='Enter') addFromInput(); });
