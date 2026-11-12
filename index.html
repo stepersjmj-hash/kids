@@ -371,7 +371,12 @@
   .tab.cc.on b { color:rgba(255,255,255,.8); }
   .item .t .cg.cc { background:color-mix(in srgb, var(--cc) 15%, #fff); color:color-mix(in srgb, var(--cc) 72%, #000); }
   .item .t .cg.cc:hover { background:color-mix(in srgb, var(--cc) 26%, #fff); }
-  #catRows .r i { width:14px; height:14px; border-radius:50%; background:var(--cc, var(--line2)); flex:none; }
+  #catRows .r .dot { width:14px; height:14px; border-radius:50%; background:var(--cc, var(--line2)); flex:none; }
+  #catRows .r { position:relative; border-radius:12px; transition:transform .15s; }
+  #catRows .r.dragging { transition:none; z-index:2; background:var(--panel); box-shadow:0 8px 20px rgba(60,40,10,.18); }
+  #catRows .cgrip { width:24px; height:34px; display:grid; grid-template-columns:repeat(2,4px); grid-auto-rows:4px; gap:3px; align-content:center; justify-content:center; flex:none; cursor:grab; touch-action:none; }
+  #catRows .cgrip i { border-radius:2px; background:var(--grip); }
+  #catRows .r.dragging .cgrip { cursor:grabbing; }
   .listEmpty { padding:24px 8px; text-align:center; font:400 15px/1.5 var(--jua); color:var(--sub); }
   .dlg { position:fixed; inset:0; background:rgba(43,33,24,.45); display:flex; align-items:center; justify-content:center; z-index:12; padding:20px; }
   .dlg[hidden] { display:none; }
@@ -719,7 +724,7 @@ function deleteCat(name){
   if (settings.cat === name) settings.cat = '';
   catsChanged();
 }
-function moveCat(k){ if (k < 1) return; [cats[k - 1], cats[k]] = [cats[k], cats[k - 1]]; catsChanged(); }
+function moveCat(from, to){ if (from === to || from < 0 || to < 0 || from >= cats.length || to >= cats.length) return; const [c] = cats.splice(from, 1); cats.splice(to, 0, c); catsChanged(); }
 function setItemCat(i, name){
   const it = items[i]; if (!it || (it.cat || '') === (name || '')) return;
   if (name) it.cat = name; else delete it.cat;
@@ -1311,16 +1316,39 @@ function renderCatDlg(){
   cats.forEach((name, k) => {
     const r = document.createElement('div'); r.className = 'r';
     r.style.setProperty('--cc', catColor(name));
-    r.innerHTML = `<i></i><input maxlength="20"><b>${catCount(name)}개</b>
-      <button class="up" title="앞으로"${k ? '' : ' disabled'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14.5l6-6 6 6"/></svg></button>
+    r.innerHTML = `<span class="cgrip" title="끌어서 순서 바꾸기"><i></i><i></i><i></i><i></i><i></i><i></i></span><i class="dot"></i><input maxlength="20"><b>${catCount(name)}개</b>
       <button class="x" title="지우기 (영상은 남음)">${ICON.x}</button>`;
     const inp = r.querySelector('input'); inp.value = name;
     const commit = () => { if (inp.value.trim() !== name && !renameCat(name, inp.value)) inp.value = name; };
     inp.onchange = commit;
     inp.onkeydown = e => { if (e.isComposing) return; if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') { inp.value = name; inp.blur(); } };
-    r.querySelector('.up').onclick = () => moveCat(k);
+    attachCatGrip(r, k);
     r.querySelector('.x').onclick = () => deleteCat(name);
     rows.appendChild(r);
+  });
+}
+// 편집 창 손잡이(⠿) 끌기: 끄는 줄은 transform 으로 따라오고, 사이 줄들은 한 칸씩 비켜 자리를 보여 줌. 놓으면 moveCat 한 번
+// (목록 행 끌기와 같은 이유로 끄는 동안 DOM 은 안 옮기고, 리스너는 document 에)
+function attachCatGrip(r, k){
+  const grip = r.querySelector('.cgrip');
+  grip.addEventListener('pointerdown', e => {
+    e.preventDefault(); try { grip.setPointerCapture(e.pointerId); } catch {}
+    const rows = [...$('#catRows').children].filter(x => x.classList.contains('r'));
+    const tops = rows.map(x => x.getBoundingClientRect().top), step = rows.length > 1 ? tops[1] - tops[0] : 0;
+    const y0 = e.clientY; let to = k;
+    r.classList.add('dragging');
+    const move = ev => {
+      const dy = ev.clientY - y0;
+      r.style.transform = `translateY(${dy}px)`;
+      to = step ? Math.max(0, Math.min(rows.length - 1, k + Math.round(dy / step))) : k;
+      rows.forEach((x, j) => { if (j === k) return; x.style.transform = (k < j && j <= to) ? `translateY(${-step}px)` : (to <= j && j < k) ? `translateY(${step}px)` : ''; });
+    };
+    const up = () => {
+      document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
+      rows.forEach(x => { x.style.transform = ''; }); r.classList.remove('dragging');
+      if (to !== k) moveCat(k, to);
+    };
+    document.addEventListener('pointermove', move); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
   });
 }
 function openCatDlg(){

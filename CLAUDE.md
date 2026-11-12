@@ -129,7 +129,7 @@ eelsnap\` 에 덮어쓰고
 - 카테고리(2026-11-10): `cats`(이름 배열, 순서 = 탭 순서, localStorage `home-playlist-cats`) + 항목 `cat`(이름 하나, 없으면 '전체'에만) + 기기별 `settings.cat`('' = 전체, `curCat()` 은 없는 이름이면 '').
   `view()` = 지금 카테고리에 보이는 items 인덱스 배열 — **목록 행 번호·끌기(dragFrom/dropTarget)·`moveItem(from,to)`·TV `tvSel`/`tvMove` 는 전부 view 안의 위치**, 재생·삭제·⏱(`playIndex`/`removeItem`/`openStart`)은 items 인덱스.
   `moveItem` 은 to 번째 영상 앞(위로)·뒤(아래로)에 끼워 다른 카테고리 영상의 자리는 안 건드림(전체 보기에선 예전과 동일). `rebuildOrder`/`shuffled` 도 view 기준 → 재생이 카테고리 안에서만 돎.
-  새로 넣는 영상은 `catField()` 로 지금 카테고리(입력칸·?add=·유튜브 가져오기·JSON·연결 재생목록의 새 영상). UI: PC·폰 `#cats` 탭(행을 탭에 끌어 놓으면 그 카테고리), 행의 `.cg` 알약 → `#catPick`, 편집 → `#catDlg`(이름 바꾸기·▲·✕).
+  새로 넣는 영상은 `catField()` 로 지금 카테고리(입력칸·?add=·유튜브 가져오기·JSON·연결 재생목록의 새 영상). UI: PC·폰 `#cats` 탭(행을 탭에 끌어 놓으면 그 카테고리), 행의 `.cg` 알약 → `#catPick`, 편집 → `#catDlg`(이름 바꾸기·손잡이 `.cgrip` 끌기 `attachCatGrip` → `moveCat(from,to)`(Pointer Events, 끄는 줄은 transform·사이 줄은 한 칸씩 비킴, 놓을 때 한 번 반영)·✕).
   TV: `tvChips()` 맨 앞에 `cat:true` 칩들 → `#tvCats` 탭으로 그림(있으면 h2 '뭐 볼까?' 숨김), ◀▶ 는 칩 줄 하나로 이어짐, ● = `setCat`(keep, 안 닫힘). (앱 오른쪽 위 '골라 보기' 안내 #pickHint 는 2026-11-10 사용자 요청으로 없앰 — 카테고리 이름은 #tvSide 머리에)
   동기화: 드라이브 파일 `{updatedAt, items:[{id,title,start?,cat?}], cats}`, 서명 `stateSig` = listSig(`#cat` 포함) + cats. 둘 다 바뀌면 `mergeLists`(공통 영상은 이 기기에서 안 바꾼 start/cat 만 원격 값) + `mergeNames`.
   색(2026-11-12): `CAT_COLORS`(8색) 를 cats 자리 순서로 — `catColor(name)`, `paintCat(el,name)` 이 `--cc` + `.cc` 를 붙여 CSS(color-mix 연한 배경·진한 글자, .on 이면 꽉 찬 색)가 그림. PC·폰 탭·행 `.cg` 알약·#catPick·#catDlg 점·TV `#tvCats` 탭·#tvSideTitle. '전체'·카테고리 없음은 색 없음. 색은 저장·동기화 안 함(순서에서 계산)
