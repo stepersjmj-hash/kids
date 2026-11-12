@@ -671,7 +671,7 @@ const toast = (m, ms=1800) => { const t=$('#toast'); t.textContent=m; t.classLis
 /* ---------- 저장/불러오기 ---------- */
 // 목록 서명: 영상 구성·순서·시작 시각이 바뀌면 달라짐 → 드라이브 동기화 트리거 (제목·설정 변경은 제외)
 const listSig = arr => arr.map(x => x.id + (x.start > 0 ? '@' + x.start : '') + (rateOf(x) !== 1 ? '~' + rateOf(x) : '') + (x.cat ? '#' + x.cat : '')).join(',');
-const stateSig = (arr, cs) => listSig(arr) + '|' + (cs || []).join('\n');   // 목록 + 카테고리 이름들
+const stateSig = (arr, cs, col) => listSig(arr) + '|' + (cs || []).map(c => c + (col && col[c] != null ? '=' + col[c] : '')).join('\n');   // 목록 + 카테고리 이름들(+색 번호)
 const startOf = it => it && it.start > 0 ? it.start : 0;
 // 영상별 재생 속도 (없거나 1 이면 기본). PC·폰 바의 속도 칩이 지금 영상 값을 1 → 1.25 → 1.5 → 0.75 → 1 로 돌림, 앱은 재생만
 const RATES = [1, 1.25, 1.5, 0.75];
@@ -681,21 +681,26 @@ const rateField = x => rateOf(x) !== 1 ? { rate: rateOf(x) } : {};
 /* ---------- 카테고리 ----------
    cats = 카테고리 이름 배열(순서 = 탭 순서, 드라이브로 동기화), 영상마다 cat(이름 하나, 없으면 '전체'에만).
    settings.cat = 이 기기에서 고른 카테고리('' = 전체). 목록 표시·재생 순서·TV 골라 보기가 모두 이걸 따른다 */
-const CATS_KEY = 'home-playlist-cats';
+const CATS_KEY = 'home-playlist-cats', CATCOL_KEY = 'home-playlist-catcolors';
 let cats = [];
+let catCol = {};   // 카테고리 이름 → 색 번호(CAT_COLORS 자리). 만들 때 정해져 순서를 바꿔도 그대로, 드라이브로 동기화
 const curCat = () => cats.includes(settings.cat) ? settings.cat : '';
 // 지금 카테고리에 보이는 영상들의 items 인덱스 (목록 행·골라 보기 칸의 '위치'는 이 배열의 위치)
 const view = () => { const c = curCat(), out = []; items.forEach((it, i) => { if (!c || it.cat === c) out.push(i); }); return out; };
 const catField = () => curCat() ? { cat: curCat() } : {};   // 새로 넣는 영상은 지금 고른 카테고리로
 const catCount = name => items.filter(x => x.cat === name).length;
-// 카테고리 색: 탭 순서(cats 의 자리)대로 팔레트를 돌림. '전체'·카테고리 없음은 색 없음
+// 카테고리 색: catCol 의 번호(만들 때 안 쓰인 색 중 첫 번째). '전체'·카테고리 없음은 색 없음
 const CAT_COLORS = ['#3d8fd6', '#e8822a', '#3fa564', '#9b6fd4', '#e05a8a', '#1fa79a', '#c4920a', '#8a6a4c'];
-const catColor = name => { const k = name ? cats.indexOf(name) : -1; return k < 0 ? '' : CAT_COLORS[k % CAT_COLORS.length]; };
+const catColor = name => name && cats.includes(name) && catCol[name] != null ? CAT_COLORS[catCol[name] % CAT_COLORS.length] : '';
 // 버튼에 색 입히기: --cc 변수 + .cc 클래스 (CSS 가 연한 배경·진한 글자·선택 시 꽉 찬 색으로 그림)
 function paintCat(el, name){ const c = catColor(name); if (c) { el.style.setProperty('--cc', c); el.classList.add('cc'); } }
 function normalizeCats(){
   cats = [...new Set(cats.map(s => String(s).trim()).filter(Boolean))];
   for (const it of items) { if (it.cat && !cats.includes(it.cat)) cats.push(it.cat); if (!it.cat) delete it.cat; }
+  // 색 번호: 없어진 카테고리 것은 버리고, 없는 카테고리는 안 쓰인 색 중 첫 번째(다 쓰였으면 자리 순서로 돌림)
+  const keep = {}; for (const c of cats) if (Number.isInteger(catCol[c]) && catCol[c] >= 0) keep[c] = catCol[c];
+  catCol = keep;
+  cats.forEach((c, i) => { if (c in catCol) return; const used = new Set(Object.values(catCol)); let k = 0; while (used.has(k) && k < CAT_COLORS.length) k++; catCol[c] = k < CAT_COLORS.length ? k : i % CAT_COLORS.length; });
 }
 function catsChanged(){ normalizeCats(); save(); rebuildOrder(); render(); preloadNext(); if (tvOpen()) tvRender(); if (!$('#catDlg').hidden) renderCatDlg(); }
 function setCat(name){
@@ -712,6 +717,7 @@ function renameCat(old, name){
   if (!name || name === old) return false;
   if (cats.includes(name)) { toast('이미 있는 이름입니다'); return false; }
   cats[cats.indexOf(old)] = name;
+  if (old in catCol) catCol[name] = catCol[old];   // 이름을 바꿔도 색은 그대로
   items.forEach(it => { if (it.cat === old) it.cat = name; });
   if (settings.cat === old) settings.cat = name;
   catsChanged(); return true;
@@ -733,9 +739,9 @@ function setItemCat(i, name){
 }
 
 function save(){
-  localStorage.setItem(KEY, JSON.stringify(items)); localStorage.setItem(CATS_KEY, JSON.stringify(cats)); saveSettings();
+  localStorage.setItem(KEY, JSON.stringify(items)); localStorage.setItem(CATS_KEY, JSON.stringify(cats)); localStorage.setItem(CATCOL_KEY, JSON.stringify(catCol)); saveSettings();
   // 영상 구성/순서·카테고리가 바뀐 경우에만 드라이브 동기화 (제목 채우기·설정 변경은 제외)
-  const sig = stateSig(items, cats);
+  const sig = stateSig(items, cats, catCol);
   if (sig !== save._sig) { save._sig = sig; scheduleDriveSync(); }
 }
 let simTvWas = false;   // 흉내 모드 들어오기 전의 tv 설정 (그대로 돌려 둔다)
@@ -744,6 +750,7 @@ function load(){
   try { items = JSON.parse(localStorage.getItem(KEY)) || []; } catch { items = []; }
   try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch {}
   try { cats = JSON.parse(localStorage.getItem(CATS_KEY)) || []; } catch { cats = []; }
+  try { catCol = JSON.parse(localStorage.getItem(CATCOL_KEY)) || {}; } catch { catCol = {}; }
   normalizeCats();
   settings.loop = true;   // 반복은 시작할 때 항상 켬 (끄면 그 세션에만 적용)
 }
@@ -966,32 +973,33 @@ async function driveSync(){
       const sig = stateSig;
       const local = items.map(({ id, title, start, rate, cat }) => ({ id, title, ...(start ? { start } : {}), ...rateField({ rate }), ...(cat ? { cat } : {}) }));
       const localCats = cats.slice(), remoteCats = remote && Array.isArray(remote.cats) ? remote.cats : [];
-      const localChanged = !base || sig(local, localCats) !== sig(base.items, base.cats);
+      const localCol = { ...catCol }, remoteCol = remote && remote.colors && typeof remote.colors === 'object' ? remote.colors : {};
+      const localChanged = !base || sig(local, localCats, localCol) !== sig(base.items, base.cats, base.colors);
       const remoteChanged = remote && (!base || remote.updatedAt !== base.updatedAt);
-      let next = null, nextCats = null, push = false;
+      let next = null, nextCats = null, nextCol = null, push = false;
       // 원격 파일이 없을 때 빈 목록으로 새로 만들지 않는다 — TV가 먼저 로그인해 빈 파일을 만들면
       // 다른 기기가 그걸 '원격 변경'으로 받아 기존 목록을 지워 버리기 때문
       if (!remote && !local.length) { setSyncStatus('on', `☁ ${accountText() ? accountText() + ' · ' : ''}동기화 켜짐 · 아직 저장된 목록 없음`); return; }
-      if (!remote) { next = local; nextCats = localCats; push = true; }
-      else if (remoteChanged && !localChanged) { next = remote.items; nextCats = remoteCats; }
-      else if (localChanged && !remoteChanged) { next = local; nextCats = localCats; push = true; }
-      else if (localChanged && remoteChanged) { next = mergeLists(local, remote.items, base && base.items); nextCats = mergeNames(localCats, remoteCats, base && base.cats); push = true; }
-      if (remote && remote._legacy) { push = true; next = next || remote.items; nextCats = nextCats || remoteCats; }   // 예전 위치 → 새 파일로 이전
+      if (!remote) { next = local; nextCats = localCats; nextCol = localCol; push = true; }
+      else if (remoteChanged && !localChanged) { next = remote.items; nextCats = remoteCats; nextCol = { ...localCol, ...remoteCol }; }   // 예전 페이지가 쓴 파일엔 색이 없음 → 이 기기 색 유지
+      else if (localChanged && !remoteChanged) { next = local; nextCats = localCats; nextCol = localCol; push = true; }
+      else if (localChanged && remoteChanged) { next = mergeLists(local, remote.items, base && base.items); nextCats = mergeNames(localCats, remoteCats, base && base.cats); nextCol = { ...remoteCol, ...localCol }; push = true; }
+      if (remote && remote._legacy) { push = true; next = next || remote.items; nextCats = nextCats || remoteCats; nextCol = nextCol || localCol; }   // 예전 위치 → 새 파일로 이전
       let updatedAt = remote ? remote.updatedAt : 0;
-      if (push) { updatedAt = Date.now(); await driveWrite({ updatedAt, items: next, cats: nextCats }); }
-      if (next && sig(next, nextCats) !== sig(local, localCats)) {
+      if (push) { updatedAt = Date.now(); await driveWrite({ updatedAt, items: next, cats: nextCats, colors: nextCol }); }
+      if (next && sig(next, nextCats, nextCol) !== sig(local, localCats, localCol)) {
         const old = new Map(items.map(x => [x.id, x]));
         const curId = idx >= 0 && items[idx] ? items[idx].id : null;
         items = next.map(x => ({ ...(old.get(x.id) || {}), id: x.id, title: x.title || old.get(x.id)?.title || '', start: x.start > 0 ? x.start : undefined, rate: rateOf(x) !== 1 ? rateOf(x) : undefined, cat: x.cat || undefined }));
-        cats = nextCats.slice(); normalizeCats();
+        cats = nextCats.slice(); catCol = { ...nextCol }; normalizeCats();
         idx = curId ? items.findIndex(x => x.id === curId) : -1;
-        save._sig = sig(items, cats); localStorage.setItem(KEY, JSON.stringify(items)); localStorage.setItem(CATS_KEY, JSON.stringify(cats));
+        save._sig = sig(items, cats, catCol); localStorage.setItem(KEY, JSON.stringify(items)); localStorage.setItem(CATS_KEY, JSON.stringify(cats)); localStorage.setItem(CATCOL_KEY, JSON.stringify(catCol));
         rebuildOrder(); render(); fillTitles();
         toast(`드라이브와 동기화: ${items.length}개`);
         maybeAutoStart();
         if (tvOpen()) tvRender();
       }
-      localStorage.setItem(BASE_KEY, JSON.stringify({ updatedAt, items: next || local, cats: nextCats || localCats }));
+      localStorage.setItem(BASE_KEY, JSON.stringify({ updatedAt, items: next || local, cats: nextCats || localCats, colors: nextCol || localCol }));
       setSyncStatus('on', `☁ ${accountText() ? accountText() + ' · ' : ''}동기화 켜짐 · ${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 확인`);
     } catch (e) {
       console.error(e);
