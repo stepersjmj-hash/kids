@@ -1760,14 +1760,24 @@ async function addPlaylistAll(listId, oneId){
     if (oneId) { const n = add([oneId]); if (idx < 0 && n) playIndex(items.length - 1); }
     return;
   }
-  const where = curCat() ? `'${curCat()}' 카테고리에` : '목록에';
+  // 넣기 전에 카테고리 이름을 물음 — 기본값은 재생목록 제목(oEmbed). 그 카테고리를 만들어(있으면 그대로) 넣고 그 탭으로 바꿈
+  let plTitle = '';
+  try { plTitle = ((await (await fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent('https://www.youtube.com/playlist?list=' + listId))).json()).title || '').trim().slice(0, 20); } catch {}
   const fresh = ids.filter(id => !items.some(x => x.id === id)).length;
-  if (!confirm(`재생목록 영상 ${ids.length}개를 ${where} 모두 추가할까요?` + (fresh < ids.length ? `\n(이미 있는 ${ids.length - fresh}개는 건너뜀)` : '') + (oneId ? '\n\n취소 = 이 영상 하나만 추가' : ''))) {
+  const name = prompt(`재생목록 영상 ${ids.length}개를 넣을 카테고리 이름` + (fresh < ids.length ? ` (이미 있는 ${ids.length - fresh}개는 건너뜀)` : '') +
+    `\n있는 이름이면 그 카테고리에 더해집니다. 비우면 카테고리 없이 추가.` + (oneId ? '\n취소 = 이 영상 하나만 추가' : ''), plTitle || curCat() || '');
+  if (name === null) {
     if (oneId) { const n = add([oneId]); toast(n ? '1개 추가됨' : '이미 목록에 있는 영상입니다'); if (idx < 0 && n) playIndex(items.length - 1); }
     return;
   }
-  const n = add(ids);
-  toast(n ? `재생목록에서 ${n}개 추가됨` + (curCat() ? ` → ${curCat()}` : '') : '모두 이미 목록에 있는 영상입니다', 3000);
+  const cat = name.trim().slice(0, 20);
+  if (cat && !cats.includes(cat)) cats.push(cat);
+  let n = 0;
+  for (const id of ids) if (!items.some(x => x.id === id)) { items.push({ id, title: '', ...(cat ? { cat } : {}) }); n++; }
+  $('#urlInput').value = '';
+  normalizeCats(); settings.cat = cat; saveSettings();   // 새 카테고리 탭으로
+  catsChanged(); fillTitles();
+  toast(n ? `재생목록에서 ${n}개 추가됨` + (cat ? ` → ${cat}` : '') : '모두 이미 목록에 있는 영상입니다', 3000);
   if (idx < 0 && n) playIndex(items.length - n);
 }
 $('#btnAdd').onclick = addFromInput;

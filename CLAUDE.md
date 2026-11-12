@@ -118,7 +118,7 @@ eelsnap\` 에 덮어쓰고
 - **테스트 후 `adb shell pm clear io.github.stepersjmj.kids`** — 테스트 영상이 로그인 시 드라이브 목록에 합쳐지는 것 방지
 
 ## 관례·함정
-- 입력칸에 list= 가 든 주소 하나(영상 주소에 붙어 있어도) → `addPlaylistAll(listId, oneId)`: `fetchPlaylistIds` 로 받아 confirm 후 지금 카테고리에 끝에 추가(있는 건 건너뜀), 취소·실패면 v= 영상 하나만(2026-11-12, 페파 피그 시즌1 52개 확인).
+- 입력칸에 list= 가 든 주소 하나(영상 주소에 붙어 있어도) → `addPlaylistAll(listId, oneId)`: `fetchPlaylistIds` 로 받아 카테고리 이름 prompt(기본값 = oEmbed `playlist?list=` 의 title, 20자) → 그 카테고리 만들고 끝에 추가·그 탭으로(있는 건 건너뜀, 빈 이름 = 카테고리 없이), 취소·실패면 v= 영상 하나만(2026-11-12, 페파 피그 시즌1 52개 확인).
   예전엔 list 만 있는 주소 = 목록 교체 '연결' 이었으나 카테고리 덮어쓰기가 위험해 바꿈 → 연결은 `?pl=` 로만
 - 유튜브 재생목록 연결(`settings.pl`, `?pl=`): API 키 없이 숨긴 보조 YT.Player(#plLoader)를
   `playerVars.list`로 만들고 `getPlaylist()`로 ID 목록을 얻음. **기존 플레이어에 cuePlaylist 재호출은
