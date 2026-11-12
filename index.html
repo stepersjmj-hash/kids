@@ -400,13 +400,13 @@
   #catRows .r button.x:hover { background:#fde4e0; color:var(--danger); }
   #catRows .r svg { width:14px; height:14px; }
   #catAdd { height:40px; padding:2px 16px 0; border-radius:12px; background:var(--text); color:#fff; font:400 15px/24px var(--jua); flex:none; }
-  #catDel .opts { display:flex; flex-direction:column; gap:8px; }
-  #catDel .opts button { min-height:48px; padding:8px 16px 6px; border-radius:14px; background:#fff; border:1px solid var(--line2); font:400 16px/22px var(--jua); display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; }
-  #catDel .opts button small { font:400 12px/16px var(--gowun); color:var(--sub); }
-  #catDel .opts button:hover { background:#fff3dc; }
-  #catDel .opts .danger { color:var(--danger); border-color:#f3c9c3; }
-  #catDel .opts .danger:hover { background:#fff0ee; }
-  #catDel .opts #catDelCancel { align-items:center; min-height:40px; background:var(--bg); }
+  #choiceDlg .opts { display:flex; flex-direction:column; gap:8px; }
+  #choiceDlg .opts button { min-height:48px; padding:8px 16px 6px; border-radius:14px; background:#fff; border:1px solid var(--line2); font:400 16px/22px var(--jua); display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; }
+  #choiceDlg .opts button small { font:400 12px/16px var(--gowun); color:var(--sub); }
+  #choiceDlg .opts button:hover { background:#fff3dc; }
+  #choiceDlg .opts .danger { color:var(--danger); border-color:#f3c9c3; }
+  #choiceDlg .opts .danger:hover { background:#fff0ee; }
+  #choiceDlg .opts .cancel { align-items:center; min-height:40px; background:var(--bg); }
   #catDlg .btns #catDlgClose { background:var(--accent); border-color:var(--accent); color:#fff; }
 
   /* ---------- TV 골라 보기 (↓) ---------- */
@@ -642,14 +642,11 @@
   <div class="add"><input id="catNew" placeholder="새 카테고리 이름 (예: 음악)" maxlength="20"><button id="catAdd">추가</button></div>
   <div class="btns"><span class="sp"></span><button id="catDlgClose">완료</button></div>
 </div></div>
-<div id="catDel" class="dlg" hidden><div class="box">
-  <b id="catDelTitle"></b>
-  <small id="catDelInfo"></small>
-  <div class="opts">
-    <button id="catDelOnly">카테고리만 삭제<small>영상은 '전체'에 남음</small></button>
-    <button id="catDelAll" class="danger">영상까지 전체 삭제<small></small></button>
-    <button id="catDelCancel">취소</button>
-  </div>
+<!-- 고르기 창 (askChoice): 제목·설명 + 큰 선택 버튼들 + 취소 -->
+<div id="choiceDlg" class="dlg" hidden><div class="box">
+  <b id="choiceTitle"></b>
+  <small id="choiceInfo"></small>
+  <div class="opts"></div>
 </div></div>
 <div id="gModal" hidden><div class="box">
   <div class="head"><b>Google에서 가져오기</b><button id="gClose">닫기</button></div>
@@ -738,34 +735,46 @@ function renameCat(old, name){
   if (settings.cat === old) settings.cat = name;
   catsChanged(); return true;
 }
-// 카테고리 지우기: 창에서 고름 — 카테고리만(영상은 '전체'에 남음) / 영상까지 전체 / 취소 (2026-11-12)
-function deleteCat(name){
-  const n = catCount(name), dlg = $('#catDel');
-  $('#catDelTitle').textContent = `'${name}' 카테고리 지우기`;
-  $('#catDelInfo').textContent = n ? `이 카테고리에 영상이 ${n}개 있어요.` : '이 카테고리는 비어 있어요.';
-  $('#catDelAll').hidden = !n;
-  $('#catDelAll small').textContent = `영상 ${n}개도 목록에서 지움 (되돌릴 수 없음)`;
-  const close = () => { dlg.hidden = true; dlg.onclick = null; document.removeEventListener('keydown', esc); };
-  const esc = e => { if (e.key === 'Escape') close(); };
-  const run = withItems => {
-    close();
-    cats = cats.filter(c => c !== name);
-    if (withItems) {
-      const curId = idx >= 0 && items[idx] ? items[idx].id : null, wasCur = curId && items[idx].cat === name;
-      items = items.filter(it => it.cat !== name);
-      if (wasCur) { idx = -1; if (nasOn) nasStop(); else { try { player.stopVideo(); } catch {} } showCover('재생목록에서 영상을 선택하세요'); }   // 보던 영상이 지워졌으면 멈춤
-      else idx = curId ? items.findIndex(x => x.id === curId) : -1;
-    } else items.forEach(it => { if (it.cat === name) delete it.cat; });
-    if (settings.cat === name) settings.cat = '';
-    catsChanged();
-    toast(withItems ? `'${name}' 카테고리와 영상 ${n}개를 지웠어요` : `'${name}' 카테고리를 지웠어요` + (n ? ` (영상 ${n}개는 전체에 남음)` : ''), 3000);
-  };
-  $('#catDelOnly').onclick = () => run(false);
-  $('#catDelAll').onclick = () => run(true);
-  $('#catDelCancel').onclick = close;
-  dlg.onclick = e => { if (e.target === dlg) close(); };
-  document.addEventListener('keydown', esc);
-  dlg.hidden = false;
+// 고르기 창: opts = [{key, label, sub?, danger?}] → 고른 key, 취소(버튼·Esc·바깥)면 null
+function askChoice(title, info, opts){
+  return new Promise(resolve => {
+    const dlg = $('#choiceDlg'), box = dlg.querySelector('.opts');
+    $('#choiceTitle').textContent = title; $('#choiceInfo').textContent = info || ''; $('#choiceInfo').hidden = !info;
+    box.innerHTML = '';
+    const done = v => { dlg.hidden = true; dlg.onclick = null; document.removeEventListener('keydown', esc); resolve(v); };
+    const esc = e => { if (e.key === 'Escape') { e.stopPropagation(); done(null); } };
+    for (const o of [...opts, { key: null, label: '취소', cancel: true }]) {
+      const b = document.createElement('button');
+      if (o.danger) b.className = 'danger'; if (o.cancel) b.className = 'cancel';
+      b.textContent = o.label;
+      if (o.sub) { const sm = document.createElement('small'); sm.textContent = o.sub; b.appendChild(sm); }
+      b.onclick = () => done(o.key);
+      box.appendChild(b);
+    }
+    dlg.onclick = e => { if (e.target === dlg) done(null); };
+    document.addEventListener('keydown', esc, true);
+    dlg.hidden = false;
+  });
+}
+// 카테고리 지우기: 카테고리만(영상은 '전체'에 남음) / 영상까지 전체 / 취소 (2026-11-12)
+async function deleteCat(name){
+  const n = catCount(name);
+  const how = await askChoice(`'${name}' 카테고리 지우기`, n ? `이 카테고리에 영상이 ${n}개 있어요.` : '이 카테고리는 비어 있어요.', [
+    { key: 'only', label: '카테고리만 삭제', sub: n ? "영상은 '전체'에 남음" : '' },
+    ...(n ? [{ key: 'all', label: '영상까지 전체 삭제', sub: `영상 ${n}개도 목록에서 지움 (되돌릴 수 없음)`, danger: true }] : []),
+  ]);
+  if (!how) return;
+  const withItems = how === 'all';
+  cats = cats.filter(c => c !== name);
+  if (withItems) {
+    const curId = idx >= 0 && items[idx] ? items[idx].id : null, wasCur = curId && items[idx].cat === name;
+    items = items.filter(it => it.cat !== name);
+    if (wasCur) { idx = -1; if (nasOn) nasStop(); else { try { player.stopVideo(); } catch {} } showCover('재생목록에서 영상을 선택하세요'); }   // 보던 영상이 지워졌으면 멈춤
+    else idx = curId ? items.findIndex(x => x.id === curId) : -1;
+  } else items.forEach(it => { if (it.cat === name) delete it.cat; });
+  if (settings.cat === name) settings.cat = '';
+  catsChanged();
+  toast(withItems ? `'${name}' 카테고리와 영상 ${n}개를 지웠어요` : `'${name}' 카테고리를 지웠어요` + (n ? ` (영상 ${n}개는 전체에 남음)` : ''), 3000);
 }
 function moveCat(from, to){ if (from === to || from < 0 || to < 0 || from >= cats.length || to >= cats.length) return; const [c] = cats.splice(from, 1); cats.splice(to, 0, c); catsChanged(); }
 function setItemCat(i, name){
@@ -1135,6 +1144,14 @@ async function openGoogleModal(){
 }
 async function importSource(src, mode){
   if (mode === 'link') { $('#gModal').hidden = true; linkPlaylist(src.id); return; }
+  // 어디에 넣을지 먼저 고름: 전체(카테고리 없이) / 유튜브 재생목록 이름의 카테고리 / 취소 (2026-11-12)
+  const album = (src.kind === 'like' ? '좋아요' : src.title.replace(/^📁\s*/, '')).trim().slice(0, 20) || '유튜브';
+  const where = await askChoice(`'${album}' ${mode === 'replace' ? '으로 목록 바꾸기' : '가져오기'}`, mode === 'replace' ? '지금 목록은 모두 지워지고 이 영상들로 바뀝니다.' : '어디에 넣을까요?', [
+    { key: 'all', label: '전체에 추가', sub: '카테고리 없이 (전체 탭에만)' },
+    { key: 'cat', label: `'${album}' 카테고리에 추가`, sub: cats.includes(album) ? '이미 있는 카테고리에 더함' : '이 이름으로 카테고리를 새로 만듦' },
+  ]);
+  if (!where) return;
+  const cat = where === 'cat' ? album : '';
   toast('가져오는 중…');
   try {
     const fromPlaylist = async id => (await yt('playlistItems', { part: 'snippet,status', playlistId: id }))
@@ -1155,13 +1172,15 @@ async function importSource(src, mode){
     }
     // 연결된 재생목록이 있으면 다음 동기화 때 덮어써지므로 연결 해제
     if (settings.pl) { settings.pl = ''; toast('재생목록 연결을 해제했습니다'); }
-    if (mode === 'replace') { items = []; idx = -1; }
+    if (mode === 'replace') { items = []; idx = -1; if (nasOn) nasStop(); else { try { player.stopVideo(); } catch {} } }
     let added = 0;
-    for (const v of vids) if (v.id && !items.some(x => x.id === v.id)) { items.push({ id: v.id, title: v.title, ...catField() }); added++; }
-    save(); rebuildOrder(); render();
+    for (const v of vids) if (v.id && !items.some(x => x.id === v.id)) { items.push({ id: v.id, title: v.title, ...(cat ? { cat } : {}) }); added++; }
+    if (cat && !cats.includes(cat)) cats.push(cat);
+    settings.cat = cat; saveSettings();          // 넣은 곳(그 카테고리 또는 전체) 탭으로
+    catsChanged();
     $('#gModal').hidden = true;
     const dup = vids.length - added;
-    toast(`${vids.length}개 받음${detail} → ${added}개 추가` + (dup ? `, ${dup}개는 이미 있음` : ''), 5000);
+    toast(`${vids.length}개 받음${detail} → ${added}개 추가` + (cat ? ` (${cat})` : '') + (dup ? `, ${dup}개는 이미 있음` : ''), 5000);
   } catch (e) {
     console.error(e);
     toast(/channel not found/i.test(e.message) ? '이 계정에는 유튜브 채널이 없습니다 — 채널이 있는 계정으로 로그인하세요' : '가져오기 실패: ' + e.message);
