@@ -165,6 +165,7 @@
   #tvSide { display:none; }
   body.app #tvSide { display:flex; flex-direction:column; position:absolute; left:calc(736 * var(--u)); right:calc(24 * var(--u)); top:calc(60 * var(--u)); bottom:calc(74 * var(--u)); gap:calc(8 * var(--u)); padding:calc(12 * var(--u)) calc(8 * var(--u)) calc(8 * var(--u)); border-radius:calc(20 * var(--u)); background:var(--panel); box-shadow:0 calc(8 * var(--u)) calc(20 * var(--u)) rgba(120,80,30,.10); }
   #tvSide h3 { margin:0; padding:calc(2 * var(--u)) calc(6 * var(--u)) 0; display:flex; align-items:baseline; gap:calc(6 * var(--u)); font:400 calc(18 * var(--u)) / calc(24 * var(--u)) var(--jua); flex:none; white-space:nowrap; overflow:hidden; }
+  #tvSide h3 #tvSideTitle { color:var(--cc, inherit); }
   #tvSide h3 b { font:600 calc(12 * var(--u)) / 1 var(--num); color:var(--sub); }
   #tvSideList { flex:1; min-height:0; position:relative; overflow-y:auto; scrollbar-width:none; display:flex; flex-direction:column; gap:calc(4 * var(--u)); }
   #tvSideList::-webkit-scrollbar { display:none; }
@@ -362,6 +363,15 @@
   .item .thw { position:relative; flex:none; display:block; line-height:0; }
   .item .rt { position:absolute; right:3px; bottom:3px; height:16px; padding:0 5px; border-radius:999px; background:rgba(43,33,24,.75); color:#fff; font:600 10px/16px var(--num); }
   .item .t .cg:hover { background:#ffe9c2; color:var(--text); }
+  /* 카테고리 색 (.cc + --cc, paintCat). 탭·알약은 연한 색 배경 + 진한 글자, 고른 탭은 꽉 찬 색 */
+  .tab.cc { background:color-mix(in srgb, var(--cc) 13%, #fff); border-color:color-mix(in srgb, var(--cc) 40%, #fff); color:color-mix(in srgb, var(--cc) 72%, #000); }
+  .tab.cc b { color:color-mix(in srgb, var(--cc) 60%, #fff); }
+  .tab.cc:hover { background:color-mix(in srgb, var(--cc) 22%, #fff); }
+  .tab.cc.on { background:var(--cc); border-color:var(--cc); color:#fff; }
+  .tab.cc.on b { color:rgba(255,255,255,.8); }
+  .item .t .cg.cc { background:color-mix(in srgb, var(--cc) 15%, #fff); color:color-mix(in srgb, var(--cc) 72%, #000); }
+  .item .t .cg.cc:hover { background:color-mix(in srgb, var(--cc) 26%, #fff); }
+  #catRows .r i { width:14px; height:14px; border-radius:50%; background:var(--cc, var(--line2)); flex:none; }
   .listEmpty { padding:24px 8px; text-align:center; font:400 15px/1.5 var(--jua); color:var(--sub); }
   .dlg { position:fixed; inset:0; background:rgba(43,33,24,.45); display:flex; align-items:center; justify-content:center; z-index:12; padding:20px; }
   .dlg[hidden] { display:none; }
@@ -673,6 +683,11 @@ const curCat = () => cats.includes(settings.cat) ? settings.cat : '';
 const view = () => { const c = curCat(), out = []; items.forEach((it, i) => { if (!c || it.cat === c) out.push(i); }); return out; };
 const catField = () => curCat() ? { cat: curCat() } : {};   // 새로 넣는 영상은 지금 고른 카테고리로
 const catCount = name => items.filter(x => x.cat === name).length;
+// 카테고리 색: 탭 순서(cats 의 자리)대로 팔레트를 돌림. '전체'·카테고리 없음은 색 없음
+const CAT_COLORS = ['#3d8fd6', '#e8822a', '#3fa564', '#9b6fd4', '#e05a8a', '#1fa79a', '#c4920a', '#8a6a4c'];
+const catColor = name => { const k = name ? cats.indexOf(name) : -1; return k < 0 ? '' : CAT_COLORS[k % CAT_COLORS.length]; };
+// 버튼에 색 입히기: --cc 변수 + .cc 클래스 (CSS 가 연한 배경·진한 글자·선택 시 꽉 찬 색으로 그림)
+function paintCat(el, name){ const c = catColor(name); if (c) { el.style.setProperty('--cc', c); el.classList.add('cc'); } }
 function normalizeCats(){
   cats = [...new Set(cats.map(s => String(s).trim()).filter(Boolean))];
   for (const it of items) { if (it.cat && !cats.includes(it.cat)) cats.push(it.cat); if (!it.cat) delete it.cat; }
@@ -1139,7 +1154,7 @@ function render(){
     const d = document.createElement('div');
     d.className = 'item' + (i===idx?' current':'') + (it.bad?' bad':'');
     d.draggable = !TOUCH;
-    const cg = cats.length ? `<button class="cg${it.cat ? ' set' : ''}" title="카테고리 바꾸기">${esc(it.cat || '카테고리 없음')}</button>` : '';
+    const cg = cats.length ? `<button class="cg${it.cat ? ' set' : ''}${catColor(it.cat) ? ' cc" style="--cc:' + catColor(it.cat) : ''}" title="카테고리 바꾸기">${esc(it.cat || '카테고리 없음')}</button>` : '';
     d.innerHTML = `
       <div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <span class="n">${p+1}</span>
@@ -1208,6 +1223,7 @@ function sideKey(k){
 function renderTvSide(){
   const vis = sideList(), list = $('#tvSideList');
   $('#tvSideTitle').textContent = curCat() || '전체';
+  $('#tvSideTitle').style.setProperty('--cc', catColor(curCat()) || 'inherit');
   $('#tvSideCount').textContent = `${vis.length}개` + (settings.shuffle ? ' · 랜덤 순서' : '');
   list.innerHTML = vis.length ? vis.map((i, p) => {
     const it = items[i];
@@ -1255,6 +1271,7 @@ function renderCats(){
     b.innerHTML = `<span>${esc(label)}</span><b>${n}</b>`;
     b.title = name ? `'${name}' 만 보기·재생 (영상을 끌어다 놓으면 이 카테고리로)` : '모든 영상';
     b.onclick = () => setCat(name);
+    paintCat(b, name);
     // PC: 목록 행을 끌어다 탭 위에 놓으면 그 카테고리로 옮김 ('전체' 에 놓으면 카테고리 빼기)
     b.addEventListener('dragover', e => { if (dragFrom < 0) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; b.classList.add('drop'); });
     b.addEventListener('dragleave', () => b.classList.remove('drop'));
@@ -1279,6 +1296,7 @@ function openCatPick(i){
     const b = document.createElement('button');
     b.className = 'tab' + ((it.cat || '') === name ? ' on' : '') + (name ? '' : ' none');
     b.textContent = name || '없음 (전체에만)';
+    paintCat(b, name);
     b.onclick = () => { close(); setItemCat(i, name); };
     list.appendChild(b);
   }
@@ -1292,7 +1310,8 @@ function renderCatDlg(){
   if (!cats.length) rows.innerHTML = '<small style="color:var(--sub)">아직 카테고리가 없어요. 아래에 이름을 넣고 추가하세요.</small>';
   cats.forEach((name, k) => {
     const r = document.createElement('div'); r.className = 'r';
-    r.innerHTML = `<input maxlength="20"><b>${catCount(name)}개</b>
+    r.style.setProperty('--cc', catColor(name));
+    r.innerHTML = `<i></i><input maxlength="20"><b>${catCount(name)}개</b>
       <button class="up" title="앞으로"${k ? '' : ' disabled'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14.5l6-6 6 6"/></svg></button>
       <button class="x" title="지우기 (영상은 남음)">${ICON.x}</button>`;
     const inp = r.querySelector('input'); inp.value = name;
@@ -1962,7 +1981,7 @@ const tvOpen = () => !$('#tvList').hidden;
 function tvChips(){
   // 셔플은 TV 에 없음(폰·PC 설정을 따름). 전체화면은 재생 화면 버튼. 새로고침은 시안에서 뺐다가 사용자 요청으로 다시 넣음
   // 카테고리가 있으면 맨 앞에 카테고리 탭(전체·음악·영상…) — 칩과 같은 줄로 ←/→ 이동, ● 로 고르면 그 카테고리만 보이고 이어서 재생
-  const cs = cats.length ? ['', ...cats].map(name => ({ cat: true, label: name || '전체', count: name ? catCount(name) : items.length,
+  const cs = cats.length ? ['', ...cats].map(name => ({ cat: true, name, label: name || '전체', count: name ? catCount(name) : items.length,
     on: curCat() === name, keep: true, run: () => setCat(name) })) : [];
   const c = [
     ...cs,
@@ -1991,6 +2010,7 @@ function tvRender(){
     if (c.cat) {
       b.className = 'tab' + (c.on ? ' on' : '') + sel;
       b.innerHTML = `<span>${esc(c.label)}</span><b>${c.count}</b>`;
+      paintCat(b, c.name);
       b.onclick = () => runChip(k);
       tc.appendChild(b);
       return;

@@ -132,6 +132,7 @@ eelsnap\` 에 덮어쓰고
   새로 넣는 영상은 `catField()` 로 지금 카테고리(입력칸·?add=·유튜브 가져오기·JSON·연결 재생목록의 새 영상). UI: PC·폰 `#cats` 탭(행을 탭에 끌어 놓으면 그 카테고리), 행의 `.cg` 알약 → `#catPick`, 편집 → `#catDlg`(이름 바꾸기·▲·✕).
   TV: `tvChips()` 맨 앞에 `cat:true` 칩들 → `#tvCats` 탭으로 그림(있으면 h2 '뭐 볼까?' 숨김), ◀▶ 는 칩 줄 하나로 이어짐, ● = `setCat`(keep, 안 닫힘). (앱 오른쪽 위 '골라 보기' 안내 #pickHint 는 2026-11-10 사용자 요청으로 없앰 — 카테고리 이름은 #tvSide 머리에)
   동기화: 드라이브 파일 `{updatedAt, items:[{id,title,start?,cat?}], cats}`, 서명 `stateSig` = listSig(`#cat` 포함) + cats. 둘 다 바뀌면 `mergeLists`(공통 영상은 이 기기에서 안 바꾼 start/cat 만 원격 값) + `mergeNames`.
+  색(2026-11-12): `CAT_COLORS`(8색) 를 cats 자리 순서로 — `catColor(name)`, `paintCat(el,name)` 이 `--cc` + `.cc` 를 붙여 CSS(color-mix 연한 배경·진한 글자, .on 이면 꽉 찬 색)가 그림. PC·폰 탭·행 `.cg` 알약·#catPick·#catDlg 점·TV `#tvCats` 탭·#tvSideTitle. '전체'·카테고리 없음은 색 없음. 색은 저장·동기화 안 함(순서에서 계산)
   한글 입력칸 Enter 는 `e.isComposing` 이면 무시(조합 중 Enter 로 추가하면 남은 글자가 다시 들어감)
 - 영상별 재생 속도(2026-11-10): 항목 `rate`(1 이면 키 없음, `rateOf()`/`rateField()`). PC·폰 바의 `#btnRate` 칩(반복·랜덤 옆)이 **지금 영상**의 값을 `RATES` 1 → 1.25 → 1.5 → 0.75 순으로 돌림(`cycleRate`), 앱(body.app)은 칩 숨김·재생만.
   적용은 `applyRate()` 를 활성 플레이어 **PLAYING 때마다** 호출 — loadVideoById 후 1배로 돌아가고, 미리 받기 교대 후에도 새 활성의 PLAYING 에서 맞춰짐(앞 광고는 PLAYING 을 안 내서 정상 속도).
