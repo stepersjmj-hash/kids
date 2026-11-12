@@ -400,6 +400,13 @@
   #catRows .r button.x:hover { background:#fde4e0; color:var(--danger); }
   #catRows .r svg { width:14px; height:14px; }
   #catAdd { height:40px; padding:2px 16px 0; border-radius:12px; background:var(--text); color:#fff; font:400 15px/24px var(--jua); flex:none; }
+  #catDel .opts { display:flex; flex-direction:column; gap:8px; }
+  #catDel .opts button { min-height:48px; padding:8px 16px 6px; border-radius:14px; background:#fff; border:1px solid var(--line2); font:400 16px/22px var(--jua); display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; }
+  #catDel .opts button small { font:400 12px/16px var(--gowun); color:var(--sub); }
+  #catDel .opts button:hover { background:#fff3dc; }
+  #catDel .opts .danger { color:var(--danger); border-color:#f3c9c3; }
+  #catDel .opts .danger:hover { background:#fff0ee; }
+  #catDel .opts #catDelCancel { align-items:center; min-height:40px; background:var(--bg); }
   #catDlg .btns #catDlgClose { background:var(--accent); border-color:var(--accent); color:#fff; }
 
   /* ---------- TV 골라 보기 (↓) ---------- */
@@ -635,6 +642,15 @@
   <div class="add"><input id="catNew" placeholder="새 카테고리 이름 (예: 음악)" maxlength="20"><button id="catAdd">추가</button></div>
   <div class="btns"><span class="sp"></span><button id="catDlgClose">완료</button></div>
 </div></div>
+<div id="catDel" class="dlg" hidden><div class="box">
+  <b id="catDelTitle"></b>
+  <small id="catDelInfo"></small>
+  <div class="opts">
+    <button id="catDelOnly">카테고리만 삭제<small>영상은 '전체'에 남음</small></button>
+    <button id="catDelAll" class="danger">영상까지 전체 삭제<small></small></button>
+    <button id="catDelCancel">취소</button>
+  </div>
+</div></div>
 <div id="gModal" hidden><div class="box">
   <div class="head"><b>Google에서 가져오기</b><button id="gClose">닫기</button></div>
   <div id="gList"></div>
@@ -722,13 +738,34 @@ function renameCat(old, name){
   if (settings.cat === old) settings.cat = name;
   catsChanged(); return true;
 }
+// 카테고리 지우기: 창에서 고름 — 카테고리만(영상은 '전체'에 남음) / 영상까지 전체 / 취소 (2026-11-12)
 function deleteCat(name){
-  const n = catCount(name);
-  if (!confirm(`'${name}' 카테고리를 지울까요?` + (n ? `\n영상 ${n}개는 지워지지 않고 '전체'에만 남습니다.` : ''))) return;
-  cats = cats.filter(c => c !== name);
-  items.forEach(it => { if (it.cat === name) delete it.cat; });
-  if (settings.cat === name) settings.cat = '';
-  catsChanged();
+  const n = catCount(name), dlg = $('#catDel');
+  $('#catDelTitle').textContent = `'${name}' 카테고리 지우기`;
+  $('#catDelInfo').textContent = n ? `이 카테고리에 영상이 ${n}개 있어요.` : '이 카테고리는 비어 있어요.';
+  $('#catDelAll').hidden = !n;
+  $('#catDelAll small').textContent = `영상 ${n}개도 목록에서 지움 (되돌릴 수 없음)`;
+  const close = () => { dlg.hidden = true; dlg.onclick = null; document.removeEventListener('keydown', esc); };
+  const esc = e => { if (e.key === 'Escape') close(); };
+  const run = withItems => {
+    close();
+    cats = cats.filter(c => c !== name);
+    if (withItems) {
+      const curId = idx >= 0 && items[idx] ? items[idx].id : null, wasCur = curId && items[idx].cat === name;
+      items = items.filter(it => it.cat !== name);
+      if (wasCur) { idx = -1; if (nasOn) nasStop(); else { try { player.stopVideo(); } catch {} } showCover('재생목록에서 영상을 선택하세요'); }   // 보던 영상이 지워졌으면 멈춤
+      else idx = curId ? items.findIndex(x => x.id === curId) : -1;
+    } else items.forEach(it => { if (it.cat === name) delete it.cat; });
+    if (settings.cat === name) settings.cat = '';
+    catsChanged();
+    toast(withItems ? `'${name}' 카테고리와 영상 ${n}개를 지웠어요` : `'${name}' 카테고리를 지웠어요` + (n ? ` (영상 ${n}개는 전체에 남음)` : ''), 3000);
+  };
+  $('#catDelOnly').onclick = () => run(false);
+  $('#catDelAll').onclick = () => run(true);
+  $('#catDelCancel').onclick = close;
+  dlg.onclick = e => { if (e.target === dlg) close(); };
+  document.addEventListener('keydown', esc);
+  dlg.hidden = false;
 }
 function moveCat(from, to){ if (from === to || from < 0 || to < 0 || from >= cats.length || to >= cats.length) return; const [c] = cats.splice(from, 1); cats.splice(to, 0, c); catsChanged(); }
 function setItemCat(i, name){
