@@ -26,8 +26,18 @@ eelsnap\` 에 덮어쓰고
 - 주소: https://stepersjmj-hash.github.io/kids/
 - main에 push하면 Pages가 자동 반영 (1~2분)
 
+## TV로 보내기 (리모컨식 캐스트, 2026-11-23)
+- 폰·PC 페이지(remote) → Reelsnap 중계(mjdownloader `server.js` 의 `/kids/remote/poll`·`/send`, `REMOTE_API` = `NAS_API`) → TV 앱 페이지(tv, TVAPP). 채널 = 구글 계정(서버가 Bearer 토큰을 tokeninfo 로 확인해 `sub`) → 짝짓기 없음, 둘 다 로그인 필요.
+  전송은 긴 폴링(25초) — DSM 리버스 프록시가 SSE 를 버퍼링할 수 있어서. `remoteLoop()`: TV 는 늘, remote 는 화면 보일 때만. since=-1 첫 응답의 msgs 는 버림(지난 명령 재생 방지).
+- remote: `#btnCast`(TV 가 online 일 때만 보임, body.app 에선 숨김, 폰은 34px 원) → `castOn`/`casting()`. 켜면 `playIndex`·`step`·`togglePlay`·막대 이동을 가로채 `castSend({type:'play'|'step'|'toggle'|'seek'})`,
+  화면은 `tvState`(TV 가 보낸 {id,title,cur,dur,playing,rate}, 서버 `tvAge` 로 이 기기 시계 `at` 에 맞춤)로 `castPaint`(덮개 '📺 TV에서 재생 중', 제목·시간·⏯ 아이콘). 다시 켤 때 이 화면에서 실제로 보던 중일 때만 그 영상을 보냄(아니면 'hello' — TV 영상을 처음부터 다시 틀지 않게).
+- tv: `tvHandle(m)` — play 는 목록에 없으면 `m.item` 으로 추가, 보낸 쪽 카테고리(`m.cat`, 그 영상이 안 든 카테고리면 전체)로 `setCat` 후 `playIndex`. 상태는 리모컨이 붙어 있을 때(`remoteOnline`, 서버 응답)만 `tvReport()` — `setPlayIcon` 때마다(400ms 디바운스) + 5초마다.
+- 로컬 시험: mjdownloader 에서 `PORT=3199 KIDS_REMOTE_TEST=1 node server.js`, 두 탭 `/?nas=http://127.0.0.1:3199`·`/?app=1&nas=…` 에서 `driveSync = async()=>{}; gToken='test:me'; gTokenExp=Date.now()+36e5`
+  (driveSync 를 막지 않으면 가짜 토큰으로 드라이브 401 → gToken 이 지워짐). 같은 출처라 두 탭이 localStorage 를 공유함에 주의
+- NAS 반영: server.js 를 `\\mjj\docker\reelsnap\` 에 복사 → Container Manager 에서 reelsnap 프로젝트 빌드(정지 → 빌드 → 시작)
+
 ## 로드맵
-- B: PC 크롬 탭 전송으로 크롬캐스트 재생
+- B: PC 크롬 탭 전송으로 크롬캐스트 재생 (→ 대신 'TV로 보내기' 구현)
 - A(구현됨, `android-tv/`): Chromecast with Google TV에 WebView로 이 페이지를 띄우는 Android TV 앱(ADB 사이드로드)
 - 대안 C: pychromecast YouTubeController로 TV의 공식 YouTube 앱 원격 조종 (미검증)
 
