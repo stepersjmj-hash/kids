@@ -91,7 +91,11 @@
   #btnMark svg { width:16px; height:16px; margin-top:-2px; }
   #btnMark:hover { filter:brightness(1.04); }
   #btnMark.same { background:#e5f7ec; color:var(--ok-text); box-shadow:inset 0 -3px 0 #bfe8cf, 0 4px 10px rgba(120,80,30,.12); }   /* 이미 이 지점이 시작 시각 */
-  body.app #btnMark { display:none !important; }
+  /* TV: 같은 자리(다음 버튼 오른쪽), u 단위. 리모컨 ◀▶ 로 포커스가 들어옴(바의 보이는 버튼 순서: 이전·재생·다음·⏱·전체화면) */
+  body.app #btnMark { left:calc(100% + 16 * var(--u)); height:calc(36 * var(--u)); gap:calc(5 * var(--u)); padding:calc(2 * var(--u)) calc(12 * var(--u)) 0 calc(10 * var(--u)); font-size:calc(15 * var(--u)); box-shadow:inset 0 calc(-3 * var(--u)) 0 #e6b92e; }
+  body.app #btnMark svg { width:calc(16 * var(--u)); height:calc(16 * var(--u)); }
+  body.app #btnMark.kfocus { box-shadow:inset 0 calc(-3 * var(--u)) 0 #e6b92e, 0 0 0 calc(4 * var(--u)) var(--bg), 0 0 0 calc(8 * var(--u)) var(--accent); }
+  body.app #btnMark.same.kfocus { box-shadow:inset 0 calc(-3 * var(--u)) 0 #bfe8cf, 0 0 0 calc(4 * var(--u)) var(--bg), 0 0 0 calc(8 * var(--u)) var(--accent); }
   /* 알약 칩 */
   .chip { height:40px; display:inline-flex; align-items:center; gap:6px; padding:0 16px; border-radius:999px; background:var(--card); color:var(--text); white-space:nowrap; }
   .chip:hover { background:#fff3dc; }
@@ -629,6 +633,7 @@
   <div class="rows">
     <div><b>◀ ▶</b><span>아래 버튼 고르기 (이전 · 재생 · 다음 · 전체화면). 빠르게 두 번 = 10초, 세 번 = 30초 이동</span></div>
     <div><b>◀ ▶ 3초</b><span>누르고 있으면 이전 · 다음 영상 (1초 지나면 안내가 떠요)</span></div>
+    <div><b>⏱ 시작 시각</b><span>일시정지하면 다음 버튼 옆에 ⏱ 가 생겨요 — ▶ 로 가서 ● 누르면 그 지점부터 시작</span></div>
     <div><b>오른쪽 목록</b><span>전체화면 버튼에서 ▶ 또는 ▲ 로 들어가 ▲▼ 고르고 ● 재생, ◀ · ↩ 로 돌아오기</span></div>
     <div><b>●</b><span>고른 버튼 누르기. 세 번 연타 = 지금 영상 삭제</span></div>
     <div><b>▲ ▼</b><span>골라 보기 열기. 안에서 ◀▶▲▼ 로 고르고 ● 로 재생 (영상 위에서 세 번 연타 = 삭제)</span></div>
@@ -1543,8 +1548,13 @@ function tickProgress(){
 // ⏱ 시작 시각 버튼: 유튜브·NAS 영상이 일시정지(PAUSED)일 때만, 지금 위치를 보여 줌
 function paintMark(){
   const b = $('#btnMark'); let show = false, t = 0;
-  if (!TVAPP && !casting() && ready && idx >= 0 && items[idx]) { try { show = ctl().getPlayerState() === 2; t = ctl().getCurrentTime() || 0; } catch {} }
-  b.hidden = !show;
+  if (!casting() && ready && idx >= 0 && items[idx]) { try { show = ctl().getPlayerState() === 2; t = ctl().getCurrentTime() || 0; } catch {} }
+  if (b.hidden === show) {
+    // TV: 버튼이 생기거나 사라지면 바 버튼 순서가 바뀌므로 포커스가 있던 버튼을 그대로 따라감
+    const f = TVAPP ? barButtons()[barIdx] : null;
+    b.hidden = !show;
+    if (f) { const k = barButtons().indexOf(f); barIdx = k >= 0 ? k : Math.min(barIdx, barButtons().length - 1); if (document.querySelector('#bar .kfocus')) barMark(); }
+  }
   if (show) { const s = fmt(t); if (b.lastChild.textContent !== s) b.lastChild.textContent = s; b.classList.toggle('same', startOf(items[idx]) === Math.floor(t)); }
 }
 setInterval(tickProgress, 500);
