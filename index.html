@@ -633,7 +633,7 @@
   <div class="rows">
     <div><b>◀ ▶</b><span>아래 버튼 고르기 (이전 · 재생 · 다음 · 전체화면). 빠르게 두 번 = 10초, 세 번 = 30초 이동</span></div>
     <div><b>◀ ▶ 3초</b><span>누르고 있으면 이전 · 다음 영상 (1초 지나면 안내가 떠요)</span></div>
-    <div><b>⏱ 시작 시각</b><span>일시정지하면 다음 버튼 옆에 ⏱ 가 생겨요 — ▶ 로 가서 ● 누르면 그 지점부터 시작</span></div>
+    <div><b>⏱ 시작 시각</b><span>일시정지하면 다음 버튼 옆에 노란 ⏱ — ▶ 로 가서 ● 누르면 그 지점부터 시작. 초록 ⏱(저장된 시각)를 ● 누르면 해제</span></div>
     <div><b>오른쪽 목록</b><span>전체화면 버튼에서 ▶ 또는 ▲ 로 들어가 ▲▼ 고르고 ● 재생, ◀ · ↩ 로 돌아오기</span></div>
     <div><b>●</b><span>고른 버튼 누르기. 세 번 연타 = 지금 영상 삭제</span></div>
     <div><b>▲ ▼</b><span>골라 보기 열기. 안에서 ◀▶▲▼ 로 고르고 ● 로 재생 (영상 위에서 세 번 연타 = 삭제)</span></div>
@@ -1546,16 +1546,30 @@ function tickProgress(){
   paintMark();
 }
 // ⏱ 시작 시각 버튼: 유튜브·NAS 영상이 일시정지(PAUSED)일 때만, 지금 위치를 보여 줌
+// ⏱ 버튼 두 가지 모양 (2026-11-25):
+//  · 'set'   노란색 = 일시정지 중이고 지금 위치가 저장된 시작 시각과 다름 → 지금 위치를 보여 주고, 누르면 그 지점을 시작 시각으로
+//  · 'clear' 초록색 = 시작 시각이 저장돼 있음(재생 중에도 늘 보임) → 저장된 시각을 보여 주고, 다시 누르면 해제
 function paintMark(){
-  const b = $('#btnMark'); let show = false, t = 0;
-  if (!casting() && ready && idx >= 0 && items[idx]) { try { show = ctl().getPlayerState() === 2; t = ctl().getCurrentTime() || 0; } catch {} }
+  const b = $('#btnMark'); let show = false, t = 0, mode = '', label = '';
+  if (!casting() && ready && idx >= 0 && items[idx]) {
+    let paused = false; try { paused = ctl().getPlayerState() === 2; t = ctl().getCurrentTime() || 0; } catch {}
+    const st = startOf(items[idx]);
+    if (paused && Math.floor(t) !== st) { mode = 'set'; label = fmt(t); }
+    else if (st) { mode = 'clear'; label = fmt(st); }
+    show = !!mode;
+  }
   if (b.hidden === show) {
     // TV: 버튼이 생기거나 사라지면 바 버튼 순서가 바뀌므로 포커스가 있던 버튼을 그대로 따라감
     const f = TVAPP ? barButtons()[barIdx] : null;
     b.hidden = !show;
     if (f) { const k = barButtons().indexOf(f); barIdx = k >= 0 ? k : Math.min(barIdx, barButtons().length - 1); if (document.querySelector('#bar .kfocus')) barMark(); }
   }
-  if (show) { const s = fmt(t); if (b.lastChild.textContent !== s) b.lastChild.textContent = s; b.classList.toggle('same', startOf(items[idx]) === Math.floor(t)); }
+  b.dataset.mode = mode;
+  if (show) {
+    if (b.lastChild.textContent !== label) b.lastChild.textContent = label;
+    b.classList.toggle('same', mode === 'clear');
+    b.title = mode === 'clear' ? `시작 시각 ${label} 저장됨 — 누르면 해제(처음부터)` : `지금 위치 ${label} 을 이 영상의 시작 시각으로 저장`;
+  }
 }
 setInterval(tickProgress, 500);
 // 막대 클릭·드래그로 이동: 끄는 동안은 손잡이만 따라가고 놓을 때 seekTo
@@ -2004,9 +2018,14 @@ $('#btnRate').onclick = cycleRate;
 $('#btnMark').onclick = () => {
   const it = items[idx]; if (!it) return;
   let t = 0; try { t = Math.floor(ctl().getCurrentTime() || 0); } catch {}
-  if (t >= 1) it.start = t; else delete it.start;
+  if ($('#btnMark').dataset.mode === 'clear' || t < 1) {   // 초록(저장됨)을 다시 누르면 해제
+    const had = startOf(it); delete it.start;
+    toast(had ? `시작 시각 ${fmt(had)} 해제 — 다음부터 처음부터` : '시작 시각이 없어요', 2200);
+  } else {
+    it.start = t;
+    toast(`시작 시각 ${fmt(t)} 저장 — 다음부터 여기서 시작 (다시 누르면 해제)`, 2400);
+  }
   save(); render(); paintMark();   // save() 서명에 시작 시각이 들어 있어 드라이브로도 동기화
-  toast(t >= 1 ? `시작 시각 ${fmt(t)} 저장 — 다음부터 여기서 시작` : '시작 시각을 지웠습니다 (처음부터)', 2200);
 };
 $('#btnShuffle').onclick = () => { settings.shuffle=!settings.shuffle; save(); rebuildOrder(); render(); preloadNext(); toast(settings.shuffle ? '랜덤 재생 켜짐' : '랜덤 재생 꺼짐 — 순서대로', 1800); };
 $('#btnReload').onclick = () => TVAPP && KidsTV.reload ? KidsTV.reload() : location.reload();
